@@ -254,6 +254,7 @@ public:
 		carrycheck = mTS1 + mTS2;
 		borrowcheck = mTS1 - mTS2;
 
+//todo tengo que arreglar el overload
 		switch (opType) {
 		case 1: //Add
 			if (C != 3) {
