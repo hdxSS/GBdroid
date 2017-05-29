@@ -13,7 +13,7 @@
 //CPU -- Done with partial functionality
 //Timers -- 0% - NEXT
 //Interrupts - 0%
-//FlagHandling - Done
+//FlagHandling - Done // check logic cases
 //Register combining - Done
 //Gfx - 0%
 //Sound - 0%
@@ -769,12 +769,15 @@ FLGH(2,0,1,3);
 	void NOP() {
 	}
 	void ORHLMRA() {
+		FLGH(2,0,0,0);
 		hlM |= Ra;
 	}
 	void ORRA8INT(unsigned char _8int) {
+		FLGH(2,0,0,0);
 		Ra |= _8int;
 	}
 	void ORRA8R(unsigned char _8r) {
+		FLGH(2,0,0,0);
 		Ra |= _8r;
 	}
 	void POP16R(unsigned _16r) {
@@ -794,8 +797,12 @@ FLGH(2,0,1,3);
 	void RET() {}
 	void RETCC(unsigned char flagcc) {}
 	void RETI() {}
-	void RLHM() {}
-	void RLR8(unsigned char _8r, unsigned char _8r2) {}
+	void RLHM() {
+		FLGH(2,0,0,2);
+		}
+	void RLR8(unsigned char _8r, unsigned char _8r2) {
+		FLGH(2,0,0,2);
+		}
 	void RLA() {}
 	void RLCHM() {}
 	void RLCR8R8(unsigned char _r8, unsigned char _r82) {}
