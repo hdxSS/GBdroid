@@ -8,6 +8,19 @@
 #include <cstdlib>
 #include <bitset>
 
+//Modules
+//MMU - Done
+//CPU -- Done with partial functionality
+//Timers -- 0% - NEXT
+//Interrupts - 0%
+//FlagHandling - Done
+//Register combining - Done
+//Gfx - 0%
+//Sound - 0%
+//Input - 0%
+
+
+
 unsigned char  memoryT[0xFFFF];
 unsigned char memoryA[0xFFFF];
 char letter;
@@ -194,49 +207,73 @@ public:
 	// Flag handling
 
 	unsigned char addTarget = 0;
-
-	void CALCFLG(unsigned char mTC1, unsigned char mTC2, unsigned int opType)
+	
+		void CALCFLG(unsigned char mTC1, unsigned char mTC2, unsigned int opType)
 	{
+		//overload del modulo CALCFLG
 		//opTypes
 		// 1 - ADD
 		// 2 - SUB
 		// 3 - Comp
 
+//probando sync
 		// x + y > 255
-		unsigned short carrycheck;
-		unsigned short borrowcheck;
+		unsigned char carrycheck;
+		unsigned char borrowcheck;
 		carrycheck = mTC1 + mTC2;
 		borrowcheck = mTC1 - mTC2;
 
+//todo tengo que arreglar el overload
 		switch (opType) {
 		case 1: //Add
-
-			if (carrycheck > 0xFF) {
-				//carry flag
-				Rf |= (1);
+			if (C == 2) {
+				if (carrycheck > 0xFF) {
+					//carry flag
+					Rf |= (1);
+				}
+				if (carrycheck > 0xF) {
+					//half carry flag
+					Rf |= (1 << 1);
+				}
 			}
-			if (carrycheck > 0xF) {
-				//half carry flag
-				Rf |= (1 << 1);
+			else if ( C == 3 ) {
+				std::cout << "Ignore C flag";
 			}
+			//Do nothing
 			break;
 		case 2: //Sub
-			Rf |= (1 << 2);
-			if (borrowcheck < 0) {
-				Rf |= (1);
-			}
-			if (borrowcheck < 0xF) {
-				Rf |= (1 << 1);
-			}
-			break;
+			if (N == 2) {
+				{
+
+					Rf |= (1 << 2);
+					if (borrowcheck < 0) {
+						Rf |= (1);
+					}
+					if (borrowcheck < 0xF) {
+						Rf |= (1 << 1);
+					}
+				}
+				break;
 		case 3: // Compare
-			if (borrowcheck == 0) {
-				//zero flag
-				Rf |= (1 << 3);
+			if (Z == 2) {
+				if (borrowcheck == 0) {
+					//zero flag
+					Rf |= (1 << 3);
+				}
 			}
+			else if (Z == 3 ) {
+				std::cout << "Ignore Z flag";
+			}
+		
 			break;
+			}
+			else if (N == 3 ) {
+				std::cout << "Ignore N flag";
+			}
+			
 		}
 	} //end flagcalcChar
+
 
 
 	void CALCFLG(unsigned short mTS1, unsigned short mTS2, unsigned int opType)
@@ -257,7 +294,7 @@ public:
 //todo tengo que arreglar el overload
 		switch (opType) {
 		case 1: //Add
-			if (C != 3) {
+			if (C == 2) {
 				if (carrycheck > 0xFF) {
 					//carry flag
 					Rf |= (1);
@@ -267,10 +304,13 @@ public:
 					Rf |= (1 << 1);
 				}
 			}
+			else if ( C == 3 ) {
+				std::cout << "Ignore C flag";
+			}
 			//Do nothing
 			break;
 		case 2: //Sub
-			if (N != 3) {
+			if (N == 2) {
 				{
 
 					Rf |= (1 << 2);
@@ -283,16 +323,24 @@ public:
 				}
 				break;
 		case 3: // Compare
-			if (Z != 3) {
+			if (Z == 2) {
 				if (borrowcheck == 0) {
 					//zero flag
 					Rf |= (1 << 3);
 				}
 			}
+			else if (Z == 3 ) {
+				std::cout << "Ignore Z flag";
+			}
+		
 			break;
 			}
+			else if (N == 3 ) {
+				std::cout << "Ignore N flag";
+			}
+			
 		}
-	} //end flagcalcChar
+	} //end flagcalcShort
 
 
 	void FLGH(unsigned char Z, unsigned char N, unsigned char H, unsigned char C) {
@@ -422,6 +470,7 @@ public:
 	void ADDA8INT(unsigned char _8int) {
 		Ra += _8int;
 		//update timers
+		FLGH(2, 0, 2, 2);
 		CALCFLG(Ra, _8int, 1);
 	}
 	void ADDA8R(unsigned char _8r) {
@@ -433,7 +482,7 @@ public:
 	}
 	void ADDHL16R(unsigned short _R1) {
 		Rhl += _R1;
-		FLGH(2, 0, 2, 2);
+		FLGH(3, 0, 2, 2);
 		CALCFLG(Rhl, _R1, 1);
 
 		//update timers
@@ -441,10 +490,15 @@ public:
 	}
 	void ADDSP8OFF(unsigned char _8off) {
 		sp = +_8off;
+		FLGH(0, 0, 2, 2);
+		CALCFLG(Rhl, _R1, 1);
 		//update timers
 		//update flags
 	}
 	void ANDAHLM() {
+		Ra &= hlM;
+		FLGH(2, 0, 1, 0);
+		CALCFLG(Rhl, _R1, 1);
 		//update timers
 		//update flags
 	}
