@@ -437,77 +437,86 @@ public:
 #pragma endregion
 
 #pragma region InstructionMapping
+//probablemente ningun calculo de flag funciona porque se calcula sobre el resultado
 	// Instruction mapping ----------
 	void ADC8RHLM() {
 		// n + carry flag to A
 		addTarget = (Rf & (0x1)) + hlM;
-		Ra += addTarget;
-		//update timers
 		FLGH(2, 0, 2, 2);
 		CALCFLG(Ra, addTarget, 1);
+		Ra += addTarget;
+		//update timers
+		
 	}
 
 	void ADCA8INT(unsigned char _8int) {
 		addTarget = (Rf & (0x1)) + _8int;
-		Ra += addTarget;
-		//update timers
 		FLGH(2, 0, 2, 2);
 		CALCFLG(Ra, addTarget, 1);
+		Ra += addTarget;
+		//update timers
+		
 	}
 	void ADC8R8(unsigned char _8r) {
 		addTarget = (Rf & (0x1)) + _8r;
-		Ra += addTarget;
-		//update timers
 		FLGH(2, 0, 2, 2);
 		CALCFLG(Ra, addTarget, 1);
+		Ra += addTarget;
+		//update timers
+		
 	}
 	void ADDAHLM() {
-		Ra += hlM;
-		//update timers
 		FLGH(2, 0, 2, 2);
 		CALCFLG(Ra, hlM, 1);
+		Ra += hlM;
+		//update timers
+		
 	}
 	void ADDA8INT(unsigned char _8int) {
-		Ra += _8int;
-		//update timers
 		FLGH(2, 0, 2, 2);
 		CALCFLG(Ra, _8int, 1);
+		Ra += _8int;
+		//update timers
+		
 	}
 	void ADDA8R(unsigned char _8r) {
-		Ra += _8r;
-		//update timers
 		FLGH(2, 0, 2, 2);
 		CALCFLG(Ra, _8r, 1);
-		FLGH(2, 0, 2, 2);
+		Ra += _8r;
+		//update timers
+		
 	}
 	void ADDHL16R(unsigned short _R1) {
-		Rhl += _R1;
 		FLGH(3, 0, 2, 2);
 		CALCFLG(Rhl, _R1, 1);
-
+		Rhl += _R1;
 		//update timers
 		//update flags
 	}
 	void ADDSP8OFF(unsigned char _8off) {
-		sp = +_8off;
 		FLGH(0, 0, 2, 2);
-		CALCFLG(Rhl, _R1, 1);
+		CALCFLG(sp,  _8off, 1);
+		sp = +_8off;
+		
 		//update timers
-		//update flags
 	}
 	void ANDAHLM() {
-		Ra &= hlM;
 		FLGH(2, 0, 1, 0);
-		CALCFLG(Rhl, _R1, 1);
+		CALCFLG(Ra, hlM, 1);
+		Ra &= hlM;
+		
 		//update timers
-		//update flags
 	}
 	void ANDA8INT(unsigned char _8int) {
+		FLGH(2,0,1,0);
+		CALCFLG(Ra, _8int, 3); //set optype3 as AND
 		Ra &= _8int;
+		
 		//update timers
-		//update flags
 	}
 	void ANDA8R(unsigned char _8r) {
+		FLGH(2,0,1,0);
+		CALCFLG(Ra, _8r, 3);  //set optype3 as AND
 		Ra &= _8r;
 		//update timers
 		//update flags
@@ -521,10 +530,11 @@ public:
 		case 0:
 			std::cout << "tested negative\n";
 		}
+		FLGH(2,0,1,3);
+		//CALCFLG(Ra, _8int, 3) //set optype4 op de revision valor hlM o hacer directo aca
 
 		//bit test agains
 		//update timers
-		//update flags
 	}
 	void BIT8R(unsigned char bitnum, unsigned char _8r) {
 
@@ -535,10 +545,11 @@ public:
 		case 0:
 			std::cout << "tested negative\n";
 		}
-
+FLGH(2,0,1,3);
+		//CALCFLG(Ra, _8int, 3) //set optype4 op de revision valor hlM o hacer directo aca
 		//bit test agains
 		//update timers
-		//update flags
+	
 	}
 	void CALLPCF16BA(int flagcc, unsigned short _16BA) {
 
@@ -555,21 +566,27 @@ public:
 		//skip
 	}
 	void CARRYFLAG() {
-		//set carry flag
+		FLGH(3,0,0,2);
+		//CALCFLG(Ra, _8int, 3) //set optype4 op de revision valor hlM o hacer directo aca
 		//update timers
-		//update flags
 	}
 	void COMPHLM() {
+		FLGH(2,1,2,2);
 	}
 	void COMP8INT(unsigned char _8int) {
+		FLGH(2,1,2,2);
 	}
 	void COMP8R(unsigned char _8r) {
+		FLGH(2,1,2,2);
 	}
 	void CPL() {
+		FLGH(3,1,1,3);
 	}
-	void DAa() {
+	void DAA() {
+		FLGH(2,3,0,2);
 	}
 	void DECHLM() {
+		FLGH(2,1,2,3);
 		hlM--;
 		//update timers
 		//update flags
@@ -580,6 +597,7 @@ public:
 		//update flags
 	}
 	void DEC8R(unsigned char _r8) {
+		FLGH(2,1,2,3);
 		_r8--;
 		//update timers
 		//update flags
@@ -591,6 +609,7 @@ public:
 	void HALT() {
 	}
 	void INCHLM() {
+		FLGH(2,0,2,3);
 		hlM++;
 		//update timers
 		//update flags
@@ -601,6 +620,7 @@ public:
 		//update flags
 	}
 	void INC8R(unsigned char _r8) {
+		FLGH(2,0,2,3);
 		_r8++;
 		//update timers
 		//update flags
@@ -679,6 +699,7 @@ public:
 		//update flags
 	}
 	void LOADRHLSPOFF(unsigned char _8boff) {
+		FLGH(0,0,2,2);
 		Rhl = (sp + _8boff);
 		//update timers
 		//update flags
