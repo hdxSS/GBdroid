@@ -10,9 +10,9 @@
 
 //Modules
 //MMU - Done
-//CPU -- Done with partial functionality
-//Timers -- 0% - NEXT
-//Interrupts - 0%
+//CPU -- Done + flags
+//Timers -- Starting timers
+//Interrupts - 0% - Next
 //FlagHandling - Done // check logic cases
 //Register combining - Done
 //Gfx - 0%
@@ -910,19 +910,49 @@ FLGH(2,0,1,3);
 		}
 	void SETBHM(unsigned char _bit) {}
 	void SETBR8(unsigned char _bit, unsigned char _r8) {}
-	void SRAHM() {}
-	void SRAR8R8(unsigned char _8r, unsigned char _r82) {}
-	void SRLHM() {}
-	void SRLR8R8(unsigned char _8r, unsigned char _r82) {}
+	void SLAHLM() {
+		FLGH(2,0,0,2);
+	}
+	void SLAR8(unsigned char _r8) {
+		FLGH(2,0,0,2);
+	}
+	void SRAHM() {
+		FLGH(2,0,0,2);
+		}
+	void SRAR8R8(unsigned char _8r, unsigned char _r82) {
+		FLGH(2,0,0,2);
+		}
+	void SRLHM() {
+		FLGH(2,0,0,2);
+		}
+	void SRLR8R8(unsigned char _8r, unsigned char _r82) {
+		FLGH(2,0,0,2);
+		}
 	void STOP() {}
-	void SUBAHLM() {}
-	void SUBA8INT(unsigned char _8int) {}
-	void SUBAR8R8(unsigned char _r8, unsigned char _r82) {}
-	void SWAPHLM() {}
-	void SWAPR8R8(unsigned char _r8, unsigned char _r82) {}
-	void XORHLM() {}
-	void XOR8INT(unsigned char _8int) {}
-	void XORR8R8(unsigned char _r8, unsigned char _r82) {}
+	void SUBAHLM() {
+		FLGH(2,1,2,2);
+		}
+	void SUBA8INT(unsigned char _8int) {
+		FLGH(2,1,2,2);
+		}
+	void SUBAR8R8(unsigned char _r8, unsigned char _r82) {
+		FLGH(2,1,2,2);
+		}
+	void SWAPHLM() {
+		FLGH(2,0,0,0);
+		}
+	void SWAPR8R8(unsigned char _r8, unsigned char _r82) {
+		FLGH(2,0,0,0);
+		}
+	void XORHLM() {
+		FLGH(2,0,0,0);
+		}
+	void XOR8INT(unsigned char _8int) {
+		FLGH(2,0,0,0);
+		}
+	void XORR8R8(unsigned char _r8, unsigned char _r82) {
+		FLGH(2,0,0,0);
+		}
 
 #pragma endregion
 
