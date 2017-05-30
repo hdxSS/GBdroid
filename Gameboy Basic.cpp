@@ -215,13 +215,24 @@ public:
 		// 1 - ADD
 		// 2 - SUB
 		// 3 - Comp
+		// 4 - AND
+		// 5 - OR
+		// 6 - XOR
 
 //probando sync
 		// x + y > 255
 		unsigned char carrycheck;
 		unsigned char borrowcheck;
+		unsigned char ANDcheck;
+		unsigned char ORcheck;
+		unsigned char XORcheck;
+		
 		carrycheck = mTC1 + mTC2;
 		borrowcheck = mTC1 - mTC2;
+		ANDcheck = mTC1 && mTC2;
+		ORcheck = mTC1 || mTC2;
+		XORcheck = mTC1 ^ mTC2;
+		
 
 //todo tengo que arreglar el overload
 		switch (opType) {
@@ -253,6 +264,8 @@ public:
 						Rf |= (1 << 1);
 					}
 				}
+					
+			
 				break;
 		case 3: // Compare
 			if (Z == 2) {
@@ -266,9 +279,27 @@ public:
 			}
 		
 			break;
+
+			case 4: //optype AND
+			if (ANDcheck == 0) {
+				//SETS FLAG
 			}
-			else if (N == 3 ) {
-				std::cout << "Ignore N flag";
+			
+			break;
+			
+			case 5: //optype OR
+				if (ORcheck == 0) {
+				//SETS FLAG
+			}
+			break;
+			
+			case 6: //optype XOR
+				if (XORcheck == 0) {
+				//SETS FLAG
+			}
+			break;
+			
+			
 			}
 			
 		}
@@ -283,13 +314,24 @@ public:
 		// 1 - ADD
 		// 2 - SUB
 		// 3 - Comp
+		// 4 - AND
+		// 5 - OR
+		// 6 - XOR
 
 //probando sync
 		// x + y > 255
 		unsigned short carrycheck;
 		unsigned short borrowcheck;
+		unsigned short ANDcheck;
+		unsigned short ORcheck;
+		unsigned short XORcheck;
+		
 		carrycheck = mTS1 + mTS2;
 		borrowcheck = mTS1 - mTS2;
+		ANDcheck = mTS1 && mTS2;
+		ORcheck = mTS1 || mTS2;
+		XORcheck = mTS1 ^ mTS2;
+		
 
 //todo tengo que arreglar el overload
 		switch (opType) {
@@ -321,6 +363,8 @@ public:
 						Rf |= (1 << 1);
 					}
 				}
+					
+			
 				break;
 		case 3: // Compare
 			if (Z == 2) {
@@ -334,9 +378,27 @@ public:
 			}
 		
 			break;
+
+			case 4: //optype AND
+			if (ANDcheck == 0) {
+				//SETS FLAG
 			}
-			else if (N == 3 ) {
-				std::cout << "Ignore N flag";
+			
+			break;
+			
+			case 5: //optype OR
+				if (ORcheck == 0) {
+				//SETS FLAG
+			}
+			break;
+			
+			case 6: //optype XOR
+				if (XORcheck == 0) {
+				//SETS FLAG
+			}
+			break;
+			
+			
 			}
 			
 		}
@@ -803,21 +865,49 @@ FLGH(2,0,1,3);
 	void RLR8(unsigned char _8r, unsigned char _8r2) {
 		FLGH(2,0,0,2);
 		}
-	void RLA() {}
-	void RLCHM() {}
-	void RLCR8R8(unsigned char _r8, unsigned char _r82) {}
-	void RLCA() {}
-	void RRHM() {}
-	void RRR8R8(unsigned char _r8, unsigned char _r82) {}
-	void RRA() {}
-	void RRCHM() {}
-	void RRCR8R8(unsigned char _r8, unsigned char _r82) {}
-	void RRCA() {}
+	void RLA() {
+		FLGH(0,0,0,2);
+		}
+	void RLCHM() {
+		FLGH(2,0,0,2);
+		}
+	void RLCR8R8(unsigned char _r8, unsigned char _r82) {
+		FLGH(2,0,0,2);
+		}
+	void RLCA() {
+		FLGH(0,0,0,2);
+		}
+	void RRHM() {
+		FLGH(2,0,0,2);
+		}
+	void RRR8R8(unsigned char _r8, unsigned char _r82) {
+		FLGH(2,0,0,2);
+		}
+	void RRA() {
+		FLGH(0,0,0,2);
+		}
+	void RRCHM() {
+		FLGH(2,0,0,2);
+		}
+	void RRCR8R8(unsigned char _r8, unsigned char _r82) {
+		FLGH(2,0,0,2);
+		}
+	void RRCA() {
+		FLGH(0,0,0,2);
+		}
 	void RSTF(unsigned char _byte) {}
-	void SBCHM() {}
-	void SBC8INT(unsigned char _8int) {}
-	void SBC8R(unsigned char _r8) {}
-	void SCF() {}
+	void SBCHM() {
+		FLGH(2,1,2,2);
+		}
+	void SBC8INT(unsigned char _8int) {
+		FLGH(2,1,2,2);
+		}
+	void SBC8R(unsigned char _r8) {
+		FLGH(2,1,2,2);
+		}
+	void SCF() {
+		FLGH(3,0,0,1);
+		}
 	void SETBHM(unsigned char _bit) {}
 	void SETBR8(unsigned char _bit, unsigned char _r8) {}
 	void SRAHM() {}
