@@ -45,8 +45,8 @@ public:
 	unsigned short pc = 0;
 	unsigned char Rh = 0;
 	unsigned char sp = 0;
-	unsigned char m = 0;
-	unsigned char t = 0;
+	unsigned char opClock = 0;
+	unsigned char emulatedClock = 0;
 	unsigned char mathTC1 = 0;
 	unsigned char mathTC2 = 0;
 	unsigned char mathTS1 = 0;
@@ -507,7 +507,8 @@ public:
 		FLGH(2, 0, 2, 2);
 		CALCFLG(Ra, addTarget, 1);
 		Ra += addTarget;
-		//update timers
+		opClock = 1;
+		
 		
 	}
 
@@ -516,7 +517,7 @@ public:
 		FLGH(2, 0, 2, 2);
 		CALCFLG(Ra, addTarget, 1);
 		Ra += addTarget;
-		//update timers
+		opClock = 2;
 		
 	}
 	void ADC8R8(unsigned char _8r) {
@@ -524,64 +525,59 @@ public:
 		FLGH(2, 0, 2, 2);
 		CALCFLG(Ra, addTarget, 1);
 		Ra += addTarget;
-		//update timers
+		opClock = 1;
 		
 	}
 	void ADDAHLM() {
 		FLGH(2, 0, 2, 2);
 		CALCFLG(Ra, hlM, 1);
 		Ra += hlM;
-		//update timers
+		opClock = 1;
 		
 	}
 	void ADDA8INT(unsigned char _8int) {
 		FLGH(2, 0, 2, 2);
 		CALCFLG(Ra, _8int, 1);
 		Ra += _8int;
-		//update timers
+		opClock = 2;
 		
 	}
 	void ADDA8R(unsigned char _8r) {
 		FLGH(2, 0, 2, 2);
 		CALCFLG(Ra, _8r, 1);
 		Ra += _8r;
-		//update timers
+		opClock = 1;
 		
 	}
 	void ADDHL16R(unsigned short _R1) {
 		FLGH(3, 0, 2, 2);
 		CALCFLG(Rhl, _R1, 1);
 		Rhl += _R1;
-		//update timers
-		//update flags
+		opClock = 1;
 	}
 	void ADDSP8OFF(unsigned char _8off) {
 		FLGH(0, 0, 2, 2);
 		CALCFLG(sp,  _8off, 1);
 		sp = +_8off;
-		
-		//update timers
+		opClock = 2;
 	}
 	void ANDAHLM() {
 		FLGH(2, 0, 1, 0);
 		CALCFLG(Ra, hlM, 1);
 		Ra &= hlM;
-		
-		//update timers
+		opClock = 1;
 	}
 	void ANDA8INT(unsigned char _8int) {
 		FLGH(2,0,1,0);
 		CALCFLG(Ra, _8int, 3); //set optype3 as AND
 		Ra &= _8int;
-		
-		//update timers
+		opClock = 2;
 	}
 	void ANDA8R(unsigned char _8r) {
 		FLGH(2,0,1,0);
 		CALCFLG(Ra, _8r, 3);  //set optype3 as AND
 		Ra &= _8r;
-		//update timers
-		//update flags
+		opClock = 1;
 	}
 	void BITHLM(unsigned char bitnum) {
 
@@ -593,6 +589,7 @@ public:
 			std::cout << "tested negative\n";
 		}
 		FLGH(2,0,1,3);
+		opClock = 2;
 		//CALCFLG(Ra, _8int, 3) //set optype4 op de revision valor hlM o hacer directo aca
 
 		//bit test agains
@@ -608,6 +605,7 @@ public:
 			std::cout << "tested negative\n";
 		}
 FLGH(2,0,1,3);
+opClock = 2;
 		//CALCFLG(Ra, _8int, 3) //set optype4 op de revision valor hlM o hacer directo aca
 		//bit test agains
 		//update timers
@@ -620,77 +618,91 @@ FLGH(2,0,1,3);
 			pc = _16BA;
 		}
 
-		//skip
+		opClock = 3;
 	}
 	void CALLPC16BA(unsigned short _16BA) {
 		pc = _16BA;
 		// mal la dif entre jump y call
 		//skip
+		opClock = 3;
 	}
 	void CARRYFLAG() {
 		FLGH(3,0,0,2);
 		//CALCFLG(Ra, _8int, 3) //set optype4 op de revision valor hlM o hacer directo aca
-		//update timers
+		opClock = 1;
 	}
 	void COMPHLM() {
 		FLGH(2,1,2,2);
+		opClock = 1;
 	}
 	void COMP8INT(unsigned char _8int) {
 		FLGH(2,1,2,2);
+		opClock = 2;
 	}
 	void COMP8R(unsigned char _8r) {
 		FLGH(2,1,2,2);
+		opClock = 1;
 	}
 	void CPL() {
 		FLGH(3,1,1,3);
+		opClock = 1;
 	}
 	void DAA() {
 		FLGH(2,3,0,2);
+		opClock = 1;
 	}
 	void DECHLM() {
 		FLGH(2,1,2,3);
 		hlM--;
-		//update timers
-		//update flags
+		opClock = 1;
+	
 	}
 	void DECR16(unsigned short _16r) {
 		_16r--;
-		//update timers
+		opClock = 1;
 		//update flags
 	}
 	void DEC8R(unsigned char _r8) {
 		FLGH(2,1,2,3);
 		_r8--;
+		opClock = 1;
 		//update timers
 		//update flags
 	}
 	void DI() {
+		opClock = 1;
 	}
 	void EI() {
+		opClock = 1;
 	}
 	void HALT() {
+		opClock = 1;
 	}
 	void INCHLM() {
 		FLGH(2,0,2,3);
 		hlM++;
+		opClock = 1;
 		//update timers
 		//update flags
 	}
 	void INCR16(unsigned short _16r) {
 		_16r++;
 		//update timers
+		opClock = 1;
 		//update flags
 	}
 	void INC8R(unsigned char _r8) {
 		FLGH(2,0,2,3);
 		_r8++;
 		//update timers
+		opClock = 1;
 		//update flags
 	}
 	void JUMPHLM() {
 		pc = hlM;
 
 		//update timers
+		opClock = 1;
 		//update flags
 	}
 	void JUMPCC16BA(int flagcc, unsigned short _16BA) {
@@ -698,9 +710,11 @@ FLGH(2,0,1,3);
 			pc = _16BA;
 		else
 			pc++;
+			opClock = 3;
 	}
 	void JUMP16BA(unsigned short _16BA) {
 		pc = _16BA;
+		opClock = 3;
 		//update timers
 		//update flags
 	}
@@ -710,44 +724,53 @@ FLGH(2,0,1,3);
 		else
 			//skip
 			pc++;
+			opClock = 2;
 	}
 	void JR8INT(unsigned char _8int) {
 		pc = memoryA[_8int];
 		//skip
+		opClock = 2;
 	}
 	void LOADCMRA() {
 		Ra = memoryA[Rc];
 		//update timers
+		opClock = 1;
 		//update flags
 	}
 	void LOADHLM8INT(unsigned char _8int) {
 		hlM = _8int;
 		//update timers
+		opClock = 2;
 		//update flags
 	}
 	void LOADHLM8R(unsigned char _8r) {
 		hlM = _8r;
 		//update timers
+		opClock = 1;
 		//update flags
 	}
 	void LOAD16BAMRA(unsigned short _16ba) {
 		memoryA[_16ba] = Ra;
 		//update timers
+		opClock = 3;
 		//update flags
 	}
 	void LOAD16BASP(unsigned short _16ba) {
 		memoryA[_16ba] = sp;
 		//update timers
+		opClock = 3;
 		//update flags
 	}
 	void LOAD16RMRA(unsigned short _16r) {
 		memoryA[_16r] = Ra;
 		//update timers
+		opClock = 1;
 		//update flags
 	}
 	void LOADRACM(unsigned char _8r) {
 		Ra = memoryA[_8r];
 		//update timers
+		opClock = 1;
 		//update flags
 	}
 	void LOADRA16BAM(unsigned short _16ba) {
