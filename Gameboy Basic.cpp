@@ -776,60 +776,71 @@ opClock = 2;
 	void LOADRA16BAM(unsigned short _16ba) {
 		Ra = memoryA[_16ba];
 		//update timers
+		opClock = 3;
 		//update flags
 	}
 	void LOADRA16RM(unsigned short _16r) {
 		Ra = memoryA[_16r];
 		//update timers
+		opClock = 1;
 		//update flags
 	}
 	void LOADRHLSPOFF(unsigned char _8boff) {
 		FLGH(0,0,2,2);
 		Rhl = (sp + _8boff);
 		//update timers
+		opClock = 2;
 		//update flags
 	}
 	void LOADR1616INT(unsigned short _16r, unsigned short _16int) {
 		_16r = _16int;
 		//update timers
+		opClock = 3;
 		//update flags
 	}
 	void LOADR8HLM(unsigned char _8r) {
 		_8r = hlM;
 		//update timers
+		opClock = 1;
 		//update flags
 	}
 	void LOADR88INT(unsigned char _8r, unsigned char _8int) {
 		_8r = _8int;
 		//update timers
+		opClock = 2;
 		//update flags
 	}
 	void LOADR8R8(unsigned char _8r, unsigned char  _8r2) {
 		_8r = _8r2;
 		//update timers
+		opClock = 1;
 		//update flags
 	}
 	void LOADSPHL(unsigned short SP, unsigned short HL) {
 		SP = HL;
 		//update timers
+		opClock = 1;
 		//update flags
 	}
 	void LOADDR8HLM() {
 		Ra = hlM;
 		Rhl--;
 		//update timers
+		opClock = 1;
 		//update flags
 	}
 	void LOADDHLMR8() {
 		hlM = Ra;
 		Ra--;
 		//update timers
+		opClock = 1;
 		//update flags
 	}
 	void LOADHAOFF(unsigned char off) { //LDH
 
 		memoryA[0xff00 + off] = Ra;
 		//update timers
+		opClock = 2;
 		//update flags
 	}
 
@@ -837,18 +848,21 @@ opClock = 2;
 
 		Ra = memoryA[0xff00 + off];
 		//update timers
+		opClock = 2;
 		//update flags
 	}
 	void LDIHLMRA() {
 		hlM = Ra;
 		Ra++;
 		//update timers
+		opClock = 1;
 		//update flags
 	}
 	void LDIRAHMM() {
 		Ra = hlM;
 		hlM++;
 		//update timers
+		opClock = 1;
 		//update flags
 	}
 	void NOP() {
@@ -856,125 +870,184 @@ opClock = 2;
 	void ORHLMRA() {
 		FLGH(2,0,0,0);
 		hlM |= Ra;
+		opClock = 1;
 	}
 	void ORRA8INT(unsigned char _8int) {
 		FLGH(2,0,0,0);
 		Ra |= _8int;
+		opClock = 2;
 	}
 	void ORRA8R(unsigned char _8r) {
 		FLGH(2,0,0,0);
 		Ra |= _8r;
+		opClock = 1;
 	}
 	void POP16R(unsigned _16r) {
 		memoryA[sp] = _16r;
 		sp--;
+		opClock = 1;
 	}
 	void PUSH() {
 		memoryA[pc] = sp;
 		sp++;
+		opClock = 1;
 	}
 	void RESBHLM(unsigned char _bit) {
 		//bit de hlM a cero
+		opClock = 2;
 	}
 	void RESBR8(unsigned char _bit, unsigned  char _8r){
 		//bit de _8r a cero
+		opClock = 2;
 	}
-	void RET() {}
-	void RETCC(unsigned char flagcc) {}
-	void RETI() {}
+	void RET() {
+		opClock = 1;
+		}
+	void RETCC(unsigned char flagcc) {
+		opClock = 1;
+		}
+	void RETI() {
+		opClock = 1;
+		}
 	void RLHM() {
 		FLGH(2,0,0,2);
+		opClock = 2;
 		}
 	void RLR8(unsigned char _8r, unsigned char _8r2) {
 		FLGH(2,0,0,2);
+		opClock = 2;
 		}
 	void RLA() {
 		FLGH(0,0,0,2);
+		opClock = 1;
 		}
 	void RLCHM() {
 		FLGH(2,0,0,2);
+		opClock = 2;
 		}
 	void RLCR8R8(unsigned char _r8, unsigned char _r82) {
 		FLGH(2,0,0,2);
+		opClock = 2;
 		}
 	void RLCA() {
 		FLGH(0,0,0,2);
+		opClock = 1;
 		}
 	void RRHM() {
 		FLGH(2,0,0,2);
+		opClock = 2;
 		}
 	void RRR8R8(unsigned char _r8, unsigned char _r82) {
 		FLGH(2,0,0,2);
+		opClock = 2;
+		
 		}
 	void RRA() {
 		FLGH(0,0,0,2);
+		opClock = 1;
 		}
 	void RRCHM() {
 		FLGH(2,0,0,2);
+		opClock = 2;
 		}
 	void RRCR8R8(unsigned char _r8, unsigned char _r82) {
 		FLGH(2,0,0,2);
+		opClock = 2;
 		}
 	void RRCA() {
 		FLGH(0,0,0,2);
+		opClock = 1;
 		}
 	void RSTF(unsigned char _byte) {}
 	void SBCHM() {
 		FLGH(2,1,2,2);
+		opClock = 1;
 		}
 	void SBC8INT(unsigned char _8int) {
 		FLGH(2,1,2,2);
+		opClock = 2;
 		}
 	void SBC8R(unsigned char _r8) {
 		FLGH(2,1,2,2);
+		opClock = 1;
 		}
 	void SCF() {
 		FLGH(3,0,0,1);
+		opClock = 1;
 		}
-	void SETBHM(unsigned char _bit) {}
-	void SETBR8(unsigned char _bit, unsigned char _r8) {}
+	void SETBHM(unsigned char _bit) {
+		opClock = 2;}
+	void SETBR8(unsigned char _bit, unsigned char _r8) {
+		opClock = 2;
+		}
 	void SLAHLM() {
 		FLGH(2,0,0,2);
+		opClock = 2;
 	}
 	void SLAR8(unsigned char _r8) {
 		FLGH(2,0,0,2);
+		opClock = 2;
 	}
 	void SRAHM() {
 		FLGH(2,0,0,2);
+		opClock = 2;
 		}
 	void SRAR8R8(unsigned char _8r, unsigned char _r82) {
 		FLGH(2,0,0,2);
+		opClock = 2;
 		}
 	void SRLHM() {
 		FLGH(2,0,0,2);
+		opClock = 2;
 		}
 	void SRLR8R8(unsigned char _8r, unsigned char _r82) {
 		FLGH(2,0,0,2);
+		opClock = 2;
 		}
-	void STOP() {}
+	void STOP() {
+		opClock = 2;
+		}
 	void SUBAHLM() {
 		FLGH(2,1,2,2);
+		opClock = 1;
 		}
 	void SUBA8INT(unsigned char _8int) {
 		FLGH(2,1,2,2);
+		opClock = 2;
 		}
 	void SUBAR8R8(unsigned char _r8, unsigned char _r82) {
 		FLGH(2,1,2,2);
+		opClock = 1;
 		}
 	void SWAPHLM() {
 		FLGH(2,0,0,0);
+		opClock = 2;
 		}
 	void SWAPR8R8(unsigned char _r8, unsigned char _r82) {
 		FLGH(2,0,0,0);
+		opClock = 2;
 		}
 	void XORHLM() {
 		FLGH(2,0,0,0);
+		opClock = 1;
 		}
 	void XOR8INT(unsigned char _8int) {
 		FLGH(2,0,0,0);
+		opClock = 2;
 		}
 	void XORR8R8(unsigned char _r8, unsigned char _r82) {
 		FLGH(2,0,0,0);
+		opClock = 1;
+		}
+		
+		// Opcodes 
+		
+		void opDecoder() {
+			switch (opcode) {
+				case 0xc3:
+				std::cout << "C3 -
+			
+			
 		}
 
 #pragma endregion
@@ -1005,13 +1078,15 @@ opClock = 2;
 		// retrieve opcode
 		//	opcode =   ( gb::mmu.rb (memoryT[reg.pc])  << 8 ) || ( gb::mmu.rb(memoryA[reg.pc + 1]));
 		// assign registers
-
-		gb::MMU(pc, 3, 3);
+		
+std::cout << "\nPC: " << std::hex << (int)pc << "\n";
+		gb::MMU(pc, 1, 0);
 
 		//	opcode = memoryA[reg.pc];
 		//	std::cout << std::hex << (int)memoryA[0x101] << "prueba";
 
-		std::cout << " " << std::hex << (int)opcode;
+		std::cout << "\nOpcode: " << std::hex << (int)opcode;
+//		std::cout << "\nOpcodeINd: " << std::hex << (int)memoryA[pc];
 		Ra = 0xC;
 		Rf = 0x8;
 		RegComb();
@@ -1129,9 +1204,9 @@ opClock = 2;
 int main()
 {
 	gb gameboy;
+	gameboy.Reset();
 	//gameboy.Init();
 	gameboy.LoadFile();
-	gameboy.Reset();
 	gameboy.MemAssign();
 	gameboy.dispatch();
 	while (1)
