@@ -7,11 +7,12 @@
 #include <algorithm>
 #include <cstdlib>
 #include <bitset>
+#include <string>
 
 //Modules
 //MMU - Done
 //CPU -- Done + flags
-//Timers -- Starting timers
+//Timers -- Done
 //Interrupts - 0% - Next
 //FlagHandling - Done // check logic cases
 //Register combining - Done
@@ -1039,6 +1040,67 @@ opClock = 2;
 		FLGH(2,0,0,0);
 		opClock = 1;
 		}
+		
+		//Interrupts
+		
+		std::string iType;
+		bool IE = false;
+		void InterrupHandling(std::string interruptType) {
+			
+			switch (intrrruptType) {
+				if (IE)
+				{
+					case VBLANK:
+					break;
+					
+					case LCDCSTATUS:
+					break;
+					
+					 case TIMEROVERFLOW:
+					 break;
+					 
+					 case SERIALTRANSFERCOMPLETE:
+					 break;
+					 
+					 case HL10P10-13:
+					 break;
+					 
+					 //IO Registers
+					 
+					 case FF00-P1:
+					 break;
+					 
+					 case FF01-SB:
+					 break;
+					 
+					 case FF02-SC:
+					 break;
+					 
+					 case FF04-DIV:
+					 break;
+					 
+					 case FF05-TIMA:
+					 break;
+					 
+					 case FF06-TMA:
+					 break;
+					 
+					 case FF07-TAC:
+					 break;
+					 
+					 case FF0F-IF:
+					 break;
+					 
+					 case FF10-NR10:
+					 break;
+					
+					
+				}
+			}
+		
+		}
+		
+		//-- fin interrupts
 		
 		// Opcodes 
 		
