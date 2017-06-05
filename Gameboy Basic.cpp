@@ -8,6 +8,8 @@
 #include <cstdlib>
 #include <bitset>
 #include <string>
+#include <SDL2/SDL.h>
+#include <random>
 
 //Modules
 //MMU - Done
@@ -20,13 +22,19 @@
 //Sound - 0%
 //Input - 0%
 
+//SDL support
 
+SDL_Renderer* renderer = NULL;
+
+int min;
+int max;
 
 unsigned char  memoryT[0xFFFF];
 unsigned char memoryA[0xFFFF];
 char letter;
 unsigned char addr;
 unsigned short opcode;
+bool nullRender = true;
 
 class gb
 {
@@ -82,6 +90,66 @@ public:
 	// arreglar 
 
 	//
+	SDL_Rect pixel[144][164];
+	
+		 void gfxHandler()
+{
+		 
+		for (int z = 0;z<300;z++)
+		{
+		 for (int j=0; j<145;j++)
+		 {
+		 for (int i=0; i<165; i++) {
+		 pixel[j][i].h = 5;
+		 pixel[j][i].w = 5;
+		 pixel[j][i].x = 140 + (i*5);
+		 pixel[j][i].y = 200 +(j*5);
+		 
+		 
+		 //randomGen(0,255);
+		 int cr, cg,cb;
+		 //way of selecting RED
+		 if ((rand() % 100) == 0){
+		 	cr =255;
+		 	cg =0;
+		 	cb =0;
+		 }
+		 //way of selecting GREEN
+		 else if ((rand() % 100 == 1)){
+		 	cr=0;
+		 	cg=255;
+		 	cb=0;
+		 }
+		 //way of selecting BLUE
+		 else if ((rand() % 100 == 2)) {
+		 	cr=0;
+		 	cg=0;
+		 	cb=255;
+		 }
+		 //way of selecting Black
+		 else if ((rand() % 100 == 4)) {
+		 	cr=0;
+		 	cg=0;
+		 	cb=0;
+		 }
+		//way of selecting white
+		 else if ((rand() % 100 == 5)) {
+		 	cr=255;
+		 	cg=255;
+		 	cb=255;
+		 }
+		 	
+		 	SDL_SetRenderDrawColor(renderer, cr, cg, cb, 255);
+	SDL_RenderFillRect ( renderer, &pixel[j][i]);
+	//SDL_RenderPresent(renderer);
+	//SDL_Delay(5);
+	
+		 }
+		 
+		 }
+		 SDL_RenderPresent(renderer);
+	}//Video support
+}//gfxHandler
 
 	void MMU(unsigned short PC, int Mflag, int iBit) {
 
@@ -1042,21 +1110,26 @@ opClock = 2;
 		}
 		
 		//Interrupts
+		/*
 		
-		std::string iType;
+		unsigned short intType;
+		unsigned char TIMA;
+		
 		bool IE = false;
-		void InterrupHandling(std::string interruptType) {
+		void InterrupHandling(unsigned short iType) {
 			
-			switch (intrrruptType) {
+			switch (interruptType) {
 				if (IE)
 				{
-					case VBLANK:
-					break;
+				//	case "VBLANK": exception
+				//	break;
 					
-					case LCDCSTATUS:
-					break;
+				//	case LCDCSTATUS: exception
+				//	break;
 					
-					 case TIMEROVERFLOW:
+					 case 1: //TIMA overflow
+					 
+					 //check for TIMA overflow
 					 break;
 					 
 					 case SERIALTRANSFERCOMPLETE:
@@ -1100,6 +1173,7 @@ opClock = 2;
 		
 		}
 		
+		*/
 		//-- fin interrupts
 		
 		// Opcodes 
@@ -2246,15 +2320,38 @@ std::cout << "\nPC: " << std::hex << (int)pc << "\n";
 }; //-- Fin class GB
 //-- Modulo Main
 
+
+
+
 int main()
 {
+	//experimental SDL support
+	nullRender = false;
+	
+	if (!nullRender)
+	{
+	//TTF_Init();
+	SDL_Window *window = NULL;
+	// SDL_Window* debugger = NULL;
+
+	window = SDL_CreateWindow
+		("Gb++AV", SDL_WINDOWPOS_UNDEFINED,
+		 SDL_WINDOWPOS_UNDEFINED, 1080, 1920, SDL_WINDOW_SHOWN);
+	
+		renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+	
+	}
+	
 	gb gameboy;
 	gameboy.Reset();
 	//gameboy.Init();
 	gameboy.LoadFile();
 	gameboy.MemAssign();
 	gameboy.dispatch();
+	unsigned short intType;
+	intType = memoryA[0xFFFF];
 	gameboy.opDecoder();
+	gameboy.gfxHandler();
 	while (1)
 	{
 		std::cin.get();
