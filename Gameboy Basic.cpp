@@ -55,7 +55,7 @@ public:
 	unsigned char Rh = 0;
 	unsigned char sp = 0;
 	unsigned char opClock = 0;
-	unsigned char emulatedClock = 0;
+	unsigned long  cpuClock = 0;
 	unsigned char mathTC1 = 0;
 	unsigned char mathTC2 = 0;
 	unsigned char mathTS1 = 0;
@@ -94,6 +94,99 @@ public:
 	
 		 void gfxHandler()
 {
+	unsigned int rowN;
+	unsigned int colN;
+	unsigned long gpuClock;
+	unsigned int modeClock;
+	gpuClock += opClock;
+	rowN = 0;
+	//cpu clock and times accesing Vram and OAM
+	//scanline access OAM - gpuMode 2 - 80 cycles
+	//scanline access VRAM - gpuMode 3 - 172 cyc
+	//horizontal blank - gpuMode 0 - 204 cycles
+	//one line scan and blank - 456 cycles
+	//vertical blank - gpuamode 1 - 4560 10lines
+	//full frame 70224
+//	144 * 456 + (14 * 4560)?? - 204
+int gpuMode;
+
+switch (gpuMode) {
+	case 2: //access OAM for scanline read mode
+	if (gpuClock == 80) {
+		gpuClock = 0;
+		gpuMode = 3;
+		//semi proceso 1/2
+	}
+	break;
+	
+	case 3: //access VRAM for scanline read mode
+	if (gpuClock == 172) {
+		gpuClock=0;
+		gpuMode = 0;
+		//fin semi proceso 2/2
+	}
+	break;
+	
+	case 0: // horizontal blanking
+	if (gpuClock == 204) {
+		//--scanea para regresar al punyo de partida
+		//pasa la info al framebuffer
+		
+		gpuClock = 0;
+		rowN++;
+		if (rowN == 145) {
+			gpuMode = 1;
+			rowN = 0;
+		}
+		else 
+		gpuMode = 2;
+		
+	}
+	break;
+	
+	case 1: //vertical blanking
+	if (gpuMode == 4560) {
+		//grab all lines from fb and place them on the screen
+		cpuClock = 0;
+		gpuClock = 0;
+		gpuMode = 2;
+		//ready for another frame
+		
+	}
+	break;
+	
+	
+}
+
+	
+	//framebuffer shennanigans
+	//mem 8000-87FF TS1 0-127
+	//mem 8800-8FFF TS1 128-255 TS0 -1 a -127
+	//mem 9000-97FF TS0 0-127
+	//mem 9800-9BFF TM0
+	//mem 9C00-9FFF TM1
+	
+	//tile system 8x8 dibujos de 64pixeles
+	//tile map 32x32 fondos de 256 scrolleables
+	//8x16 dice gbcuman
+	
+	//unique tiles in mem 256
+	//total tiles 384
+	
+	//paletas controlado por el background pallete GPU register
+	
+	
+	// valor       color
+	//0                255,255,255
+	//1                192,192,192
+	//2                96,96,96 
+	//3                 0,0,0
+	
+//	7 6 | 5 4 | 3 2 | 1 0
+//     3      2    1    0
+
+//acceso a paleta, orden y preferencia
+
 		 
 		for (int z = 0;z<300;z++)
 		{
@@ -110,27 +203,27 @@ public:
 		 int cr, cg,cb;
 		 //way of selecting RED
 		 if ((rand() % 100) == 0){
-		 	cr =255;
-		 	cg =0;
-		 	cb =0;
+		 	cr =96;
+		 	cg =96;
+		 	cb =96;
 		 }
-		 //way of selecting GREEN
-		 else if ((rand() % 100 == 1)){
-		 	cr=0;
-		 	cg=255;
-		 	cb=0;
-		 }
+//		 //way of selecting GREEN
+//		 else if ((rand() % 100 == 1)){
+//		 	cr=0;
+//		 	cg=255;
+//		 	cb=0;
+//		 }
 		 //way of selecting BLUE
 		 else if ((rand() % 100 == 2)) {
 		 	cr=0;
 		 	cg=0;
-		 	cb=255;
+		 	cb=0;
 		 }
 		 //way of selecting Black
 		 else if ((rand() % 100 == 4)) {
-		 	cr=0;
-		 	cg=0;
-		 	cb=0;
+		 	cr=192;
+		 	cg=192;
+		 	cb = 192;
 		 }
 		//way of selecting white
 		 else if ((rand() % 100 == 5)) {
@@ -1179,94 +1272,139 @@ opClock = 2;
 		// Opcodes 
 		
 		void opDecoder() {
+			std::string tempM;
 			switch (opcode) {
 case	0X00	:	//			NOP
+tempM = "BP - 0x00 - NOP";
 break;				
 case	0X01	:	//	bb	aa	LD	BC	$aabb		{}
+tempM = "BP - 0x01 -LD BC $aabb";
 break;
 case	0X02	:	//			LD	(BC)	A		{}
+tempM = "BP -0x02 - LD (BC) $aabb";
 break;
 case	0X03	:	//			INC	BC			{}
+tempM = "BP - 0x03 - INC BC";
 break;
 case	0X04	:	//			INC	B	
+tempM = "BP - 0x04 - INC B";
 break;		
 case	0X05	:	//			DEC	B	
+tempM = "BP - 0x05 - DEC B";
 break;		
 case	0X06	:	//	xx		LD	B	$xx		
+tempM = "BP - 0x06 - LD B $xx";
 break;
-case	0X07	:	//			RLCA		
+case	0X07	:	//			RLCA		.
+tempM = "BP - 0x07 - RLCA";
 break;		
 case	0X08	:	//	bb	aa	LD	($aabb)	SP
+tempM = "BP - 0x08 - LD ($aabb) SP";
 break;		
-case	0X09	:	//			ADD	HL	BC		
+case	0X09	:	//			ADD	HL	BC	
+tempM = "BP - 0x09 - ADD HL BC";	
 break;
 case	0X0A	:	//			LD	A	(BC)		
+tempM = "BP - 0x0A - LD A (BC)";
 break;
 case	0X0B	:	//			DEC	BC	
+tempM = "BP - 0x0B - DEC BC";
 break;		
 case	0X0C	:	//			INC	C	
+tempM = "BP - 0x0C INC C";
 break;		
-case	0X0D	:	//			DEC	C			
+case	0X0D	:	//			DEC	C	
+tempM = "BP - 0x0D - DEC C";		
 break;
-case	0X0E	:	//	xx		LD	C	$xx		
+case	0X0E	:	//	xx		LD	C	$xx	
+tempM = "BP - 0x0E - LD C $xx";	
 break;
 case	0X0F	:	//			RRCA		
+tempM = "BP - 0x0F - RRCA";
 break;		
 case	0X10	:	//			STOP	
+tempM = "BP - 0x10 - STOP";
 break;			
 case	0X11	:	//	bb	aa	LD	DE	$aabb
+tempM = "BP - 0x11 - LD DE $aabb";
 break;		
 case	0X12	:	//			LD	(DE)	A	
+tempM = "BP - 0x12 - LD (DE) A";
 break;	
 case	0X13	:	//			INC	DE
+tempM = "BP - 0x13 - INC DE";
 break;			
 case	0X14	:	//			INC	D	
+tempM = "BP - 0x14 - INC D";
 break;		
 case	0X15	:	//			DEC	D	
+tempM = "BP - 0x015 - DEC D";
 break;		
 case	0X16	:	//	xx		LD	D	$xx	
+tempM = "BP - 0x15 - LD D $xx ";
 break;	
 case	0X17	:	//			RLA	
+tempM = "BP - 0x017 - RLA";
 break;			
 case	0X18	:	//	xx		JR	$xx	
+tempM = "BP - 0x18 - JR $xx";
 break;		
 case	0X19	:	//			ADD	HL	DE	
+tempM = "BP - 0x19 - ADD HL DE";
 break;	
-case	0X1A	:	//			LD	A	(DE)		
+case	0X1A	:	//			LD	A	(DE)	
+tempM = "BP - 0x1A - LD A (DE)";	
 break;
 case	0X1B	:	//			DEC	DE		
+tempM = "BP - 0x1B - DEC DE";
 break;	
-case	0X1C	:	//			INC	E			
+case	0X1C	:	//			INC	E	
+tempM = "BP - 0x1C - INC E";		
 break;
-case	0X1D	:	//			DEC	E		
+case	0X1D	:	//			DEC	E
+tempM = "BP - 0x1D - DEC E";		
 break;	
-case	0X1E	:	//	xx		LD	E	$xx		
+case	0X1E	:	//	xx		LD	E	$xx	
+tempM = "BP - 0x1E - LD E $xx";	
 break;
-case	0X1F	:	//			RRA			
+case	0X1F	:	//			RRA		
+tempM = "BP - 0x1F - RRA";	
 break;	
-case	0X20	:	//	xx		JR	NZ	$xx	
+case	0X20	:	//	xx		JR	NZ	$xx
+tempM = "BP - 0x20 - JR NZ $xx";	
 break;	
 case	0X21	:	//	bb	aa	LD	HL	$aabb
+tempM = "BP - 0x21 - LD HL $aabb";
 break;		
 case	0X22	:	//			LD	(HLI)	A
+tempM = "BP - 0x22 - LD (HLI) A";
 break;		
-case	0X23	:	//			INC	HL	
+case	0X23	:	//			INC	HL
+tempM = "BP - 0x23 - INC HL";	
 break;		
 case	0X24	:	//			INC	H	
+tempM = "BP - 0x24 - INC H";
 break;		
 case	0X25	:	//			DEC	H	
+tempM = "BP - 0x25 - DEC H";
 break;		
 case	0X26	:	//	xx		LD	H	$xx	
+tempM = "BP - 0x26 - LD H $xx";
 break;	
-case	0X27	:	//			DAA		
+case	0X27	:	//			DAA	
+tempM = "BP - 0x27 - DAA";	
 break;
 case	0X28	:	//	xx		JR	Z	$xx	
+tempM = "BP - 0x28 - JR Z $xx";
 break;	
 case	0X29	:	//			ADD	HL	HL	
+tempM = "BP - 0x29 - ADD HL HL";
 break;	
-case	0X2A	:	//			LD	A	(HLI)		
+case	0X2A	:	//			LD	A	(HLI)	
+tempM = "BP - 0x2A - LD A (HLI)";	
 break;
 case	0X2B	:	//			DEC	HL	
+tempM = "BP - 0x2B - DEC HL";
 break;		
 case	0X2C	:	//			INC	L	
 break;		
@@ -1568,7 +1706,8 @@ case	0XC1	:	//			POP	BC
 break;	
 case	0XC2	:	//	bb	aa	JP	NZ	$aabb	
 break;	
-case	0XC3	:	//	bb	aa	JP	$aabb			
+case	0XC3	:	//	bb	aa	JP	$aabb	
+SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "BP", "Jmp $aabb - NI", NULL);		
 break;
 case	0XC4	:	//	bb	aa	CALL	NZ	$aabb	
 break;	
@@ -2351,7 +2490,7 @@ int main()
 	unsigned short intType;
 	intType = memoryA[0xFFFF];
 	gameboy.opDecoder();
-	gameboy.gfxHandler();
+//	gameboy.gfxHandler();
 	while (1)
 	{
 		std::cin.get();
