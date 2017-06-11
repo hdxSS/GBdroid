@@ -14,13 +14,13 @@
 #include <random>
 
 //Modules
-//MMU - Done - Not usable under current estructure
-//CPU -- ONly functions Needs Mapping
-//Timers -- Done
-//Interrupts - 0% - Next
-//FlagHandling - Done // check logic cases - Rewriten
-//Register combining - Done
-//Gfx - 0%
+//MMU - Started Structure - Just Reporting ATM
+//CPU -- Function mapping and Opcode mapping - Current TASK
+//Timers -- 50% Need to actually update them
+//Interrupts - 0%
+//FlagHandling - DONE 100%
+//Register combining - DONE 100%
+//Gfx - Researching SDL Structure Groundwork ready
 //Sound - 0%
 //Input - 0%
 
@@ -80,7 +80,7 @@ public:
 	unsigned short pc = 0;
 	unsigned char Rh = 0;
 	unsigned short sp = 0;
-	unsigned char opClock = 0;
+	unsigned char opclock = 0;
 	unsigned long  cpuClock = 0;
 	unsigned char mathTC1 = 0;
 	unsigned char mathTC2 = 0;
@@ -102,21 +102,16 @@ public:
 	char ROMb0[0x4000];
 	char ROMb1[0x4000];
 
-	//MMU manager ---------------1
+		int Mflag = 0;
 
-	//MMU + FLAG 
-	//1: read b
-	//2: read w
-	//3: write b
-	//4: write w
-	int Mflag = 0;
+	 
 
-	// malo... Tengo que tomar el valor siguiente de char de los opcodes 
-
-	// arreglar 
-
-	//
-	//SDL_Rect pixel[144][164];
+///////////////////////////////////////////////////////////////////////////////////////
+//- Graphics Related code 
+//- This section can be enabled or disabled, but is mean for research
+///////////////////////////////////////////////////////////////////////////////////////		
+		//
+	//SDL_Rect pixel[144][164]; // la pantalla es de 256 x 256 pero 144 y 164 son visibles
 	/*
 	void gfxHandler()
 	{
@@ -124,7 +119,7 @@ public:
 	unsigned int colN;
 	unsigned long gpuClock;
 	unsigned int modeClock;
-	gpuClock += opClock;
+	gpuClock += opclock;
 	rowN = 0;
 	//cpu clock and times accesing Vram and OAM
 	//scanline access OAM - gpuMode 2 - 80 cycles
@@ -271,285 +266,37 @@ public:
 	}//gfxHandler
 	*/
 
-	void MMU(unsigned short PC, int Mflag, int iBit) {
-
-		unsigned char _8bitIn = 0;
-		unsigned char _8bitInM = 0;
-		unsigned short _16bitIn = 0;
-		unsigned short _16bitInM = 0;
-
-		if (PC < 0x4000) {
-
-			switch (Mflag) {
-
-			case 1:  //read b
-				opcode = memoryA[PC];
-				_8bitIn = memoryA[PC + 1];
-				_8bitInM = memoryA[_8bitIn];
-				break;
-
-			case 2: //read w
-				_16bitIn = (memoryA[PC + 2] << 8) | memoryA[PC + 3];
-				opcode = (memoryA[PC] << 8) | memoryA[PC + 1];
-				_16bitInM = memoryA[_16bitIn];
-				break;
-
-			case 3: //write b
-				if (iBit == 1) {
-					memoryA[_8bitIn] = _8bitInM;
-				}
-				else
-					std::cout << "\n Overflow: on write _8bitIn \n";
-				break;
-
-			case 4: //write w
-				if (iBit == 2) {
-					memoryA[_16bitIn] = _16bitInM;
-				}
-				else
-					std::cout << "\n Overflow: on write _16bitIn \n";
-				break;
-			}
-
-			std::cout << "MMU ROM bank0";
-		}
-
-		else if (PC >= 0x4000 && PC < 0x8000) {
-
-
-
-			std::cout << "MMU ROM bank1";
-		}
-
-		else if (PC >= 0x8000 && PC < 0xA000) {
-
-			std::cout << "MMU GFX";
-		}
-
-		else if (PC >= 0xA000 && PC < 0xC000) {
-
-			std::cout << "MMU EXT RAM bank";
-		}
-
-		else if (PC >= 0xC000 && PC < 0xE000) {
-
-			std::cout << "MMU WORKING RAM";
-		}
-
-		else if (PC >= 0xE000 && PC < 0xFE00) {
-
-			std::cout << "MMU WORKING RAM SHADOW";
-		}
-
-		else if (PC >= 0xFE00 && PC < 0xFF00) {
-
-			std::cout << "MMU GFX SPRITES";
-		}
-
-		else if (PC >= 0xFF00 && PC < 0xFF80) {
-
-			std::cout << "MMU INPUT";
-		}
-
-		else if (PC >= 0xFF80 && PC < 0xFFFF) {
-
-			std::cout << "MMU ZERO PAGE RAM";
-		}
+///////////////////////////////////////////////////////////////////////////////////////
+//- Im using the MMU as a BP for when the CPU is mature enough to start accesing VRAM 
+//- This will be a Major milestone in the project
+///////////////////////////////////////////////////////////////////////////////////////
+	void MMU() {	
+		if (pc < 0x4000) {	std::cout << "MMU ROM bank0" << "\n";										}
+		else if (pc >= 0x4000 && pc < 0x8000) { std::cout << "MMU ROM bank1" << "\n";					}
+		else if (pc >= 0x8000 && pc < 0xA000) { std::cout << "MMU GFX" << "\n"; std::cin.get();			} //Break point GFX
+		else if (pc >= 0xA000 && pc < 0xC000) { std::cout << "MMU EXT RAM bank" << "\n";				}
+		else if (pc >= 0xC000 && pc < 0xE000) { std::cout << "MMU WORKING RAM" << "\n";					}
+		else if (pc >= 0xE000 && pc < 0xFE00) { std::cout << "MMU WORKING RAM SHADOW" << "\n";			}
+		else if (pc >= 0xFE00 && pc < 0xFF00) { std::cout << "MMU GFX SPRITES" << "\n"; std::cin.get(); } //Break point GFX
+		else if (pc >= 0xFF00 && pc < 0xFF80) { std::cout << "MMU INPUT" << "\n";						}
+		else if (pc >= 0xFF80 && pc < 0xFFFF) { std::cout << "MMU ZERO PAGE RAM" << "\n";				}
 	}
-
-	void rw(unsigned char addr) {}
-	void wb(unsigned char addr, short val) {}
-	void ww(unsigned char addr, short val) {}
-
-
-	unsigned short tempComb;
 
 #pragma region RegisterCombine
 
-	void DebugReg(std::string functionType) {
-
-		if (functionType == "LD") { ///// FUNCTION TYPE LD R8
-			if (Dreg == "A")	 { functType = "LD | A | - "; }
-			else if (Dreg == "B"){ functType = "LD | B | - "; }
-			else if (Dreg == "C"){ functType = "LD | C | - "; }
-			else if (Dreg == "D"){ functType = "LD | D | - "; }
-			else if (Dreg == "E"){ functType = "LD | E | - "; }
-			else if (Dreg == "F"){ functType = "LD | F | - "; }
-			else if (Dreg == "H"){ functType = "LD | H | - "; }
-			else if (Dreg == "L"){ functType = "LD | L | - "; }
-
-			else if (Dreg == "AF"){ functType = "LD | AF | - "; }
-			else if (Dreg == "BC"){ functType = "LD | BC | - "; }
-			else if (Dreg == "DE"){ functType = "LD | DE | - "; }
-			else if (Dreg == "HL"){ functType = "LD | HL | - "; }
-
-			//else functType = "DIDNT WORK :(";
-			else if (functionType == "LD A") { ///// FUNCTION TYPE LD R8 to R8
-				if (Sreg == "A")	 { functType = "LD | A || A | - "; }
-				else if (Sreg == "B"){ functType = "LD | A || B | - "; }
-				else if (Sreg == "C"){ functType = "LD | A || C | - "; }
-				else if (Sreg == "D"){ functType = "LD | A || D | - "; }
-				else if (Sreg == "E"){ functType = "LD | A || E | - "; }
-				else if (Sreg == "F"){ functType = "LD | A || F | - "; }
-				else if (Sreg == "H"){ functType = "LD | A || H | - "; }
-				else if (Sreg == "L"){ functType = "LD | A || L | - "; }
-
-				else functType = "DIDNT WORK :(";
-			}
-		}
-	} // Fin DebugReg
-
+	
 	void Rcomb(unsigned char regPair) {
-
 		switch (regPair) {
-		case 0:
-			Raf = (Ra << 8) | Rf;
-			break;
-
-		case 1:
-			Rbc = (Rb << 8) | Rc;
-			break;
-
-		case 2:
-			Rde = (Rd << 8) | Re;
-			break;
-
-		case 3:
-			Rhl = (Rh << 8) | Rl;
-			hlM = memoryA[Rhl];
-			break;
-
+		case 0:	Raf = (Ra << 8) | Rf;	break;
+		case 1:	Rbc = (Rb << 8) | Rc;	break;
+		case 2:	Rde = (Rd << 8) | Re;	break;
+		case 3:	Rhl = (Rh << 8) | Rl;	break;
 		}
 	}
 #pragma endregion
 
 #pragma region FlagCalculator
 	// Flag handling
-
-	unsigned char addTarget = 0;
-
-
-	void CALCFLG(unsigned short mTS1, unsigned short mTS2, unsigned int opType)
-	{
-		//overload del modulo CALCFLG
-		//opTypes
-		// 1 - ADD
-		// 2 - SUB
-		// 3 - Comp
-		// 4 - AND
-		// 5 - OR
-		// 6 - XOR
-
-		//probando sync
-		// x + y > 255
-		unsigned short carrycheck;
-		unsigned short borrowcheck;
-		unsigned short ANDcheck;
-		unsigned short ORcheck;
-		unsigned short XORcheck;
-
-		carrycheck = mTS1 + mTS2;
-		borrowcheck = mTS1 - mTS2;
-		ANDcheck = mTS1 & mTS2;
-		ORcheck = mTS1 | mTS2;
-		XORcheck = mTS1 ^ mTS2;
-
-		std::bitset<8> Rf_as_bit(Rf);
-
-		//todo tengo que arreglar el overload
-		switch (opType) {
-		case 1: //Add
-			if (C == 2) {
-				if (carrycheck > 0xFF) {
-					//carry flag
-					Rf_as_bit.set(4); // Set C
-				}
-				if (carrycheck > 0xF) {
-					//half carry flag
-					Rf_as_bit.set(5); // Set H
-				}
-
-				else if (carrycheck < 0xF) { }
-			}
-			else if (C == 3) {
-				std::cout << "Ignore C flag";
-			}
-			//Do nothing
-			break;
-		case 2: //Sub
-			if (N == 2) {
-				{
-					
-
-					Rf_as_bit.set(6); // Set N
-					if (borrowcheck < 0) {
-						Rf_as_bit.set(4); // Set C
-					}
-					if (borrowcheck < 0xF) {
-						Rf_as_bit.set(4); // Set C
-					}
-				}
-
-			}
-			else if (N == 3) {
-				//Ignoring
-			}
-			break;
-		
-
-			case 3: // Compare
-				if (Z == 2) {
-					if (borrowcheck == 0) {
-						//zero flag
-						Rf_as_bit.set(7); // Set C
-					}
-				}
-				else if (Z == 3) {
-					std::cout << "Ignore Z flag";
-				}
-
-				break;
-
-			case 4: //optype AND
-				if (ANDcheck == 1) {
-					Rf_as_bit.set(7); // Set Z
-					//SETS FLAG
-				}
-				else if (ANDcheck == 0) { Rf_as_bit.reset(7); }
-
-				break;
-
-			case 5: //optype OR
-				if (ORcheck == 1) {
-					Rf_as_bit.set(7); // Set Z
-					//SETS FLAG
-				}
-				else if (ORcheck == 0) { Rf_as_bit.reset(7); }
-				break;
-
-			case 6: //optype XOR
-				if (XORcheck == 1) {
-					Rf_as_bit.reset(7); // Reset Z
-					//SETS FLAG
-				}
-				else if (XORcheck == 0)
-				{
-					//std::cout << "Te quiero volver loco" << "\n";
-					Rf_as_bit.set(7);
-				}
-				break;
-	}
-	Rf = Rf_as_bit.to_ulong();
-	Rcomb(Raf);
-	//std::cout << "IM AN ERROR - How did i get here? ELHP!!" << "AF: " << std::hex << (int)Raf; "n";
-	//std::cout << "IM AN ERROR - How did i get here? ELHP!!" << "A: " << std::hex << (int)Ra; "n";
-	//std::cout << "IM AN ERROR - How did i get here? ELHP!!" << "F: " << std::hex << (int)Rf; "n";
-}//end flagcalcShort
-
-	
-
-	 
-
 
 	void FLGH(unsigned char Z, unsigned char N, unsigned char H, unsigned char C, unsigned short calcT1, unsigned short calcT2, unsigned char Optype) {
 
@@ -574,7 +321,7 @@ public:
 		case 1:	Rf_as_bit.set(7);	break;
 		case 2: //Calculate Flag based on result
 			switch (Optype) {			
-			//case 0: break; // 2 possible x+y > 0xFF or x+y > 0xF Carry and Halfcarry - Non  exclusive - Affects [H][C]
+			
 			case 1:
 				if (TT1 == 0 && TT2 == 0) { Rf_as_bit.set(7); }
 				else  { Rf_as_bit.reset(7); }
@@ -670,22 +417,6 @@ public:
 		std::cout << "Z[" << Rf_as_bit.test(7) << "] N[" << Rf_as_bit.test(6) << "] H[" << Rf_as_bit.test(5) << "] C[" << Rf_as_bit.test(4) << "]\n";
 		Rf = Rf_as_bit.to_ulong();
 	}
-
-	void FlagHelper(){
-		//gb::Rcomb(0);
-		std::cout << "A: " << std::hex << (int)Ra << "\n";
-		std::cout << "F: " << std::hex << (int)Rf << "\n";
-		std::cout << "Rf: " << std::hex << (int)Raf << "\n";
-		//Rf = (Raf << 4);
-		std::bitset<8> Rf_as_bit(Rf);
-		std::cout << "Z[" << Rf_as_bit.test(7) << "] N[" << Rf_as_bit.test(6) << "] H[" << Rf_as_bit.test(5) << "] C[" << Rf_as_bit.test(7) << "]\n";
-
-		Rf = Rf_as_bit.to_ulong();
-		gb::Rcomb(0);
-		
-		
-	}
-
 #pragma endregion
 
 #pragma region RegisterAndFlagsUpdate	
@@ -696,32 +427,39 @@ public:
 		gb::Rcomb(1);
 		gb::Rcomb(2);
 		gb::Rcomb(3);
-
 		}
 		//-Done
-		
 		std::cout << "\nAF: " << std::hex << (int)Raf << "\n";
 		std::cout << "BC: " << std::hex << (int)Rbc << "\n";
 		std::cout << "DE: " << std::hex << (int)Rde << "\n";
 		std::cout << "HL: " << std::hex << (int)Rhl << "\n";
-	
 	}
 
-
-	void FlagState() {
-		/*
-		std::cout << "Z: " << std::hex << (int)(Rf & (0x8 >> 3)) << "\n";
-		std::cout << "N: " << std::hex << (int)(Rf & (0x4 >> 2)) << "\n";
-		std::cout << "H: " << std::hex << (int)(Rf & (0x2 >> 1)) << "\n";
-		std::cout << "C: " << std::hex << (int)(Rf & (0x1)) << "\n";
-	*/
-	}
 
 #pragma endregion
 
 #pragma region InstructionMapping
-	//probablemente ningun calculo de flag funciona porque se calcula sobre el resultado
-	// Instruction mapping ----------
+	
+///////////////////////////////////////////////////////////////////////////////////////
+//- Function Backbone Order of execution given by the preset 
+//- This will be a Major milestone in the project (Current TASK)
+///////////////////////////////////////////////////////////////////////////////////////
+
+	//Instruction Preset
+	/*
+		////-- Instruction preset
+		opLen = 1;
+		FLGH(2, 0, 2, 2, $any, Ra, 1 );
+		Ra = ($any + TempRf);
+		funcText << "ADC " << Dtarget << ", " << Starget << "(" << std::hex << (int)$any << ")";
+		functType = funcText.str();
+		opDeb();
+		pc += opLen;
+		////-- Instruction preset
+
+	*/ //Hidden Instruction Preset //
+	//Instruction Preset
+
 	void ADC8RHLM(unsigned short $any, std::string Dtarget, std::string Starget) { // n + carry flag to A
 		////-- Instruction preset
 		opLen = 1;
@@ -771,52 +509,52 @@ public:
 	}
 	void ADDA$xx(unsigned char _8int) {
 		//FLGH(2, 0, 2, 2);
-		CALCFLG(Ra, _8int, 1);
+		//CALCFLG(Ra, _8int, 1);
 		Ra += _8int;
-		opClock = 2;
+		opclock = 2;
 		functType = "ADD $xx ";
 
 	}
 	void ADDA8R(unsigned char _8r) {
 		//FLGH(2, 0, 2, 2);
-		CALCFLG(Ra, _8r, 1);
+		//CALCFLG(Ra, _8r, 1);
 		Ra += _8r;
-		opClock = 1;
+		opclock = 1;
 		functType = "ADD R8 ";
 	}
 	void ADDHL16R(unsigned short _R1) {
 		//FLGH(3, 0, 2, 2);
-		CALCFLG(Rhl, _R1, 1);
+		//CALCFLG(Rhl, _R1, 1);
 		Rhl += _R1;
-		opClock = 1;
+		opclock = 1;
 		functType = "ADD HL 16R ";
 	}
 	void ADDSP8OFF(unsigned char _8off) {
 		//FLGH(0, 0, 2, 2);
-		CALCFLG(sp, _8off, 1);
+		//CALCFLG(sp, _8off, 1);
 		sp = +_8off;
-		opClock = 2;
+		opclock = 2;
 		functType = "ADD SP 8off";
 	}
 	void ANDAHLM() {
 		//FLGH(2, 0, 1, 0);
-		CALCFLG(Ra, hlM, 1);
+		//CALCFLG(Ra, hlM, 1);
 		Ra &= hlM;
-		opClock = 1;
+		opclock = 1;
 		functType = "AND A (HL) ";
 	}
 	void ANDA$xx(unsigned char _8int) {
 		//FLGH(2, 0, 1, 0);
-		CALCFLG(Ra, _8int, 3); //set optype3 as AND
+		//CALCFLG(Ra, _8int, 3); //set optype3 as AND
 		Ra &= _8int;
-		opClock = 2;
+		opclock = 2;
 		functType = "AND A $xx ";
 	}
 	void ANDA8R(unsigned char _8r) {
 		//FLGH(2, 0, 1, 0);
-		CALCFLG(Ra, _8r, 3);  //set optype3 as AND
+		//CALCFLG(Ra, _8r, 3);  //set optype3 as AND
 		Ra &= _8r;
-		opClock = 1;
+		opclock = 1;
 		functType = "AND A 8R ";
 	}
 	void BITHLM(unsigned char bitnum) {
@@ -829,7 +567,7 @@ public:
 			std::cout << "tested negative\n";
 		}
 		//FLGH(2, 0, 1, 3);
-		opClock = 2;
+		opclock = 2;
 		functType = "BIT (HL) ";
 		//CALCFLG(Ra, _8int, 3) //set optype4 op de revision valor hlM o hacer directo aca
 
@@ -846,74 +584,74 @@ public:
 			std::cout << "tested negative\n";
 		}
 		//FLGH(2, 0, 1, 3);
-		opClock = 2;
+		opclock = 2;
 		functType = "BIT 8R ";
 		//CALCFLG(Ra, _8int, 3) //set optype4 op de revision valor hlM o hacer directo aca
 		//bit test agains
 		//update timers
 
 	}
-	void CALLPCF$aabb(int flagcc, unsigned short _16BA) {
+	void CALLpcF$aabb(int flagcc, unsigned short _16BA) {
 
 		if (flagcc == 1)
 		{
 			pc = _16BA;
 		}
 		//FLGH(3, 3, 3, 3);
-		opClock = 3;
-		functType = "CALL PC IF F  $aabb ";
+		opclock = 3;
+		functType = "CALL pc IF F  $aabb ";
 	}
-	void CALLPC16BA(unsigned short _16BA) {
+	void CALLpc16BA(unsigned short _16BA) {
 		pc = _16BA;
 		// mal la dif entre jump y call
 		//skip
-		opClock = 3;
-		functType = "CALL PC $aabb ";
+		opclock = 3;
+		functType = "CALL pc $aabb ";
 		//FLGH(3, 3, 3, 3);
 	}
 	void CARRYFLAG() {
 		//FLGH(3, 0, 0, 2);
 		//CALCFLG(Ra, _8int, 3) //set optype4 op de revision valor hlM o hacer directo aca
-		opClock = 1;
+		opclock = 1;
 		functType = "CARRY FLAG ";
 		//FLGH(3, 3, 3, 1);
 	}
 	void COMPHLM() {
 		//FLGH(2, 1, 2, 2);
-		opClock = 1;
+		opclock = 1;
 		functType = "COMPLEMENT (HL) ";
 
 	}
 	void COMP8INT(unsigned char _8int) {
 		//FLGH(2, 1, 2, 2);
-		opClock = 2;
+		opclock = 2;
 		functType = "COMPLEMENT $xx ";
 	}
 	void COMP8R(unsigned char _8r) {
 		//FLGH(2, 1, 2, 2);
-		opClock = 1;
+		opclock = 1;
 		functType = "COMPLEMENT 8R ";
 	}
 	void CPL() {
 		//FLGH(3, 1, 1, 3);
-		opClock = 1;
+		opclock = 1;
 		functType = "COMPLEMENT L";
 	}
 	void DAA() {
 		//FLGH(2, 3, 0, 2);
-		opClock = 1;
+		opclock = 1;
 		functType = "DAA ";
 	}
 	void DECHLM() {
 		//FLGH(2, 1, 2, 3);
 		hlM--;
-		opClock = 1;
+		opclock = 1;
 		functType = "DEC (HL) ";
 
 	}
 	void DECR16(unsigned short _16r) {
 		_16r--;
-		opClock = 1;
+		opclock = 1;
 		//update flags
 		functType = "DEC R16 ";
 		//FLGH(3, 3, 3, 3);
@@ -921,32 +659,32 @@ public:
 	void DEC8R(unsigned char _r8) {
 		//FLGH(2, 1, 2, 3);
 		_r8--;
-		opClock = 1;
+		opclock = 1;
 		functType = "DEC 8R ";
 		//update timers
 		//update flags
 	}
 	void DI() {
-		opClock = 1;
+		opclock = 1;
 		opLen = 1;
 		pc += opLen;
 		functType = "DISABLE INTERRUPTS ";
 		//FLGH(3, 3, 3, 3);
 	}
 	void EI() {
-		opClock = 1;
+		opclock = 1;
 		opLen = 1;
-		pc += opClock;
+		pc += opclock;
 		//FLGH(3, 3, 3, 3);
 	}
 	void HALT() {
-		opClock = 1;
+		opclock = 1;
 		//FLGH(3, 3, 3, 3);
 	}
 	void INCHLM() {
 		//FLGH(2, 0, 2, 3);
 		hlM++;
-		opClock = 1;
+		opclock = 1;
 		//update timers
 		//update flags
 		functType = "INC (HL) ";
@@ -954,7 +692,7 @@ public:
 	void INCR16(unsigned short _16r) {
 		_16r++;
 		//update timers
-		opClock = 1;
+		opclock = 1;
 		functType = "INC R16 ";
 		//FLGH(3, 3, 3, 3);
 		//update flags
@@ -963,7 +701,7 @@ public:
 		//FLGH(2, 0, 2, 3);
 		_r8++;
 		//update timers
-		opClock = 1;
+		opclock = 1;
 		//update flags
 		functType = "INC R8 ";
 		//FLGH(3, 3, 3, 3);
@@ -972,17 +710,17 @@ public:
 		pc = hlM;
 
 		//update timers
-		opClock = 1;
+		opclock = 1;
 		//update flags
 		functType = "JP (HL) ";
 		//FLGH(3, 3, 3, 3);
 	}
-	void JUMPCC$aabb(int flagcc, unsigned short _16BA) {
+	void JUMpcC$aabb(int flagcc, unsigned short _16BA) {
 		if (flagcc == 1)
 			pc = _16BA;
 		else
 			pc++;
-		opClock = 3;
+		opclock = 3;
 		functType = "JUMP CC $aabb ";
 		//FLGH(3, 3, 3, 3);
 	}
@@ -990,7 +728,7 @@ public:
 		////-- Instruction preset
 		opLen = 3;
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
-		funcText << "JUMP PC -> " << std::hex << std::setw(4) << std::setfill('0') << (int)_$aabb;
+		funcText << "JUMP pc -> " << std::hex << std::setw(4) << std::setfill('0') << (int)_$aabb;
 		functType = funcText.str();
 		opDeb();
 		pc = _$aabb;
@@ -1002,21 +740,21 @@ public:
 		else
 			//skip
 			pc++;
-		opClock = 2;
+		opclock = 2;
 		functType = "JR IF C $xx ";
 		//FLGH(3, 3, 3, 3);
 	}
 	void JR$xx(unsigned char _8int) {
 		pc = memoryA[_8int];
 		//skip
-		opClock = 2;
+		opclock = 2;
 		functType = "JR $xx ";
 		//FLGH(3, 3, 3, 3);
 	}
 	void LOADCMRA() {
 		Ra = memoryA[Rc];
 		//update timers
-		opClock = 1;
+		opclock = 1;
 		//update flags
 		functType = "LOAD C (A) ";
 		//FLGH(3, 3, 3, 3);
@@ -1024,7 +762,7 @@ public:
 	void LOADHLM$xx(unsigned char _8int) {
 		hlM = _8int;
 		//update timers
-		opClock = 2;
+		opclock = 2;
 		//update flags
 		functType = "LOAD (HL) $xx ";
 		//FLGH(3, 3, 3, 3);
@@ -1032,7 +770,7 @@ public:
 	void LOADHLM8R(unsigned char _8r) {
 		hlM = _8r;
 		//update timers
-		opClock = 1;
+		opclock = 1;
 		//update flags
 		functType = "LOAD (HL) R8 ";
 		///FLGH(3, 3, 3, 3);
@@ -1040,7 +778,7 @@ public:
 	void LOAD$aabbMRA(unsigned short _16ba) {
 		memoryA[_16ba] = Ra;
 		//update timers
-		opClock = 3;
+		opclock = 3;
 		//update flags
 		functType = "LOAD $aabb (A) ";
 		//FLGH(3, 3, 3, 3);
@@ -1048,7 +786,7 @@ public:
 	void LOAD$aabbSP(unsigned short _16ba) {
 		memoryA[_16ba] = sp;
 		//update timers
-		opClock = 3;
+		opclock = 3;
 		//update flags
 		functType = "LOAD $aabb SP ";
 		//FLGH(3, 3, 3, 3);
@@ -1056,7 +794,7 @@ public:
 	void LOAD16RMRA(unsigned short _16r) {
 		memoryA[_16r] = Ra;
 		//update timers
-		opClock = 1;
+		opclock = 1;
 		//update flags
 		functType = "LOAD (16R) A ";
 		//FLGH(3, 3, 3, 3);
@@ -1064,7 +802,7 @@ public:
 	void LOADRACM(unsigned char _8r) {
 		Ra = memoryA[_8r];
 		//update timers
-		opClock = 1;
+		opclock = 1;
 		//update flags
 		functType = "LOAD A (C) - REVISAR ";
 		//FLGH(3, 3, 3, 3);
@@ -1073,7 +811,7 @@ public:
 	void LOADRA$aabb(unsigned short _16ba) {
 		Ra = memoryA[_16ba];
 		//update timers
-		opClock = 3;
+		opclock = 3;
 		//update flags
 		functType = "LOAD A $aabb ";
 		//FLGH(3, 3, 3, 3);
@@ -1081,7 +819,7 @@ public:
 	void LOADRA16RM(unsigned short _16r) {
 		Ra = memoryA[_16r];
 		//update timers
-		opClock = 1;
+		opclock = 1;
 		//update flags
 		functType = "LOAD A (16R) ";
 		//FLGH(3, 3, 3, 3);
@@ -1090,27 +828,28 @@ public:
 		//FLGH(0, 0, 2, 2);
 		Rhl = (sp + _8boff);
 		//update timers
-		opClock = 2;
+		opclock = 2;
 		//update flags
 		functType = "LOAD HL SPOFF";
 	}
-	void LOADR16$aabb(unsigned short _16r, unsigned short $aabb) {
-		_16r = $aabb;
-		//update timers
-		opClock = 3;
+	void LOADR16$aabb(unsigned short _16r, unsigned short $_aabb, std::string Dtarget) {
+		////-- Instruction preset
 		opLen = 3;
-		//functType = "LD R16 $aabb - ";
-		//FLGH(3, 3, 3, 3);
-		functType = "LD";
-		gb::DebugReg(functType);
-		//update flags
+		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
+		_16r = $_aabb;
+		funcText << "LOAD " << Dtarget << ", "  << std::hex << std::setw(4) << std::setfill('0') << (int)$_aabb;
+		functType = funcText.str();
+		opDeb();
+		if (Dtarget == "HL") { Rh = $aa; Rl = $bb; }
+		pc += opLen;
+		////-- Instruction preset
 	}
 	void LOADR8HLM(unsigned char _8r) {
 		_8r = hlM;
 		functType = "LD (HL)";
-		gb::DebugReg(functType);
+		//gb::DebugReg(functType);
 		//update timers
-		opClock = 1;
+		opclock = 1;
 		opLen = 1;
 		pc += opLen;
 	//	FLGH(3, 3, 3, 3);
@@ -1119,7 +858,7 @@ public:
 	void LDR8$xx(unsigned char _8r, unsigned char _$xx) {
 		
 		//update timers
-		opClock = 2;
+		opclock = 2;
 		//FLGH(3, 3, 3, 3);
 		opLen = 2;
 		functType = "LD R8 $xx ";
@@ -1131,7 +870,7 @@ public:
 	void LOADR8R8(unsigned char _8r, unsigned char  _8r2) {
 		_8r = _8r2;
 		//update timers
-		opClock = 1;
+		opclock = 1;
 		//update flags
 		functType = "LOAD R8 R8 ";
 		//FLGH(3, 3, 3, 3);
@@ -1139,7 +878,7 @@ public:
 	void LOADSPHL(unsigned short SP, unsigned short HL) {
 		SP = HL;
 		//update timers
-		opClock = 1;
+		opclock = 1;
 		//update flags
 		functType = "SP HL ";
 		//FLGH(3, 3, 3, 3);
@@ -1148,7 +887,7 @@ public:
 		Ra = hlM;
 		Rhl--;
 		//update timers
-		opClock = 1;
+		opclock = 1;
 		//update flags
 		functType = "R8 (HL) ";
 		//FLGH(3, 3, 3, 3);
@@ -1157,7 +896,7 @@ public:
 	void LOADDHLMR8() {
 		//FLGH(3, 3, 3, 3);
 		//update timers
-		opClock = 1;
+		opclock = 1;
 		//update flags
 		opLen = 1;
 		functType = "LDD (HL) R8 ";
@@ -1167,12 +906,12 @@ public:
 
 		memoryA[0xff00 + off] = Ra;
 		//update timers
-		opClock = 2;
+		opclock = 2;
 		opLen = 2;
 		pc += opLen;
 		//update flags
 		functType = "LD";
-		DebugReg(functType);
+		//DebugReg(functType);
 		//FLGH(3, 3, 3, 3);
 	}
 
@@ -1180,7 +919,7 @@ public:
 
 		Ra = memoryA[0xff00 + off];
 		//update timers
-		opClock = 2;
+		opclock = 2;
 		//update flags
 		functType = "LOAD A OFF ";
 		//FLGH(3, 3, 3, 3);
@@ -1189,7 +928,7 @@ public:
 		hlM = Ra;
 		Ra++;
 		//update timers
-		opClock = 1;
+		opclock = 1;
 		//update flags
 		functType = " LDI (HL) A ";
 		//FLGH(3, 3, 3, 3);
@@ -1198,7 +937,7 @@ public:
 		Ra = hlM;
 		hlM++;
 		//update timers
-		opClock = 1;
+		opclock = 1;
 		//update flags
 		functType = "LDI A (HL) ";
 	//	FLGH(3, 3, 3, 3);
@@ -1212,123 +951,123 @@ public:
 	void ORHLMRA() {
 	//	FLGH(2, 0, 0, 0);
 		hlM |= Ra;
-		opClock = 1;
+		opclock = 1;
 		functType = "OR (HL) A ";
 	}
 	void ORRA$xx(unsigned char _8int) {
 	//	FLGH(2, 0, 0, 0);
 		Ra |= _8int;
-		opClock = 2;
+		opclock = 2;
 		functType = "OR ADC R8 ";
 	}
 	void ORRA8R(unsigned char _8r) {
 	//	FLGH(2, 0, 0, 0);
 		Ra |= _8r;
-		opClock = 1;
+		opclock = 1;
 		functType = "OR A R8 ";
 	}
 	void POP16R(unsigned _16r) {
 		memoryA[sp] = _16r;
 		sp--;
-		opClock = 1;
+		opclock = 1;
 		functType = "POP 16R ";
 	//	FLGH(3, 3, 3, 3);
 	}
 	void PUSH() {
 		memoryA[pc] = sp;
 		sp++;
-		opClock = 1;
+		opclock = 1;
 		functType = "PUSH ";
 	//	FLGH(3, 3, 3, 3);
 	}
 	void RESBHLM(unsigned char _bit) {
 		//bit de hlM a cero
-		opClock = 2;
+		opclock = 2;
 		functType = "RES BIT (HL) ";
 	//	FLGH(3, 3, 3, 3);
 	}
 	void RESBR8(unsigned char _bit, unsigned  char _8r){
 		//bit de _8r a cero
-		opClock = 2;
+		opclock = 2;
 		functType = "RES BIT R8 ";
 	//	FLGH(3, 3, 3, 3);
 	}
 	void RET() {
-		opClock = 1;
+		opclock = 1;
 		functType = "RET ";
 	//	FLGH(3, 3, 3, 3);
 	}
 
 	void RETCC(unsigned char flagcc) {
-		opClock = 1;
+		opclock = 1;
 		functType = "RET CC ";
 	//	FLGH(3, 3, 3, 3);
 	}
 	void RETI() {
-		opClock = 1;
+		opclock = 1;
 		functType = "RETI ";
 	//	FLGH(3, 3, 3, 3);
 	}
 	void RLHM() {
 	//	FLGH(2, 0, 0, 2);
-		opClock = 2;
+		opclock = 2;
 		functType = "RL (H)";
 	}
 	void RLR8(unsigned char _8r, unsigned char _8r2) {
 	//	FLGH(2, 0, 0, 2);
-		opClock = 2;
+		opclock = 2;
 		functType = "RL 8R ";
 	}
 	void RLA() {
 	//	FLGH(0, 0, 0, 2);
-		opClock = 1;
+		opclock = 1;
 		functType = "RL A ";
 	}
 	void RLCHM() {
 	//	FLGH(2, 0, 0, 2);
-		opClock = 2;
+		opclock = 2;
 		functType = "RLC (H) ";
 	}
 	void RLCR8R8(unsigned char _r8, unsigned char _r82) {
 	//	FLGH(2, 0, 0, 2);
-		opClock = 2;
+		opclock = 2;
 		functType = "RLC R8 R8 ";
 	}
 	void RLCA() {
 	//	FLGH(0, 0, 0, 2);
-		opClock = 1;
+		opclock = 1;
 		functType = "RLC A ";
 	}
 	void RRHM() {
 	//	FLGH(2, 0, 0, 2);
-		opClock = 2;
+		opclock = 2;
 		functType = "RR (H) ";
 	}
 	void RRR8R8(unsigned char _r8, unsigned char _r82) {
 	//	FLGH(2, 0, 0, 2);
-		opClock = 2;
+		opclock = 2;
 		functType = "RR R8 R8 ";
 
 	}
 	void RRA() {
 	//	FLGH(0, 0, 0, 2);
-		opClock = 1;
+		opclock = 1;
 		functType = "RR A ";
 
 	}
 	void RRCHM() {
 	//	FLGH(2, 0, 0, 2);
-		opClock = 2;
+		opclock = 2;
 		functType = "RRC (H) ";
 	}
 	void RRCR8R8(unsigned char _r8, unsigned char _r82) {
 	//	FLGH(2, 0, 0, 2);
-		opClock = 2;
+		opclock = 2;
 		functType = "RRC R8 R8 ";
 	}
 	void RRCA() {
 	//	FLGH(0, 0, 0, 2);
-		opClock = 1;
+		opclock = 1;
 		functType = "RRC A ";
 	}
 	void RSTF(unsigned char _byte) {
@@ -1336,102 +1075,102 @@ public:
 	}
 	void SBCHM() {
 	//	FLGH(2, 1, 2, 2);
-		opClock = 1;
+		opclock = 1;
 		functType = "SBC (H) ";
 	}
 	void SBC$xx(unsigned char _8int) {
 	//	FLGH(2, 1, 2, 2);
-		opClock = 2;
+		opclock = 2;
 		functType = "SBC $xx ";
 	}
 	void SBC8R(unsigned char _r8) {
 	//	FLGH(2, 1, 2, 2);
-		opClock = 1;
+		opclock = 1;
 		functType = "SBC 8R ";
 	}
 	void SCF() {
 	//	FLGH(3, 0, 0, 1);
-		opClock = 1;
+		opclock = 1;
 		functType = "SCF ";
 	}
 	void SETBHM(unsigned char _bit) {
-		opClock = 2;
+		opclock = 2;
 		functType = "SET B (H) ";
 	//	FLGH(3, 3, 3, 3);
 	}
 	void SETBR8(unsigned char _bit, unsigned char _r8) {
-		opClock = 2;
+		opclock = 2;
 		functType = "SET B R8 ";
 	//	FLGH(3, 3, 3, 3);
 	}
 	void SLAHLM() {
 	//	FLGH(2, 0, 0, 2);
-		opClock = 2;
+		opclock = 2;
 		functType = "SLA (HL) ";
 	}
 	void SLAR8(unsigned char _r8) {
 	//	FLGH(2, 0, 0, 2);
-		opClock = 2;
+		opclock = 2;
 		functType = "SLA R8 ";
 	}
 	void SRAHM() {
 	//	FLGH(2, 0, 0, 2);
-		opClock = 2;
+		opclock = 2;
 		functType = "SRA (H) ";
 	}
 	void SRAR8R8(unsigned char _8r, unsigned char _r82) {
 	//	FLGH(2, 0, 0, 2);
-		opClock = 2;
+		opclock = 2;
 		functType = "SRA R8 R8 ";
 	}
 	void SRLHM() {
 	//	FLGH(2, 0, 0, 2);
-		opClock = 2;
+		opclock = 2;
 		functType = "SRL (H) ";
 	}
 	void SRLR8R8(unsigned char _8r, unsigned char _r82) {
 	//	FLGH(2, 0, 0, 2);
-		opClock = 2;
+		opclock = 2;
 		functType = "SRL R8 R8 ";
 	}
 	void STOP() {
-		opClock = 2;
+		opclock = 2;
 		functType = "STOP ";
 	//	FLGH(3, 3, 3, 3);
 	}
 	void SUBAHLM() {
 //		FLGH(2, 1, 2, 2);
-		opClock = 1;
+		opclock = 1;
 		functType = "SUB A (HL) ";
 	}
 	void SUBA$xx(unsigned char _8int) {
 	//	FLGH(2, 1, 2, 2);
-		opClock = 2;
+		opclock = 2;
 		functType = "SUB A $xx ";
 	}
 	void SUBAR8R8(unsigned char _r8, unsigned char _r82) {
 	//	FLGH(2, 1, 2, 2);
-		opClock = 1;
+		opclock = 1;
 		functType = "SUBA R8 R8 - REVISAR ";
 	}
 	void SWAPHLM() {
 	//	FLGH(2, 0, 0, 0);
-		opClock = 2;
+		opclock = 2;
 		functType = "SWAP (HL) ";
 	}
 	void SWAPR8R8(unsigned char _r8, unsigned char _r82) {
 	//	FLGH(2, 0, 0, 0);
-		opClock = 2;
+		opclock = 2;
 		functType = "SWAP R8 R8 ";
 	}
 	void XORHLM() {
 	//	FLGH(2, 0, 0, 0);
-		opClock = 1;
+		opclock = 1;
 		functType = "XOR (HL) - MAYBE A? ";
 	}
 	void XOR$xx(unsigned char _8int) {
 	//	FLGH(2, 0, 0, 0);
-		opClock = 2;
+		opclock = 2;
 		functType = "XOR $xx ";
 	}
 	void XORAR8(unsigned char _r8, std::string Dtarget, std::string Starget) {		
@@ -1516,11 +1255,17 @@ public:
 
 	// Opcodes 
 
+	///////////////////////////////////////////////////////////////////////////////////////
+	//- Step Debuger and Dissasembler 
+	//- This Module is DONE
+	///////////////////////////////////////////////////////////////////////////////////////
+
 	void opDeb() {
 
 		if (pc == 0x100)
 		{
-			std::cout << "Executing line: " << std::hex << "Pc:" << pc << " -> " << opcode << " " << "NOP" << "\n";
+			MMU();
+			std::cout << "Executing line: " << std::hex << "pc:" << pc << " -> " << opcode << " " << "NOP" << "\n";
 			//FLGH(3, 3, 3, 3);
 			pc += 1;
 			opLen = 3;
@@ -1528,17 +1273,29 @@ public:
 		else {
 
 			if (opLen == 1) {
-				std::cout << "Executing line: " << std::hex << "Pc: " << std::setw(4) << std::setfill('0') << pc << " -> " << std::setw(4) << std::setfill('0') << opcode << " | " << functType << "\n";
+				std::cout << "--------------------------------------------------------" << "\n";
+				MMU();
+				std::cout << "--------------------------------------------------------" << "\n";
+				std::cout << "Executing line: " << std::hex << "pc: " << std::setw(4) << std::setfill('0') << pc << " -> " << std::setw(4) << std::setfill('0') << opcode << " | " << functType << "\n";
+				std::cout << "--------------------------------------------------------" << "\n";
 				//std::cout << "$aabb: " << std::hex << (int)$aabb << "\n";
 			}
 
 			else if (opLen == 2) {
-				std::cout << "Executing line: " << std::hex << "Pc: " << std::setw(4) << std::setfill('0') << pc << " -> " << std::setw(4) << std::setfill('0') << opcode << " " << std::hex << std::setw(2) << std::setfill('0') << (int)$bb << " | " << functType << "\n";
+				std::cout << "--------------------------------------------------------" << "\n";
+				MMU();
+				std::cout << "--------------------------------------------------------" << "\n";
+				std::cout << "Executing line: " << std::hex << "pc: " << std::setw(4) << std::setfill('0') << pc << " -> " << std::setw(4) << std::setfill('0') << opcode << " " << std::hex << std::setw(2) << std::setfill('0') << (int)$bb << " | " << functType << "\n";
+				std::cout << "--------------------------------------------------------" << "\n";
 				//std::cout << "$aabb: " << std::hex << (int)$aabb << "\n";
 			}
 
 			else if (opLen == 3) {
-				std::cout << "Executing line: " << std::hex << "Pc: " << std::setw(4) << std::setfill('0') << pc << " -> " << std::setw(4) << std::setfill('0') << opcode << " " << std::hex << std::setw(2) << std::setfill('0') << (int)$bb << " " << std::setw(2) << std::setfill('0') << (int)$aa << " | " << functType << "\n";
+				std::cout << "--------------------------------------------------------" << "\n";
+				MMU();
+				std::cout << "--------------------------------------------------------" << "\n";
+				std::cout << "Executing line: " << std::hex << "pc: " << std::setw(4) << std::setfill('0') << pc << " -> " << std::setw(4) << std::setfill('0') << opcode << " " << std::hex << std::setw(2) << std::setfill('0') << (int)$bb << " " << std::setw(2) << std::setfill('0') << (int)$aa << " | " << functType << "\n";
+				std::cout << "--------------------------------------------------------" << "\n";
 				//std::cout << "$aabb: " << std::hex << (int)$aabb << "\n";
 			}
 			else
@@ -1549,6 +1306,11 @@ public:
 		funcText.str(std::string());
 		//functType = "";
 	}
+
+	///////////////////////////////////////////////////////////////////////////////////////
+	//- Opcode table with debug info - Started
+	//- This will be a Major milestone in the project (Current TASK)
+	///////////////////////////////////////////////////////////////////////////////////////
 
 	void opDecoder() {
 		
@@ -1561,434 +1323,141 @@ public:
 		hlM = memoryA[Rhl];
 		_8bitIn3 = memoryA[pc + 3];
 		$aabb = (memoryA[pc + 2] << 8) | (memoryA[pc + 1]);
-		
-		//std::cout << "Como diablos me sali del ciclo???" << "Cuanto vale opLen?: " << (int(opLen)) << "opcode" << std::hex << (int)opcode << "\n";
-
 		//_8bitInM = memoryA[_8bitIn];
 
-		
-
 		// aa bb = 16bit integer
+		//Opcode is also refered as ENGAGER a 16bit Entity capable of capuring from 00 to FFFF
+
 		switch (opcode) {
-		case	0X00:	//			NOP
-			NOP();
-			tempM = " - 0x00 - NOP";
-			break;
-		case	0X01:	//	bb	aa	LD	BC	$aabb		{}
-			
-			tempM = " - 0x01 -LD BC $aabb";
-			break;
-		case	0X02:	//			LD	(BC)	A		{}
-			tempM = " - 0x02 - LD (BC) $aabb";
-			break;
-		case	0X03:	//			INC	BC			{}
-			tempM = " - 0x03 - INC BC";
-			break;
-		case	0X04:	//			INC	B	
-			tempM = " - 0x04 - INC B";
-			break;
-		case	0X05:	//			DEC	B	
-			//opDeb();
-			tempM = " - 0x05 - DEC B";
-			break;
-		case	0X06:	//	xx		LD	B	$xx	
-			
-			//Dreg = "B";
-			//LDR8$xx(Rb, $xx);
-			//opDeb();
-			//Rb = $xx;
-			//pc += opLen;
-			tempM = " - 0x06 - LD B $xx";
-			break;
-		case	0X07:	//			RLCA		.
-			tempM = " - 0x07 - RLCA";
-			break;
-		case	0X08:	//	bb	aa	LD	($aabb)	SP
-			tempM = " - 0x08 - LD ($aabb) SP";
-			break;
-		case	0X09:	//			ADD	HL	BC	
-			tempM = " - 0x09 - ADD HL BC";
-			break;
-		case	0X0A:	//			LD	A	(BC)		
-			tempM = " - 0x0A - LD A (BC)";
-			break;
-		case	0X0B:	//			DEC	BC	
-			tempM = " - 0x0B - DEC BC";
-			break;
-		case	0X0C:	//			INC	C	
-			tempM = " - 0x0C INC C";
-			break;
-		case	0X0D:	//			DEC	C	
-			tempM = " - 0x0D - DEC C";
-			break;
-		case	0X0E:	//	xx		LD	C	$xx	
-			//opLen = 2;
-			//Dreg = "C";
-			//LDR8$xx(Rc, $xx);
-			//Rc = $xx;
-			//opDeb();
-			//pc += opLen;
-			tempM = " - 0x0E - LD C $xx";
-			break;
-		case	0X0F:	//			RRCA		
-			tempM = " - 0x0F - RRCA";
-			break;
-		case	0X10:	//			STOP	
-			tempM = " - 0x10 - STOP";
-			break;
-		case	0X11:	//	bb	aa	LD	DE	$aabb
-			tempM = " - 0x11 - LD DE $aabb";
-			break;
-		case	0X12:	//			LD	(DE)	A	
-			tempM = " - 0x12 - LD (DE) A";
-			break;
-		case	0X13:	//			INC	DE
-			tempM = " - 0x13 - INC DE";
-			break;
-		case	0X14:	//			INC	D	
-			tempM = " - 0x14 - INC D";
-			break;
-		case	0X15:	//			DEC	D	
-			tempM = " - 0x015 - DEC D";
-			break;
-		case	0X16:	//	xx		LD	D	$xx	
-			tempM = " - 0x15 - LD D $xx ";
-			break;
-		case	0X17:	//			RLA	
-			tempM = " - 0x17 - RLA";
-			break;
-		case	0X18:	//	xx		JR	$xx	
-			tempM = " - 0x18 - JR $xx";
-			break;
-		case	0X19:	//			ADD	HL	DE	
-			tempM = " - 0x19 - ADD HL DE";
-			break;
-		case	0X1A:	//			LD	A	(DE)	
-			tempM = " - 0x1A - LD A (DE)";
-			break;
-		case	0X1B:	//			DEC	DE		
-			tempM = " - 0x1B - DEC DE";
-			break;
-		case	0X1C:	//			INC	E	
-			tempM = " - 0x1C - INC E";
-			break;
-		case	0X1D:	//			DEC	E
-			tempM = " - 0x1D - DEC E";
-			break;
-		case	0X1E:	//	xx		LD	E	$xx	
-			tempM = " - 0x1E - LD E $xx";
-			break;
-		case	0X1F:	//			RRA		
-			tempM = " - 0x1F - RRA";
-			break;
-		case	0X20:	//	xx		JR	NZ	$xx
-			tempM = " - 0x20 - JR NZ $xx";
-			break;
-		case	0X21:	//	bb	aa	LD	HL	$aabb
-			
-			//Dreg = "HL";
-			//LOADR16$aabb(Rhl, $aabb);
-			//opDeb();
-			//Rh = $aa;
-			//Rl = $bb;
-			//pc += opLen;
-			tempM = " - 0x21 - LD HL $aabb";
-			break;
-		case	0X22:	//			LD	(HLI)	A
-			tempM = " - 0x22 - LD (HLI) A";
-			break;
-		case	0X23:	//			INC	HL
-			tempM = " - 0x23 - INC HL";
-			break;
-		case	0X24:	//			INC	H	
-			tempM = " - 0x24 - INC H";
-			break;
-		case	0X25:	//			DEC	H	
-			tempM = " - 0x25 - DEC H";
-			break;
-		case	0X26:	//	xx		LD	H	$xx	
-			tempM = " - 0x26 - LD H $xx";
-			break;
-		case	0X27:	//			DAA	
-			tempM = " - 0x27 - DAA";
-			break;
-		case	0X28:	//	xx		JR	Z	$xx	
-			tempM = " - 0x28 - JR Z $xx";
-			break;
-		case	0X29:	//			ADD	HL	HL	
-			tempM = " - 0x29 - ADD HL HL";
-			break;
-		case	0X2A:	//			LD	A	(HLI)	
-			tempM = " - 0x2A - LD A (HLI)";
-			break;
-		case	0X2B:	//			DEC	HL	
-			tempM = " - 0x2B - DEC HL";
-			break;
-		case	0X2C:	//			INC	L	
-			tempM = " - 0x2C - INC L";
-			break;
-		case	0X2D:	//			DEC	L		
-			tempM = " - 0x2D - DEC L";
-			break;
-		case	0X2E:	//	xx		LD	L	$xx
-			tempM = " - 0x2E - LD L $xx";
-			break;
-		case	0X2F:	//			CPL				
-			tempM = " - 0x2F - CPL";
-			break;
-		case	0X30:	//	xx		JR	NC	$xx	
-			tempM = " - 0x30 - JR NC $xx";
-			break;
-		case	0X31:	//	bb	aa	LD	SP	$aabb
-			tempM = " - 0x31 - LD SP $aabb";
-			break;
-		case	0X32:	//			LD	(HLD)	A	
-			//LOADDHLMR8();
-			//opDeb();
-			//opLen = 1;
-			//pc += 1;
-			//std::cout << pc;
-			//memoryA[Rhl] = Ra;
-			//Rl--;
-
-
-			//std::cout << "Rhl" << std::hex << int(Rhl) << "\n";
-			tempM = " - 0x32 - LD (HLD) A";
-			break;
-		case	0X33:	//			INC	SP	
-			tempM = " - 0x33 - INC SP";
-			break;
-		case	0X34:	//			INC	(HL)	
-			tempM = " - 0x34 - INC (HL)";
-			break;
-		case	0X35:	//			DEC	(HL)	
-			tempM = " - 0x2B - DEC HL";
-			break;
-		case	0X36:	//	xx		LD	(HL)	$xx
-			tempM = " - 0x36 - LD (HL) $xx";
-			break;
-		case	0X37:	//			SCF		
-			tempM = " - 0x37 - SCF";
-			break;
-		case	0X38:	//	xx		JR	C	$xx	
-			tempM = " - 0x38 - JR C $xx";
-			break;
-		case	0X39:	//			ADD	HL	SP	
-			tempM = " - 0x39 - ADD HL SP";
-			break;
-		case	0X3A:	//			LD	A	(HLD)	
-			tempM = " - 0x3A - LD A (HLD)";
-			break;
-		case	0X3B:	//			DEC	SP		
-			tempM = " - 0x3B - DEC SP";
-			break;
-		case	0X3C:	//			INC	A	
-			tempM = " - 0x3C - INC A";
-			break;
-		case	0X3D:	//			DEC	A		
-			tempM = " - 0x3D - DEC A";
-			break;
-		case	0X3E:	//	xx		LD	A	$xx	
-			tempM = " - 0x3E - LD A $xx";
-			break;
-		case	0X3F:	//			CCF		
-			tempM = " - 0x3F - CCF";
-			break;
-		case	0X40:	//			LD	B	B	
-			tempM = " - 0x40 - LD B B";
-			break;
-		case	0X41:	//			LD	B	C		
-			tempM = " - 0x41 - LD B C";
-			break;
-		case	0X42:	//			LD	B	D		
-			tempM = " - 0x42 - LD B D";
-			break;
-		case	0X43:	//			LD	B	E		
-			tempM = " - 0x43 - LD B E";
-			break;
-		case	0X44:	//			LD	B	H	
-			tempM = " - 0x44 - LD B H";
-			break;
-		case	0X45:	//			LD	B	L		
-			tempM = " - 0x45 - LD B L";
-			break;
-		case	0X46:	//			LD	B	(HL)	
-			tempM = " - 0x46 - LD B (HL)";
-			break;
-		case	0X47:	//			LD	B	A		
-			tempM = " - 0x47 - LD B A";
-			break;
-		case	0X48:	//			LD	C	B	
-			tempM = " - 0x48 - LD C B";
-			break;
-		case	0X49:	//			LD	C	C	
-			tempM = " - 0x49 - LD C C";
-			break;
-		case	0X4A:	//			LD	C	D	
-			tempM = " - 0x4A - LD C D";
-			break;
-		case	0X4B:	//			LD	C	E	
-			tempM = " - 0x4B - LD C E";
-			break;
-		case	0X4C:	//			LD	C	H	
-			tempM = " - 0x4C - LD C H";
-			break;
-		case	0X4D:	//			LD	C	L	
-			tempM = " - 0x4D - LD C L";
-			break;
-		case	0X4E:	//			LD	C	(HL)	
-			tempM = " - 0x4E - LD C (HL)";
-			break;
-		case	0X4F:	//			LD	C	A	
-			tempM = " - 0x4F - LD C A";
-			break;
-		case	0X50:	//			LD	D	B	
-			tempM = " - 0x50 - LD D B";
-			break;
-		case	0X51:	//			LD	D	C		
-			tempM = " - 0x51 - LD D C";
-			break;
-		case	0X52:	//			LD	D	D
-			tempM = " - 0x52 - LD D D";
-			break;
-		case	0X53:	//			LD	D	E	
-			tempM = " - 0x53 - LD D E";
-			break;
-		case	0X54:	//			LD	D	H	
-			tempM = " - 0x54 - LD D H";
-			break;
-		case	0X55:	//			LD	D	L	
-			tempM = " - 0x55 - LD D L";
-			break;
-		case	0X56:	//			LD	D	(HL)	
-			tempM = " - 0x56 - LD D (HL)";
-			break;
-		case	0X57:	//			LD	D	A	
-			tempM = " - 0x57 - LD D A";
-			break;
-		case	0X58:	//			LD	E	B		
-			tempM = " - 0x58 - LD E B";
-			break;
-		case	0X59:	//			LD	E	C	
-			tempM = " - 0x59 - LD E C";
-			break;
-		case	0X5A:	//			LD	E	D
-			tempM = " - 0x5A - LD E D";
-			break;
-		case	0X5B:	//			LD	E	E
-			tempM = " - 0x5B - LD E E";
-			break;
-		case	0X5C:	//			LD	E	H
-			tempM = " - 0x5C - LD E H";
-			break;
-		case	0X5D:	//			LD	E	L	
-			tempM = " - 0x5D - LD E L";
-			break;
-		case	0X5E:	//			LD	E	(HL)	
-			tempM = " - 0x5E - LD E (HL)";
-			break;
-		case	0X5F:	//			LD	E	A		
-			tempM = " - 0x5F - LD E A";
-			break;
-		case	0X60:	//			LD	H	B		
-			tempM = " - 0x60 - LD H B";
-			break;
-		case	0X61:	//			LD	H	C	
-			tempM = " - 0x61 - LD H C";
-			break;
-		case	0X62:	//			LD	H	D	
-			tempM = " - 0x62 - LD H D";
-			break;
-		case	0X63:	//			LD	H	E	
-			tempM = " - 0x63 - LD H E";
-			break;
-		case	0X64:	//			LD	H	H		
-			tempM = " - 0x64 - LD H H";
-			break;
-		case	0X65:	//			LD	H	L		
-			tempM = " - 0x65 - LD H L";
-			break;
-		case	0X66:	//			LD	H	(HL)	
-			tempM = " - 0x66 - LD H (HL)";
-			break;
-		case	0X67:	//			LD	H	A	
-			tempM = " - 0x67 - LD E (HL)";
-			break;
-		case	0X68:	//			LD	L	B		
-			tempM = " - 0x68 - LD L B";
-			break;
-		case	0X69:	//			LD	L	C
-			tempM = " - 0x69 - LD L C";
-			break;
-		case	0X6A:	//			LD	L	D	
-			tempM = " - 0x6A - LD L D";
-			break;
-		case	0X6B:	//			LD	L	E		
-			tempM = " - 0x6B - LD L E";
-			break;
-		case	0X6C:	//			LD	L	H	
-			tempM = " - 0x6C - LD L H";
-			break;
-		case	0X6D:	//			LD	L	L	
-			tempM = " - 0x6D - LD L L";
-			break;
-		case	0X6E:	//			LD	L	(HL)		
-			tempM = " - 0x6E - LD L (HL)";
-			break;
-		case	0X6F:	//			LD	H	A		
-			tempM = " - 0x6F - LD H A";
-			break;
-		case	0X70:	//			LD	(HL)	B		
-			tempM = " - 0x70 - LD (HL) B";
-			break;
-		case	0X71:	//			LD	(HL)	C		
-			tempM = " - 0x71 - LD (HL) C";
-			break;
-		case	0X72:	//			LD	(HL)	D	
-			tempM = " - 0x72 - LD (HL) D";
-			break;
-		case	0X73:	//			LD	(HL)	E		
-			tempM = " - 0x73 - LD (HL) E";
-			break;
-		case	0X74:	//			LD	(HL)	H	
-			tempM = " - 0x74 - LD (HL) H";
-			break;
-		case	0X75:	//			LD	(HL)	L		
-			tempM = " - 0x75 - LD (HL) L";
-			break;
-		case	0X76:	//			HALT			
-			tempM = " - 0x76 - HALT";
-			break;
-		case	0X77:	//			LD	(HL)	A		
-			tempM = " - 0x77 - LD (HL) A";
-			break;
-		case	0X78:	//			LD	A	B		
-			tempM = " - 0x78 - LD A B";
-			break;
-		case	0X79:	//			LD	A	C	
-			tempM = " - 0x79 - LD A C";
-			break;
-		case	0X7A:	//			LD	A	D		
-			tempM = " - 0x7A - LD A D";
-			break;
-		case	0X7B:	//			LD	A	E		
-			tempM = " - 0x7B - LD A E";
-			break;
-		case	0X7C:	//			LD	A	H	
-			tempM = " - 0x7C - LD A H";
-			break;
-		case	0X7D:	//			LD	A	L	
-			tempM = " - 0x7D - LD A L";
-			break;
-		case	0X7E:	//			LD	A	(HL)	
-			tempM = " - 0x7E - LD A (HL)";
-			break;
-		case	0X7F:	//			LD	A	A		
-			tempM = " - 0x7F - LD A A";
-			break;
-		case	0X80:	//			ADD	A	B		
-			tempM = " - 0x80 - LD A B";
-			break;
+		case 0X00:	NOP();				tempM = " - 0x00 - NOP";			break;
+		case 0X01:						tempM = " - 0x01 -LD BC $aabb";		break;
+		case 0X02:						tempM = " - 0x02 - LD (BC) $aabb";	break;
+		case 0X03:						tempM = " - 0x03 - INC BC";			break;
+		case 0X04:						tempM = " - 0x04 - INC B";			break;
+		case 0X05:						tempM = " - 0x05 - DEC B";			break;
+		case 0X06:	LDR8$xx(Rb, $xx);	tempM = " - 0x06 - LD B $xx";		break;
+		case 0X07:						tempM = " - 0x07 - RLCA";			break;
+		case 0X08:						tempM = " - 0x08 - LD ($aabb) SP";	break;
+		case 0X09:						tempM = " - 0x09 - ADD HL BC";		break;
+		case 0X0A:						tempM = " - 0x0A - LD A (BC)";		break;
+		case 0X0B:						tempM = " - 0x0B - DEC BC";			break;
+		case 0X0C:						tempM = " - 0x0C INC C";			break;
+		case 0X0D:						tempM = " - 0x0D - DEC C";			break;
+		case 0X0E:	LDR8$xx(Rc, $xx);	tempM = " - 0x0E - LD C $xx";		break;
+		case 0X0F:						tempM = " - 0x0F - RRCA";			break;
+		case 0X10:						tempM = " - 0x10 - STOP";			break;
+		case 0X11:						tempM = " - 0x11 - LD DE $aabb";	break;
+		case 0X12:						tempM = " - 0x12 - LD (DE) A";		break;
+		case 0X13:						tempM = " - 0x13 - INC DE";			break;
+		case 0X14:						tempM = " - 0x14 - INC D";			break;
+		case 0X15:						tempM = " - 0x015 - DEC D";			break;
+		case 0X16:						tempM = " - 0x15 - LD D $xx ";		break;
+		case 0X17:						tempM = " - 0x17 - RLA";			break;
+		case 0X18:						tempM = " - 0x18 - JR $xx";			break;
+		case 0X19:						tempM = " - 0x19 - ADD HL DE";		break;
+		case 0X1A:						tempM = " - 0x1A - LD A (DE)";		break;
+		case 0X1B:						tempM = " - 0x1B - DEC DE";			break;
+		case 0X1C:						tempM = " - 0x1C - INC E";			break;
+		case 0X1D:						tempM = " - 0x1D - DEC E";			break;
+		case 0X1E:						tempM = " - 0x1E - LD E $xx";		break;
+		case 0X1F:						tempM = " - 0x1F - RRA";			break;
+		case 0X20:						tempM = " - 0x20 - JR NZ $xx";		break;
+		case 0X21:	LOADR16$aabb(Rhl, $aabb , "HL");	tempM = " - 0x21 - LD HL $aabb";	break;
+		case 0X22:						tempM = " - 0x22 - LD (HLI) A";		break;
+		case 0X23:						tempM = " - 0x23 - INC HL";			break;
+		case 0X24:						tempM = " - 0x24 - INC H";			break;
+		case 0X25:						tempM = " - 0x25 - DEC H";			break;
+		case 0X26:						tempM = " - 0x26 - LD H $xx";		break;
+		case 0X27:						tempM = " - 0x27 - DAA";			break;
+		case 0X28:						tempM = " - 0x28 - JR Z $xx";		break;
+		case 0X29:						tempM = " - 0x29 - ADD HL HL";		break;
+		case 0X2A:						tempM = " - 0x2A - LD A (HLI)";		break;
+		case 0X2B:						tempM = " - 0x2B - DEC HL";			break;
+		case 0X2C:						tempM = " - 0x2C - INC L";			break;
+		case 0X2D:						tempM = " - 0x2D - DEC L";			break;
+		case 0X2E:						tempM = " - 0x2E - LD L $xx";		break;
+		case 0X2F:						tempM = " - 0x2F - CPL";			break;
+		case 0X30:						tempM = " - 0x30 - JR NC $xx";		break;
+		case 0X31:						tempM = " - 0x31 - LD SP $aabb";	break;
+		case 0X32:	LOADDHLMR8(); Rl--;	tempM = " - 0x32 - LD (HLD) A";		break;
+		case 0X33:						tempM = " - 0x33 - INC SP";			break;
+		case 0X34:						tempM = " - 0x34 - INC (HL)";		break;
+		case 0X35:						tempM = " - 0x2B - DEC HL";			break;
+		case 0X36:						tempM = " - 0x36 - LD (HL) $xx";	break;
+		case 0X37:						tempM = " - 0x37 - SCF";			break;
+		case 0X38:						tempM = " - 0x38 - JR C $xx";		break;
+		case 0X39:						tempM = " - 0x39 - ADD HL SP";		break;
+		case 0X3A:						tempM = " - 0x3A - LD A (HLD)";		break;
+		case 0X3B:						tempM = " - 0x3B - DEC SP";			break;
+		case 0X3C:						tempM = " - 0x3C - INC A";			break;
+		case 0X3D:						tempM = " - 0x3D - DEC A";			break;
+		case 0X3E:						tempM = " - 0x3E - LD A $xx";		break;
+		case 0X3F:						tempM = " - 0x3F - CCF";			break;
+		case 0X40:						tempM = " - 0x40 - LD B B";			break;
+		case 0X41:						tempM = " - 0x41 - LD B C";			break;
+		case 0X42:						tempM = " - 0x42 - LD B D";			break;
+		case 0X43:						tempM = " - 0x43 - LD B E";			break;
+		case 0X44:						tempM = " - 0x44 - LD B H";			break;
+		case 0X45:						tempM = " - 0x45 - LD B L";			break;
+		case 0X46:						tempM = " - 0x46 - LD B (HL)";		break;
+		case 0X47:						tempM = " - 0x47 - LD B A";			break;
+		case 0X48:						tempM = " - 0x48 - LD C B";			break;
+		case 0X49:						tempM = " - 0x49 - LD C C";			break;
+		case 0X4A:						tempM = " - 0x4A - LD C D";			break;
+		case 0X4B:						tempM = " - 0x4B - LD C E";			break;
+		case 0X4C:						tempM = " - 0x4C - LD C H";			break;
+		case 0X4D:						tempM = " - 0x4D - LD C L";			break;
+		case 0X4E:						tempM = " - 0x4E - LD C (HL)";		break;
+		case 0X4F:						tempM = " - 0x4F - LD C A";			break;
+		case 0X50:						tempM = " - 0x50 - LD D B";			break;
+		case 0X51:						tempM = " - 0x51 - LD D C";			break;
+		case 0X52:						tempM = " - 0x52 - LD D D";			break;
+		case 0X53:						tempM = " - 0x53 - LD D E";			break;
+		case 0X54:						tempM = " - 0x54 - LD D H";			break;
+		case 0X55:						tempM = " - 0x55 - LD D L";			break;
+		case 0X56:						tempM = " - 0x56 - LD D (HL)";		break;
+		case 0X57:						tempM = " - 0x57 - LD D A";			break;
+		case 0X58:						tempM = " - 0x58 - LD E B";			break;
+		case 0X59:						tempM = " - 0x59 - LD E C";			break;
+		case 0X5A:						tempM = " - 0x5A - LD E D";			break;
+		case 0X5B:						tempM = " - 0x5B - LD E E";			break;
+		case 0X5C:						tempM = " - 0x5C - LD E H";			break;
+		case 0X5D:						tempM = " - 0x5D - LD E L";			break;
+		case 0X5E:						tempM = " - 0x5E - LD E (HL)";		break;
+		case 0X5F:						tempM = " - 0x5F - LD E A";			break;
+		case 0X60:						tempM = " - 0x60 - LD H B";			break;
+		case 0X61:						tempM = " - 0x61 - LD H C";			break;
+		case 0X62:						tempM = " - 0x62 - LD H D";			break;
+		case 0X63:						tempM = " - 0x63 - LD H E";			break;
+		case 0X64:						tempM = " - 0x64 - LD H H";			break;
+		case 0X65:						tempM = " - 0x65 - LD H L";			break;
+		case 0X66:						tempM = " - 0x66 - LD H (HL)";		break;
+		case 0X67:						tempM = " - 0x67 - LD E (HL)";		break;
+		case 0X68:						tempM = " - 0x68 - LD L B";			break;
+		case 0X69:						tempM = " - 0x69 - LD L C";			break;
+		case 0X6A:						tempM = " - 0x6A - LD L D";			break;
+		case 0X6B:						tempM = " - 0x6B - LD L E";			break;
+		case 0X6C:						tempM = " - 0x6C - LD L H";			break;
+		case 0X6D:						tempM = " - 0x6D - LD L L";			break;
+		case 0X6E:						tempM = " - 0x6E - LD L (HL)";		break;
+		case 0X6F:						tempM = " - 0x6F - LD H A";			break;
+		case 0X70:						tempM = " - 0x70 - LD (HL) B";		break;
+		case 0X71:						tempM = " - 0x71 - LD (HL) C";		break;
+		case 0X72:						tempM = " - 0x72 - LD (HL) D";		break;
+		case 0X73:						tempM = " - 0x73 - LD (HL) E";		break;
+		case 0X74:						tempM = " - 0x74 - LD (HL) H";		break;
+		case 0X75:						tempM = " - 0x75 - LD (HL) L";		break;
+		case 0X76:						tempM = " - 0x76 - HALT";			break;
+		case 0X77:						tempM = " - 0x77 - LD (HL) A";		break;
+		case 0X78:						tempM = " - 0x78 - LD A B";			break;
+		case 0X79:						tempM = " - 0x79 - LD A C";			break;
+		case 0X7A:						tempM = " - 0x7A - LD A D";			break;
+		case 0X7B:						tempM = " - 0x7B - LD A E";			break;
+		case 0X7C:						tempM = " - 0x7C - LD A H";			break;
+		case 0X7D:						tempM = " - 0x7D - LD A L";			break;
+		case 0X7E:						tempM = " - 0x7E - LD A (HL)";		break;
+		case 0X7F:						tempM = " - 0x7F - LD A A";			break;
+		case 0X80:						tempM = " - 0x80 - LD A B";			break;
 		case	0X81:	//			ADD	A	C	
 			tempM = " - 0x81 - LD A C";
 			break;
@@ -3085,22 +2554,13 @@ public:
 		default:
 			std::cout << "ERROR CASE NOT FOUND " << "opcode" << std::hex << std::setw(2) << std::setfill('0') << int(opcode) << "\n";
 			break;	
-		}
-
-		
+		}		
 		std::cout << "Next opcode" << " | " << "Engager: " << std::hex << std::setw(4) << std::setfill('0') << opcode << "-" << tempM << "\n";
-		//std::cout << "$aabb: " << std::hex << (int)$aabb << "\n";
+		//std::cout << "$aabb: " << std::hex << (int)$aabb << "\n"; // To Dissasemble
 		
-
-
 	} //end opDecoder
 
 #pragma endregion
-
-	//flag handler
-	//el register F mantiene 4 flags
-	//2 sera usado como caso de error indistinto
-
 
 
 	void Reset() {
@@ -3125,29 +2585,9 @@ public:
 		//gb::NOP();
 	}
 
-	void FlagController() {
-
-	}
-
-
 	void dispatch() {
-		//		unsigned short opcode;
-		// retrieve opcode
-		//	opcode =   ( gb::mmu.rb (memoryT[reg.pc])  << 8 ) || ( gb::mmu.rb(memoryA[reg.pc + 1]));
-		// assign registers
-
-		//std::cout << "\nPC: " << std::hex << (int)pc << "\n";
-		//gb::MMU(pc, 1, 0);
-
-		//	opcode = memoryA[reg.pc];
-		//	std::cout << std::hex << (int)memoryA[0x101] << "prueba";
-
-		//std::cout << "\nOpcode: " << std::hex << (int)opcode;
-		//		std::cout << "\nOpcodeINd: " << std::hex << (int)memoryA[pc];
-		//Ra = 0xC;
-		//Rf = 0x8;
-		RegComb();
-		FlagState();
+		
+		
 
 		/// Gracias modulo, me ense;aste un monton
 		/*
@@ -3172,120 +2612,20 @@ public:
 		Rf = x.to_ulong();
 		std::cout << "Rf Bitseteado: " << std::hex << (int)Rf << "\n";
 
-
-		std::cout << x << "\n";
 		
-		unsigned char testbit = 0xf0;
-		unsigned char chartest = 0;
-		unsigned char zt;
-		unsigned char nt;
-		unsigned char ht;
-		unsigned char ct;
-
-		ct = (testbit & 0x16) >> 13; // 1 2 4 8 16 32 64 128
-		ht = (testbit & 0x32) >> 14;
-		nt = (testbit & 0x64) >> 15;
-		zt = (testbit & 0x8F) >> 8;
-
-		std::cout << "\ncharTest: 0x" << std::setw(2) << std::setfill('0')  << std::hex << (int)testbit;
-		std::cout << "\nZ FLAG: " << std::hex << (int)zt << "\n";
-		std::cout << "N FLAG: " << std::hex << (int)nt << "\n";
-		std::cout << "H FLAG: " << std::hex << (int)ht << "\n";
-		std::cout << "C FLAG: " << std::hex << (int)ct << "\n";
-
-		//testbit &= ~(0x2 << 1); // set 2nd bit to 1
-		//clears Z N H C
-		//testbit &= ~(1 << 3);
-		//testbit &= ~(1 << 2);
-		//testbit &= ~(1 << 1);
-		//testbit &= ~(1);
-
-		// set Z N H C
-		testbit |= (1 << 3);
-		testbit |= (1 << 2);
-		testbit |= (1 << 1);
-		testbit |= (1);
-
-		std::cout << "\nbittest mod: " << std::hex << (int)testbit;
-
-		zt = (testbit & 0x8) >> 3;
-		nt = (testbit & 0x4) >> 2;
-		ht = (testbit & 0x2) >> 1;
-		ct = (testbit & 0x1);
-
-		std::cout << "\nZ FLAG: " << std::hex << (int)zt << "\n";
-		std::cout << "N FLAG: " << std::hex << (int)nt << "\n";
-		std::cout << "H FLAG: " << std::hex << (int)ht << "\n";
-		std::cout << "C FLAG: " << std::hex << (int)ct << "\n";
-
-		std::cout << "\ncharTest: 0x" << std::setw(2) << std::setfill('0') << std::hex << (int)testbit;
-
-
-		
-
-		//supongamos que tengo stored 1100
-
 		*/
-
-		// modify clocks
-		//gb::Rm += gb::Rm;
-		//gb::Rt += gb::Rt;
-
-
-	}
-
+	} // Modulo aprendizaje
 
 	void LoadFile()
 	{
 		std::ifstream fin(ROM, std::ios::binary);
-		if (!fin)
-		{
-			std::cout << "no se puede abrir archivo" << std::endl;
-		}
-
-		for (int i = 0; i < 0x8000; i++)
-		{
-			fin.get(letter);
-			memoryT[i] = letter;
-
-		}
-
-
-		for (int i = 0; i<0x8000; i++)
-		{
-			//std::cout << std::hex << (int)memoryT[i];
-
-
-
-
-
-			//	std::cout << std::hex << (int)memoryT[0x100];
-			//	std::cout << std::hex << (int)memoryT[0x102];
-
-		}
+		if (!fin)	{	std::cout << "File not found " << std::endl;	}
+		for (int i = 0; i < 0x8000; i++)	{	fin.get(letter);	memoryA[i] = letter;	}
 	}; // fin LoadFile
-
-	void MemAssign()
-	{
-		for (int i = 0; i <= 0xFFFE; i++)
-		{
-			if (i >= 0 && i < 0x4000)
-			{
-				memoryA[i] = memoryT[i];
-			}
-
-		}
-
-
-	}; //-- Fin MA
-
 
 
 }; //-- Fin class GB
 //-- Modulo Main
-
-
-
 
 int main()
 {
@@ -3306,38 +2646,24 @@ int main()
 
 	}
 	*/
+	///////////////////////////////////////////////////////////////////////////////////////
+	//- On Init - Set Base values to Regs, Load Rom from memory, Assign Memory to Mem Array
+	//- A little Choppy Atm - Room for improvement
+	///////////////////////////////////////////////////////////////////////////////////////
 
 	gb gameboy;
 	gameboy.Reset();
-	//gameboy.Init();
 	gameboy.LoadFile();
-	gameboy.MemAssign();
-	
-	unsigned short intType;
-	intType = memoryA[0xFFFF];
-	
-	//	gameboy.gfxHandler();
-	while (1)
-	{
-		gameboy.dispatch();
-		//std::cout << tempM << "\n";
+
+	///////////////////////////////////////////////////////////////////////////////////////
+	//- Main execution loop
+	//- Currently Pausing after each Opcode
+	///////////////////////////////////////////////////////////////////////////////////////
+
+	while (1)	{
+		gameboy.RegComb();
 		gameboy.opDecoder();
-		
-		//gameboy.dispatch();
 		std::cin.get();
-		//gameboy.RegUpdate();
-
-	}
-
-
+}
 	return 0;
 }
-/*
-int _tmain(int argc, _TCHAR* argv[])
-{
-
-
-
-return 0;
-}
-*/
