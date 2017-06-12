@@ -42,7 +42,7 @@ unsigned char opLen;
 std::string functType;
 unsigned short $aabb;
 bool nullRender = true;
-std::string tempM;
+std::string Dm;
 std::string Dreg;
 std::string Sreg;
 std::string Starget;
@@ -56,7 +56,7 @@ unsigned short _16bitIn;
 unsigned long fullOpcode;
 unsigned char $bb;
 unsigned char $aa;
-unsigned char $xx;
+signed char $xx;
 unsigned char _8bitIn3;
 
 unsigned char TempRf;
@@ -65,54 +65,26 @@ unsigned char TempRf;
 class gb
 {
 public:
-	unsigned short Raf = 0;
-	unsigned short Rbc = 0;
-	unsigned short Rde = 0;
-	unsigned short Rhl = 0;
-	unsigned char hlM = 0;
-	unsigned char Ra = 0;
-	unsigned char Rb = 0;
-	unsigned char Rc = 0;
-	unsigned char Rd = 0;
-	unsigned char Re = 0;
-	unsigned char Rl = 0;
-	unsigned char Rf = 0;
-	unsigned short pc = 0;
-	unsigned char Rh = 0;
-	unsigned short sp = 0;
+	unsigned short Raf, Rbc, Rde, Rhl;
+	unsigned char Ra, Rf, Rb, Rc, Rd, Re, Rl, Rh;
+	unsigned short pc, sp;
 	unsigned char opclock = 0;
-	unsigned long  cpuClock = 0;
+	unsigned long cpuClock = 0;
 	unsigned char mathTC1 = 0;
 	unsigned char mathTC2 = 0;
 	unsigned char mathTS1 = 0;
 	unsigned char mathTS2 = 0;
 
-	unsigned char N;
-	unsigned char H;
-	unsigned char C;
-	unsigned char Z;
-
-
-
-	float Rm = 0;
-	float Rt = 0;
-
-
-
-	char ROMb0[0x4000];
-	char ROMb1[0x4000];
-
-		int Mflag = 0;
-
-	 
-
+	unsigned char Z,N,H,C;
+	float Rm, Rt;
 ///////////////////////////////////////////////////////////////////////////////////////
 //- Graphics Related code 
-//- This section can be enabled or disabled, but is mean for research
+//- This section can be enabled or disabled, but is meant for research
 ///////////////////////////////////////////////////////////////////////////////////////		
-		//
-	//SDL_Rect pixel[144][164]; // la pantalla es de 256 x 256 pero 144 y 164 son visibles
+	
 	/*
+	//
+	//SDL_Rect pixel[144][164]; // la pantalla es de 256 x 256 pero 144 y 164 son visibles
 	void gfxHandler()
 	{
 	unsigned int rowN;
@@ -271,7 +243,16 @@ public:
 //- This will be a Major milestone in the project
 ///////////////////////////////////////////////////////////////////////////////////////
 	void MMU() {	
-		if (pc < 0x4000) {	std::cout << "MMU ROM bank0" << "\n";										}
+		if (pc < 0x4000) {
+			std::cout << "MMU ROM bank0" << "\n";
+			if (pc == 0x2817)
+			{
+				std::cout << "//////////////////////////////////////////////////////////////////////" << "\n";
+				std::cout << "Drawing Starting\n";
+				std::cout << "//////////////////////////////////////////////////////////////////////" << "\n";
+				std::cin.get();
+			}
+		}
 		else if (pc >= 0x4000 && pc < 0x8000) { std::cout << "MMU ROM bank1" << "\n";					}
 		else if (pc >= 0x8000 && pc < 0xA000) { std::cout << "MMU GFX" << "\n"; std::cin.get();			} //Break point GFX
 		else if (pc >= 0xA000 && pc < 0xC000) { std::cout << "MMU EXT RAM bank" << "\n";				}
@@ -282,24 +263,14 @@ public:
 		else if (pc >= 0xFF80 && pc < 0xFFFF) { std::cout << "MMU ZERO PAGE RAM" << "\n";				}
 	}
 
-#pragma region RegisterCombine
-
-	
-	void Rcomb(unsigned char regPair) {
-		switch (regPair) {
-		case 0:	Raf = (Ra << 8) | Rf;	break;
-		case 1:	Rbc = (Rb << 8) | Rc;	break;
-		case 2:	Rde = (Rd << 8) | Re;	break;
-		case 3:	Rhl = (Rh << 8) | Rl;	break;
-		}
-	}
-#pragma endregion
-
+///////////////////////////////////////////////////////////////////////////////////////
+//- Register Combiner and Flag managing 
+//- This Section is DONE
+///////////////////////////////////////////////////////////////////////////////////////
 #pragma region FlagCalculator
-	// Flag handling
+
 
 	void FLGH(unsigned char Z, unsigned char N, unsigned char H, unsigned char C, unsigned short calcT1, unsigned short calcT2, unsigned char Optype) {
-
 		//opTypes
 		// 1 - ADD
 		// 2 - SUB
@@ -307,12 +278,8 @@ public:
 		// 4 - AND
 		// 5 - OR
 		// 6 - XOR
-
-		unsigned short TT1;
-		unsigned short TT2;
-		unsigned short Tresult;
-
-		TT1 = calcT1;
+		unsigned short TT1, TT2, Tresult;
+		TT1 = calcT1;	
 		TT2 = calcT2;
 
 		std::bitset<8> Rf_as_bit(Rf);
@@ -375,12 +342,14 @@ public:
 			switch (Optype) {
 				case 1: 
 				Tresult = TT1 + TT2;
-				if (Tresult > 0xF) { Rf_as_bit.set(5); }	else { Rf_as_bit.reset(5); }
+				if (((TT1 & 0xF) + (TT2 & 0xF)) & 0x10 == 0x10) { Rf_as_bit.set(5); }
+				else { Rf_as_bit.reset(5); }
 				break;
 				case 2:
 				Rf_as_bit.set(6);
-				Tresult = TT1 - TT2;
-				if (Tresult < 0xF) { Rf_as_bit.set(5); }	else { Rf_as_bit.reset(5); }
+				
+				if (((TT1 & 0xF) - (TT2 & 0xF)) & 0x10 == 0x10) { Rf_as_bit.set(5); std::cout << " H SET " << "\n"; }
+				else { Rf_as_bit.reset(5); }
 				break;
 			}// END N - Optype Switch
 			break;
@@ -418,10 +387,19 @@ public:
 		Rf = Rf_as_bit.to_ulong();
 	}
 #pragma endregion
+#pragma region RegisterCombine
 
-#pragma region RegisterAndFlagsUpdate	
-	// Register Combine method
-	void RegComb() {
+
+	void Rcomb(unsigned char regPair) {
+		switch (regPair) {
+		case 0:	Raf = (Ra << 8) | Rf;	break;
+		case 1:	Rbc = (Rb << 8) | Rc;	break;
+		case 2:	Rde = (Rd << 8) | Re;	break;
+		case 3:	Rhl = (Rh << 8) | Rl;	break;
+		}
+	}
+#pragma endregion
+void RegComb() {
 		if (pc != 0x100) {
 		gb::Rcomb(0);
 		gb::Rcomb(1);
@@ -434,14 +412,17 @@ public:
 		std::cout << "DE: " << std::hex << (int)Rde << "\n";
 		std::cout << "HL: " << std::hex << (int)Rhl << "\n";
 	}
-
-
-#pragma endregion
+void RegRecombiner(std::string Dtarget) {
+	if (Dtarget == "AF") { Ra = Raf >> 8; Rf = (Raf & 0xF); }
+	else if (Dtarget == "BC") { Rb = Rbc >> 8; Rc = (Rbc & 0xF); }
+	else if (Dtarget == "DE") { Re = Rde >> 8; Re = (Rde & 0xF); }
+	else if (Dtarget == "HL") { Rh = Rhl >> 8; Rl = (Rhl & 0xF); }
+}
 
 #pragma region InstructionMapping
 	
 ///////////////////////////////////////////////////////////////////////////////////////
-//- Function Backbone Order of execution given by the preset 
+//- Function Backbone - Order of execution is given by the preset 
 //- This will be a Major milestone in the project (Current TASK)
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -460,7 +441,7 @@ public:
 	*/ //Hidden Instruction Preset //
 	//Instruction Preset
 
-	void ADC8RHLM(unsigned short $any, std::string Dtarget, std::string Starget) { // n + carry flag to A
+	void ADC8RhlM(unsigned short &$any, std::string Dtarget, std::string Starget) { // n + carry flag to A
 		////-- Instruction preset
 		opLen = 1;
 		FLGH(2, 0, 2, 2, $any, Ra, 1 );
@@ -483,7 +464,7 @@ public:
 		pc += opLen;
 		////-- Instruction preset
 	}
-	void ADCR8(unsigned short $any, std::string Dtarget, std::string Starget) {
+	void ADCR8(unsigned short &$any, std::string Dtarget, std::string Starget) {
 		////-- Instruction preset
 		opLen = 1;
 		FLGH(2, 0, 2, 2, $any, Ra, 1);
@@ -494,7 +475,7 @@ public:
 		pc += opLen;
 		////-- Instruction preset
 	}
-	void ADDAHLM(std::string Dtarget, std::string Starget) {
+	void ADDAhlM(std::string Dtarget, std::string Starget) {
 		
 		////-- Instruction preset
 		opLen = 1;
@@ -515,17 +496,21 @@ public:
 		functType = "ADD $xx ";
 
 	}
-	void ADDA8R(unsigned char _8r) {
-		//FLGH(2, 0, 2, 2);
-		//CALCFLG(Ra, _8r, 1);
+	void ADDA8R(unsigned char &_8r, std::string Dtarget, std::string Starget) {
+		////-- Instruction preset
+		opLen = 1;
+		FLGH(2, 0, 1, 0, Ra, _8r, 1);
 		Ra += _8r;
-		opclock = 1;
-		functType = "ADD R8 ";
+		funcText << "AND " << Dtarget << ", " << Starget;
+		functType = funcText.str();
+		opDeb();
+		pc += opLen;
+		////-- Instruction preset
 	}
-	void ADDHL16R(unsigned short _R1) {
+	void ADDHL16R(unsigned short &_R16) {
 		//FLGH(3, 0, 2, 2);
 		//CALCFLG(Rhl, _R1, 1);
-		Rhl += _R1;
+		Rhl += _R16;
 		opclock = 1;
 		functType = "ADD HL 16R ";
 	}
@@ -536,10 +521,10 @@ public:
 		opclock = 2;
 		functType = "ADD SP 8off";
 	}
-	void ANDAHLM() {
+	void ANDAhlM() {
 		//FLGH(2, 0, 1, 0);
-		//CALCFLG(Ra, hlM, 1);
-		Ra &= hlM;
+		//CALCFLG(Ra, memoryA[Rhl], 1);
+		//Ra &= memoryA[Rhl];
 		opclock = 1;
 		functType = "AND A (HL) ";
 	}
@@ -550,16 +535,20 @@ public:
 		opclock = 2;
 		functType = "AND A $xx ";
 	}
-	void ANDA8R(unsigned char _8r) {
-		//FLGH(2, 0, 1, 0);
-		//CALCFLG(Ra, _8r, 3);  //set optype3 as AND
+	void ANDA8R(unsigned char &_8r, std::string Dtarget, std::string Starget) {
+		////-- Instruction preset
+		opLen = 1;
+		FLGH(2, 0, 1, 0, Ra, _8r, 4);
 		Ra &= _8r;
-		opclock = 1;
-		functType = "AND A 8R ";
+		funcText << "AND " << Dtarget << ", " << Starget;
+		functType = funcText.str();
+		opDeb();
+		pc += opLen;
+		////-- Instruction preset
 	}
-	void BITHLM(unsigned char bitnum) {
+	void BIThlM(unsigned char bitnum) {
 
-		switch (hlM << bitnum) { // refinar 0x1
+		switch (memoryA[Rhl] << bitnum) { // refinar 0x1
 		case 1:
 			std::cout << "tested positive\n";
 
@@ -569,12 +558,12 @@ public:
 		//FLGH(2, 0, 1, 3);
 		opclock = 2;
 		functType = "BIT (HL) ";
-		//CALCFLG(Ra, _8int, 3) //set optype4 op de revision valor hlM o hacer directo aca
+		//CALCFLG(Ra, _8int, 3) //set optype4 op de revision valor memoryA[Rhl] o hacer directo aca
 
 		//bit test agains
 		//update timers
 	}
-	void BIT8R(unsigned char bitnum, unsigned char _8r) {
+	void BIT8R(unsigned char bitnum, unsigned char &_8r) {
 
 		switch (_8r << bitnum) { // refinar 0x1
 		case 1:
@@ -586,7 +575,7 @@ public:
 		//FLGH(2, 0, 1, 3);
 		opclock = 2;
 		functType = "BIT 8R ";
-		//CALCFLG(Ra, _8int, 3) //set optype4 op de revision valor hlM o hacer directo aca
+		//CALCFLG(Ra, _8int, 3) //set optype4 op de revision valor memoryA[Rhl] o hacer directo aca
 		//bit test agains
 		//update timers
 
@@ -611,12 +600,12 @@ public:
 	}
 	void CARRYFLAG() {
 		//FLGH(3, 0, 0, 2);
-		//CALCFLG(Ra, _8int, 3) //set optype4 op de revision valor hlM o hacer directo aca
+		//CALCFLG(Ra, _8int, 3) //set optype4 op de revision valor memoryA[Rhl] o hacer directo aca
 		opclock = 1;
 		functType = "CARRY FLAG ";
 		//FLGH(3, 3, 3, 1);
 	}
-	void COMPHLM() {
+	void COMPhlM() {
 		//FLGH(2, 1, 2, 2);
 		opclock = 1;
 		functType = "COMPLEMENT (HL) ";
@@ -627,7 +616,7 @@ public:
 		opclock = 2;
 		functType = "COMPLEMENT $xx ";
 	}
-	void COMP8R(unsigned char _8r) {
+	void COMP8R(unsigned char &_8r) {
 		//FLGH(2, 1, 2, 2);
 		opclock = 1;
 		functType = "COMPLEMENT 8R ";
@@ -642,33 +631,37 @@ public:
 		opclock = 1;
 		functType = "DAA ";
 	}
-	void DECHLM() {
+	void DEChlM() {
 		//FLGH(2, 1, 2, 3);
-		hlM--;
+		memoryA[Rhl]--;
 		opclock = 1;
 		functType = "DEC (HL) ";
 
 	}
-	void DECR16(unsigned short _16r) {
+	void DECR16(unsigned short &_16r) {
 		_16r--;
 		opclock = 1;
 		//update flags
 		functType = "DEC R16 ";
 		//FLGH(3, 3, 3, 3);
 	}
-	void DEC8R(unsigned char _r8) {
-		//FLGH(2, 1, 2, 3);
+	void DEC8R(unsigned char &_r8, std::string Dtarget) {
+		////-- Instruction preset
+		opLen = 1;
+		FLGH(2, 1, 2, 3, _r8, 1, 2);
 		_r8--;
-		opclock = 1;
-		functType = "DEC 8R ";
-		//update timers
-		//update flags
+		funcText << "DEC " << Dtarget;
+		functType = funcText.str();
+		opDeb();
+		pc += opLen;
+		////-- Instruction preset
 	}
 	void DI() {
 		opclock = 1;
 		opLen = 1;
 		pc += opLen;
 		functType = "DISABLE INTERRUPTS ";
+		std::cin.get();
 		//FLGH(3, 3, 3, 3);
 	}
 	void EI() {
@@ -681,33 +674,39 @@ public:
 		opclock = 1;
 		//FLGH(3, 3, 3, 3);
 	}
-	void INCHLM() {
+	void INChlM() {
 		//FLGH(2, 0, 2, 3);
-		hlM++;
+		memoryA[Rhl]++;
 		opclock = 1;
 		//update timers
 		//update flags
 		functType = "INC (HL) ";
 	}
-	void INCR16(unsigned short _16r) {
+	void INC16R(unsigned short &_16r, std::string Dtarget) {
+		////-- Instruction preset
+		opLen = 1;
+		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 		_16r++;
-		//update timers
-		opclock = 1;
-		functType = "INC R16 ";
-		//FLGH(3, 3, 3, 3);
-		//update flags
+		RegRecombiner(Dtarget);
+		funcText << "INC " << Dtarget;
+		functType = funcText.str();
+		opDeb();
+		pc += opLen;
+		////-- Instruction preset
 	}
-	void INC8R(unsigned char _r8) {
-		//FLGH(2, 0, 2, 3);
+	void INC8R(unsigned char &_r8, std::string Dtarget) {
+		////-- Instruction preset
+		opLen = 1;
+		FLGH(2, 0, 2, 3, _r8, 1, 2);
 		_r8++;
-		//update timers
-		opclock = 1;
-		//update flags
-		functType = "INC R8 ";
-		//FLGH(3, 3, 3, 3);
+		funcText << "INC " << Dtarget;
+		functType = funcText.str();
+		opDeb();
+		pc += opLen;
+		////-- Instruction preset
 	}
-	void JUMPHLM() {
-		pc = hlM;
+	void JUMPhlM() {
+		pc = memoryA[Rhl];
 
 		//update timers
 		opclock = 1;
@@ -734,15 +733,37 @@ public:
 		pc = _$aabb;
 		////-- Instruction preset
 	}
-	void JRCC$xx(int flagcc, unsigned char _$xx) {
-		if (flagcc == 1)
-			pc = memoryA[_$xx];
-		else
-			//skip
-			pc++;
-		opclock = 2;
-		functType = "JR IF C $xx ";
-		//FLGH(3, 3, 3, 3);
+	void JRCC$xx(std::string flagOp, signed char _$xx) {
+		////-- Instruction preset
+		opLen = 2;
+		//std::cout << "8bit int inm " << (int)_$xx << "\n";
+		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
+		funcText << "JR + $xx IF FlagBit = TRUE  ->";
+		functType = funcText.str();
+		opDeb();
+		std::bitset<8> flagChecker(Rf);
+		unsigned char byteNum;
+		unsigned char testCase;
+		if (flagOp == "Z"){ byteNum = 7; testCase = 1; }
+		else if (flagOp == "NZ"){ byteNum = 7; testCase = 0; }
+
+		else if (flagOp == "C"){ byteNum = 4; testCase = 1; }
+		else if (flagOp == "NC"){ byteNum = 4; testCase = 0; }
+
+		if (flagChecker.test(byteNum) == testCase)
+		{
+			std::string result = "TRUE\n";
+			std::cout << "Case " << flagOp << "tested " << result;
+			pc = pc + _$xx + opLen;
+		}
+
+		else if (flagChecker.test(byteNum) != testCase)
+		{
+			std::string result = "FALSE\n";
+			std::cout << "Case " << flagOp << "tested " << result;
+			pc += opLen;
+		}
+		////-- Instruction preset
 	}
 	void JR$xx(unsigned char _8int) {
 		pc = memoryA[_8int];
@@ -759,16 +780,16 @@ public:
 		functType = "LOAD C (A) ";
 		//FLGH(3, 3, 3, 3);
 	}
-	void LOADHLM$xx(unsigned char _8int) {
-		hlM = _8int;
+	void LOADhlM$xx(unsigned char _8int) {
+		memoryA[Rhl] = _8int;
 		//update timers
 		opclock = 2;
 		//update flags
 		functType = "LOAD (HL) $xx ";
 		//FLGH(3, 3, 3, 3);
 	}
-	void LOADHLM8R(unsigned char _8r) {
-		hlM = _8r;
+	void LOADhlM8R(unsigned char &_8r) {
+		memoryA[Rhl] = _8r;
 		//update timers
 		opclock = 1;
 		//update flags
@@ -791,7 +812,7 @@ public:
 		functType = "LOAD $aabb SP ";
 		//FLGH(3, 3, 3, 3);
 	}
-	void LOAD16RMRA(unsigned short _16r) {
+	void LOAD16RMRA(unsigned short &_16r) {
 		memoryA[_16r] = Ra;
 		//update timers
 		opclock = 1;
@@ -799,7 +820,7 @@ public:
 		functType = "LOAD (16R) A ";
 		//FLGH(3, 3, 3, 3);
 	}
-	void LOADRACM(unsigned char _8r) {
+	void LOADRACM(unsigned char &_8r) {
 		Ra = memoryA[_8r];
 		//update timers
 		opclock = 1;
@@ -816,7 +837,7 @@ public:
 		functType = "LOAD A $aabb ";
 		//FLGH(3, 3, 3, 3);
 	}
-	void LOADRA16RM(unsigned short _16r) {
+	void LOADRA16RM(unsigned short &_16r) {
 		Ra = memoryA[_16r];
 		//update timers
 		opclock = 1;
@@ -832,7 +853,7 @@ public:
 		//update flags
 		functType = "LOAD HL SPOFF";
 	}
-	void LOADR16$aabb(unsigned short _16r, unsigned short $_aabb, std::string Dtarget) {
+	void LOADR16$aabb(unsigned short &_16r, unsigned short $_aabb, std::string Dtarget) {
 		////-- Instruction preset
 		opLen = 3;
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
@@ -844,8 +865,8 @@ public:
 		pc += opLen;
 		////-- Instruction preset
 	}
-	void LOADR8HLM(unsigned char _8r) {
-		_8r = hlM;
+	void LOADR8hlM(unsigned char &_8r) {
+		_8r = memoryA[Rhl];
 		functType = "LD (HL)";
 		//gb::DebugReg(functType);
 		//update timers
@@ -855,27 +876,29 @@ public:
 	//	FLGH(3, 3, 3, 3);
 		//update flags
 	}
-	void LDR8$xx(unsigned char _8r, unsigned char _$xx) {
-		
-		//update timers
-		opclock = 2;
-		//FLGH(3, 3, 3, 3);
+	void LDR8$xx(unsigned char &_8r, unsigned char _$xx, std::string Dtarget) {
+		////-- Instruction preset
 		opLen = 2;
-		functType = "LD R8 $xx ";
-		//DebugReg(functType);
-		//_8r = _$xx;
-
-		//update flags
+		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
+		_8r = _$xx;
+		funcText << "LOAD " << Dtarget << ", " << std::hex << std::setw(4) << std::setfill('0') << (int)_$xx;
+		functType = funcText.str();
+		opDeb();
+		pc += opLen;
+		////-- Instruction preset
 	}
-	void LOADR8R8(unsigned char _8r, unsigned char  _8r2) {
+	void LOADR8R8(unsigned char &_8r, unsigned char  &_8r2, std::string Dtarget, std::string Starget) {
+		////-- Instruction preset
+		opLen = 1;
+		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 		_8r = _8r2;
-		//update timers
-		opclock = 1;
-		//update flags
-		functType = "LOAD R8 R8 ";
-		//FLGH(3, 3, 3, 3);
+		funcText << "LOAD " << Dtarget << ", " << Starget;
+		functType = funcText.str();
+		opDeb();
+		pc += opLen;
+		////-- Instruction preset
 	}
-	void LOADSPHL(unsigned short SP, unsigned short HL) {
+	void LOADSPHL(unsigned short &SP, unsigned short &HL) {
 		SP = HL;
 		//update timers
 		opclock = 1;
@@ -883,8 +906,8 @@ public:
 		functType = "SP HL ";
 		//FLGH(3, 3, 3, 3);
 	}
-	void LOADDR8HLM() {
-		Ra = hlM;
+	void LOADDR8hlM() {
+		Ra = memoryA[Rhl];
 		Rhl--;
 		//update timers
 		opclock = 1;
@@ -893,14 +916,18 @@ public:
 		//FLGH(3, 3, 3, 3);
 		opLen = 1;
 	}
-	void LOADDHLMR8() {
-		//FLGH(3, 3, 3, 3);
-		//update timers
-		opclock = 1;
-		//update flags
+	void LOADDhlMR8(unsigned char &_R8, std::string Dtarget, std::string Starget) {
+		////-- Instruction preset
 		opLen = 1;
-		functType = "LDD (HL) R8 ";
-		
+		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
+		memoryA[Rhl] = _R8;
+		funcText << "LOADD " << "(HL) ," << Starget;
+		functType = funcText.str();
+		opDeb();
+		if (Dtarget == "(HL)") { Rl--; }
+		pc += opLen;
+		////-- Instruction preset
+
 	}
 	void LOADHAOFF(unsigned char off) { //LDH
 
@@ -924,8 +951,8 @@ public:
 		functType = "LOAD A OFF ";
 		//FLGH(3, 3, 3, 3);
 	}
-	void LDIHLMRA() {
-		hlM = Ra;
+	void LDIhlMRA() {
+		memoryA[Rhl] = Ra;
 		Ra++;
 		//update timers
 		opclock = 1;
@@ -933,9 +960,9 @@ public:
 		functType = " LDI (HL) A ";
 		//FLGH(3, 3, 3, 3);
 	}
-	void LDIRAHLM() {
-		Ra = hlM;
-		hlM++;
+	void LDIRAhlM() {
+		Ra = memoryA[Rhl];
+		memoryA[Rhl]++;
 		//update timers
 		opclock = 1;
 		//update flags
@@ -948,9 +975,9 @@ public:
 		//pc += opLen;
 		functType = "NOP ";
 	}
-	void ORHLMRA() {
+	void ORhlMRA() {
 	//	FLGH(2, 0, 0, 0);
-		hlM |= Ra;
+		memoryA[Rhl] |= Ra;
 		opclock = 1;
 		functType = "OR (HL) A ";
 	}
@@ -960,13 +987,18 @@ public:
 		opclock = 2;
 		functType = "OR ADC R8 ";
 	}
-	void ORRA8R(unsigned char _8r) {
-	//	FLGH(2, 0, 0, 0);
-		Ra |= _8r;
-		opclock = 1;
-		functType = "OR A R8 ";
+	void ORRA8R(unsigned char &_r8, std::string Dtarget, std::string Starget) {
+		////-- Instruction preset
+		opLen = 1;
+		FLGH(2, 0, 0, 0, Ra, _r8, 5);
+		Ra |= _r8;
+		funcText << "OR " << Dtarget << ", " << Starget;
+		functType = funcText.str();
+		opDeb();
+		pc += opLen;
+		////-- Instruction preset
 	}
-	void POP16R(unsigned _16r) {
+	void POP16R(unsigned &_16r) {
 		memoryA[sp] = _16r;
 		sp--;
 		opclock = 1;
@@ -980,13 +1012,13 @@ public:
 		functType = "PUSH ";
 	//	FLGH(3, 3, 3, 3);
 	}
-	void RESBHLM(unsigned char _bit) {
-		//bit de hlM a cero
+	void RESBhlM(unsigned char _bit) {
+		//bit de memoryA[Rhl] a cero
 		opclock = 2;
 		functType = "RES BIT (HL) ";
 	//	FLGH(3, 3, 3, 3);
 	}
-	void RESBR8(unsigned char _bit, unsigned  char _8r){
+	void RESBR8(unsigned char _bit, unsigned  char &_8r){
 		//bit de _8r a cero
 		opclock = 2;
 		functType = "RES BIT R8 ";
@@ -1013,7 +1045,7 @@ public:
 		opclock = 2;
 		functType = "RL (H)";
 	}
-	void RLR8(unsigned char _8r, unsigned char _8r2) {
+	void RLR8(unsigned char &_8r, unsigned char &_8r2) {
 	//	FLGH(2, 0, 0, 2);
 		opclock = 2;
 		functType = "RL 8R ";
@@ -1028,7 +1060,7 @@ public:
 		opclock = 2;
 		functType = "RLC (H) ";
 	}
-	void RLCR8R8(unsigned char _r8, unsigned char _r82) {
+	void RLCR8R8(unsigned char &_r8, unsigned char &_r82) {
 	//	FLGH(2, 0, 0, 2);
 		opclock = 2;
 		functType = "RLC R8 R8 ";
@@ -1043,7 +1075,7 @@ public:
 		opclock = 2;
 		functType = "RR (H) ";
 	}
-	void RRR8R8(unsigned char _r8, unsigned char _r82) {
+	void RRR8R8(unsigned char &_r8, unsigned char &_r82) {
 	//	FLGH(2, 0, 0, 2);
 		opclock = 2;
 		functType = "RR R8 R8 ";
@@ -1060,7 +1092,7 @@ public:
 		opclock = 2;
 		functType = "RRC (H) ";
 	}
-	void RRCR8R8(unsigned char _r8, unsigned char _r82) {
+	void RRCR8R8(unsigned char &_r8, unsigned char &_r82) {
 	//	FLGH(2, 0, 0, 2);
 		opclock = 2;
 		functType = "RRC R8 R8 ";
@@ -1083,7 +1115,7 @@ public:
 		opclock = 2;
 		functType = "SBC $xx ";
 	}
-	void SBC8R(unsigned char _r8) {
+	void SBC8R(unsigned char &_r8) {
 	//	FLGH(2, 1, 2, 2);
 		opclock = 1;
 		functType = "SBC 8R ";
@@ -1098,17 +1130,17 @@ public:
 		functType = "SET B (H) ";
 	//	FLGH(3, 3, 3, 3);
 	}
-	void SETBR8(unsigned char _bit, unsigned char _r8) {
+	void SETBR8(unsigned char _bit, unsigned char &_r8) {
 		opclock = 2;
 		functType = "SET B R8 ";
 	//	FLGH(3, 3, 3, 3);
 	}
-	void SLAHLM() {
+	void SLAhlM() {
 	//	FLGH(2, 0, 0, 2);
 		opclock = 2;
 		functType = "SLA (HL) ";
 	}
-	void SLAR8(unsigned char _r8) {
+	void SLAR8(unsigned char &_r8) {
 	//	FLGH(2, 0, 0, 2);
 		opclock = 2;
 		functType = "SLA R8 ";
@@ -1118,7 +1150,7 @@ public:
 		opclock = 2;
 		functType = "SRA (H) ";
 	}
-	void SRAR8R8(unsigned char _8r, unsigned char _r82) {
+	void SRAR8R8(unsigned char &_8r, unsigned char &_r82) {
 	//	FLGH(2, 0, 0, 2);
 		opclock = 2;
 		functType = "SRA R8 R8 ";
@@ -1128,7 +1160,7 @@ public:
 		opclock = 2;
 		functType = "SRL (H) ";
 	}
-	void SRLR8R8(unsigned char _8r, unsigned char _r82) {
+	void SRLR8R8(unsigned char &_8r, unsigned char &_r82) {
 	//	FLGH(2, 0, 0, 2);
 		opclock = 2;
 		functType = "SRL R8 R8 ";
@@ -1138,7 +1170,7 @@ public:
 		functType = "STOP ";
 	//	FLGH(3, 3, 3, 3);
 	}
-	void SUBAHLM() {
+	void SUBAhlM() {
 //		FLGH(2, 1, 2, 2);
 		opclock = 1;
 		functType = "SUB A (HL) ";
@@ -1148,22 +1180,29 @@ public:
 		opclock = 2;
 		functType = "SUB A $xx ";
 	}
-	void SUBAR8R8(unsigned char _r8, unsigned char _r82) {
-	//	FLGH(2, 1, 2, 2);
-		opclock = 1;
-		functType = "SUBA R8 R8 - REVISAR ";
+
+	void SUBAR8(unsigned char &_8r, std::string Dtarget, std::string Starget) {
+		////-- Instruction preset
+		opLen = 1;
+		FLGH(2, 1, 2, 2, Ra, _8r, 2);
+		Ra -= _8r;
+		funcText << "SUB " << Dtarget << ", " << Starget;
+		functType = funcText.str();
+		opDeb();
+		pc += opLen;
+		////-- Instruction preset
 	}
-	void SWAPHLM() {
+	void SWAPhlM() {
 	//	FLGH(2, 0, 0, 0);
 		opclock = 2;
 		functType = "SWAP (HL) ";
 	}
-	void SWAPR8R8(unsigned char _r8, unsigned char _r82) {
+	void SWAPR8R8(unsigned char &_r8, unsigned char &_r82) {
 	//	FLGH(2, 0, 0, 0);
 		opclock = 2;
 		functType = "SWAP R8 R8 ";
 	}
-	void XORHLM() {
+	void XORhlM() {
 	//	FLGH(2, 0, 0, 0);
 		opclock = 1;
 		functType = "XOR (HL) - MAYBE A? ";
@@ -1173,20 +1212,19 @@ public:
 		opclock = 2;
 		functType = "XOR $xx ";
 	}
-	void XORAR8(unsigned char _r8, std::string Dtarget, std::string Starget) {		
+	void XORAR8(unsigned char &_r8, std::string Dtarget, std::string Starget) {		
 		////-- Instruction preset
 		opLen = 1;
-		FLGH(2, 0, 0, 0, Ra, Ra, 6);
-		Ra ^= Ra;
+		FLGH(2, 0, 0, 0, Ra, _r8, 6);
+		Ra ^= _r8;
 		funcText << "XOR " << Dtarget << ", " << Starget;
 		functType = funcText.str();
 		opDeb();
 		pc += opLen;
 		////-- Instruction preset
-
 	}
-
-	//Interrupts
+	/// Interrupt Work, research only
+	
 	/*
 
 	unsigned short intType;
@@ -1320,7 +1358,7 @@ public:
 		$bb = memoryA[pc + 1];
 		$xx = memoryA[pc + 1];
 		$aa = memoryA[pc + 2];
-		hlM = memoryA[Rhl];
+		memoryA[Rhl] = memoryA[Rhl];
 		_8bitIn3 = memoryA[pc + 3];
 		$aabb = (memoryA[pc + 2] << 8) | (memoryA[pc + 1]);
 		//_8bitInM = memoryA[_8bitIn];
@@ -1329,1239 +1367,511 @@ public:
 		//Opcode is also refered as ENGAGER a 16bit Entity capable of capuring from 00 to FFFF
 
 		switch (opcode) {
-		case 0X00:	NOP();				tempM = " - 0x00 - NOP";			break;
-		case 0X01:						tempM = " - 0x01 -LD BC $aabb";		break;
-		case 0X02:						tempM = " - 0x02 - LD (BC) $aabb";	break;
-		case 0X03:						tempM = " - 0x03 - INC BC";			break;
-		case 0X04:						tempM = " - 0x04 - INC B";			break;
-		case 0X05:						tempM = " - 0x05 - DEC B";			break;
-		case 0X06:	LDR8$xx(Rb, $xx);	tempM = " - 0x06 - LD B $xx";		break;
-		case 0X07:						tempM = " - 0x07 - RLCA";			break;
-		case 0X08:						tempM = " - 0x08 - LD ($aabb) SP";	break;
-		case 0X09:						tempM = " - 0x09 - ADD HL BC";		break;
-		case 0X0A:						tempM = " - 0x0A - LD A (BC)";		break;
-		case 0X0B:						tempM = " - 0x0B - DEC BC";			break;
-		case 0X0C:						tempM = " - 0x0C INC C";			break;
-		case 0X0D:						tempM = " - 0x0D - DEC C";			break;
-		case 0X0E:	LDR8$xx(Rc, $xx);	tempM = " - 0x0E - LD C $xx";		break;
-		case 0X0F:						tempM = " - 0x0F - RRCA";			break;
-		case 0X10:						tempM = " - 0x10 - STOP";			break;
-		case 0X11:						tempM = " - 0x11 - LD DE $aabb";	break;
-		case 0X12:						tempM = " - 0x12 - LD (DE) A";		break;
-		case 0X13:						tempM = " - 0x13 - INC DE";			break;
-		case 0X14:						tempM = " - 0x14 - INC D";			break;
-		case 0X15:						tempM = " - 0x015 - DEC D";			break;
-		case 0X16:						tempM = " - 0x15 - LD D $xx ";		break;
-		case 0X17:						tempM = " - 0x17 - RLA";			break;
-		case 0X18:						tempM = " - 0x18 - JR $xx";			break;
-		case 0X19:						tempM = " - 0x19 - ADD HL DE";		break;
-		case 0X1A:						tempM = " - 0x1A - LD A (DE)";		break;
-		case 0X1B:						tempM = " - 0x1B - DEC DE";			break;
-		case 0X1C:						tempM = " - 0x1C - INC E";			break;
-		case 0X1D:						tempM = " - 0x1D - DEC E";			break;
-		case 0X1E:						tempM = " - 0x1E - LD E $xx";		break;
-		case 0X1F:						tempM = " - 0x1F - RRA";			break;
-		case 0X20:						tempM = " - 0x20 - JR NZ $xx";		break;
-		case 0X21:	LOADR16$aabb(Rhl, $aabb , "HL");	tempM = " - 0x21 - LD HL $aabb";	break;
-		case 0X22:						tempM = " - 0x22 - LD (HLI) A";		break;
-		case 0X23:						tempM = " - 0x23 - INC HL";			break;
-		case 0X24:						tempM = " - 0x24 - INC H";			break;
-		case 0X25:						tempM = " - 0x25 - DEC H";			break;
-		case 0X26:						tempM = " - 0x26 - LD H $xx";		break;
-		case 0X27:						tempM = " - 0x27 - DAA";			break;
-		case 0X28:						tempM = " - 0x28 - JR Z $xx";		break;
-		case 0X29:						tempM = " - 0x29 - ADD HL HL";		break;
-		case 0X2A:						tempM = " - 0x2A - LD A (HLI)";		break;
-		case 0X2B:						tempM = " - 0x2B - DEC HL";			break;
-		case 0X2C:						tempM = " - 0x2C - INC L";			break;
-		case 0X2D:						tempM = " - 0x2D - DEC L";			break;
-		case 0X2E:						tempM = " - 0x2E - LD L $xx";		break;
-		case 0X2F:						tempM = " - 0x2F - CPL";			break;
-		case 0X30:						tempM = " - 0x30 - JR NC $xx";		break;
-		case 0X31:						tempM = " - 0x31 - LD SP $aabb";	break;
-		case 0X32:	LOADDHLMR8(); Rl--;	tempM = " - 0x32 - LD (HLD) A";		break;
-		case 0X33:						tempM = " - 0x33 - INC SP";			break;
-		case 0X34:						tempM = " - 0x34 - INC (HL)";		break;
-		case 0X35:						tempM = " - 0x2B - DEC HL";			break;
-		case 0X36:						tempM = " - 0x36 - LD (HL) $xx";	break;
-		case 0X37:						tempM = " - 0x37 - SCF";			break;
-		case 0X38:						tempM = " - 0x38 - JR C $xx";		break;
-		case 0X39:						tempM = " - 0x39 - ADD HL SP";		break;
-		case 0X3A:						tempM = " - 0x3A - LD A (HLD)";		break;
-		case 0X3B:						tempM = " - 0x3B - DEC SP";			break;
-		case 0X3C:						tempM = " - 0x3C - INC A";			break;
-		case 0X3D:						tempM = " - 0x3D - DEC A";			break;
-		case 0X3E:						tempM = " - 0x3E - LD A $xx";		break;
-		case 0X3F:						tempM = " - 0x3F - CCF";			break;
-		case 0X40:						tempM = " - 0x40 - LD B B";			break;
-		case 0X41:						tempM = " - 0x41 - LD B C";			break;
-		case 0X42:						tempM = " - 0x42 - LD B D";			break;
-		case 0X43:						tempM = " - 0x43 - LD B E";			break;
-		case 0X44:						tempM = " - 0x44 - LD B H";			break;
-		case 0X45:						tempM = " - 0x45 - LD B L";			break;
-		case 0X46:						tempM = " - 0x46 - LD B (HL)";		break;
-		case 0X47:						tempM = " - 0x47 - LD B A";			break;
-		case 0X48:						tempM = " - 0x48 - LD C B";			break;
-		case 0X49:						tempM = " - 0x49 - LD C C";			break;
-		case 0X4A:						tempM = " - 0x4A - LD C D";			break;
-		case 0X4B:						tempM = " - 0x4B - LD C E";			break;
-		case 0X4C:						tempM = " - 0x4C - LD C H";			break;
-		case 0X4D:						tempM = " - 0x4D - LD C L";			break;
-		case 0X4E:						tempM = " - 0x4E - LD C (HL)";		break;
-		case 0X4F:						tempM = " - 0x4F - LD C A";			break;
-		case 0X50:						tempM = " - 0x50 - LD D B";			break;
-		case 0X51:						tempM = " - 0x51 - LD D C";			break;
-		case 0X52:						tempM = " - 0x52 - LD D D";			break;
-		case 0X53:						tempM = " - 0x53 - LD D E";			break;
-		case 0X54:						tempM = " - 0x54 - LD D H";			break;
-		case 0X55:						tempM = " - 0x55 - LD D L";			break;
-		case 0X56:						tempM = " - 0x56 - LD D (HL)";		break;
-		case 0X57:						tempM = " - 0x57 - LD D A";			break;
-		case 0X58:						tempM = " - 0x58 - LD E B";			break;
-		case 0X59:						tempM = " - 0x59 - LD E C";			break;
-		case 0X5A:						tempM = " - 0x5A - LD E D";			break;
-		case 0X5B:						tempM = " - 0x5B - LD E E";			break;
-		case 0X5C:						tempM = " - 0x5C - LD E H";			break;
-		case 0X5D:						tempM = " - 0x5D - LD E L";			break;
-		case 0X5E:						tempM = " - 0x5E - LD E (HL)";		break;
-		case 0X5F:						tempM = " - 0x5F - LD E A";			break;
-		case 0X60:						tempM = " - 0x60 - LD H B";			break;
-		case 0X61:						tempM = " - 0x61 - LD H C";			break;
-		case 0X62:						tempM = " - 0x62 - LD H D";			break;
-		case 0X63:						tempM = " - 0x63 - LD H E";			break;
-		case 0X64:						tempM = " - 0x64 - LD H H";			break;
-		case 0X65:						tempM = " - 0x65 - LD H L";			break;
-		case 0X66:						tempM = " - 0x66 - LD H (HL)";		break;
-		case 0X67:						tempM = " - 0x67 - LD E (HL)";		break;
-		case 0X68:						tempM = " - 0x68 - LD L B";			break;
-		case 0X69:						tempM = " - 0x69 - LD L C";			break;
-		case 0X6A:						tempM = " - 0x6A - LD L D";			break;
-		case 0X6B:						tempM = " - 0x6B - LD L E";			break;
-		case 0X6C:						tempM = " - 0x6C - LD L H";			break;
-		case 0X6D:						tempM = " - 0x6D - LD L L";			break;
-		case 0X6E:						tempM = " - 0x6E - LD L (HL)";		break;
-		case 0X6F:						tempM = " - 0x6F - LD H A";			break;
-		case 0X70:						tempM = " - 0x70 - LD (HL) B";		break;
-		case 0X71:						tempM = " - 0x71 - LD (HL) C";		break;
-		case 0X72:						tempM = " - 0x72 - LD (HL) D";		break;
-		case 0X73:						tempM = " - 0x73 - LD (HL) E";		break;
-		case 0X74:						tempM = " - 0x74 - LD (HL) H";		break;
-		case 0X75:						tempM = " - 0x75 - LD (HL) L";		break;
-		case 0X76:						tempM = " - 0x76 - HALT";			break;
-		case 0X77:						tempM = " - 0x77 - LD (HL) A";		break;
-		case 0X78:						tempM = " - 0x78 - LD A B";			break;
-		case 0X79:						tempM = " - 0x79 - LD A C";			break;
-		case 0X7A:						tempM = " - 0x7A - LD A D";			break;
-		case 0X7B:						tempM = " - 0x7B - LD A E";			break;
-		case 0X7C:						tempM = " - 0x7C - LD A H";			break;
-		case 0X7D:						tempM = " - 0x7D - LD A L";			break;
-		case 0X7E:						tempM = " - 0x7E - LD A (HL)";		break;
-		case 0X7F:						tempM = " - 0x7F - LD A A";			break;
-		case 0X80:						tempM = " - 0x80 - LD A B";			break;
-		case	0X81:	//			ADD	A	C	
-			tempM = " - 0x81 - LD A C";
-			break;
-		case	0X82:	//			ADD	A	D	
-			tempM = " - 0x82 - ADD A D";
-			break;
-		case	0X83:	//			ADD	A	E	
-			tempM = " - 0x83 - ADD A E";
-			break;
-		case	0X84:	//			ADD	A	H	
-			tempM = " - 0x84 - ADD A H";
-			break;
-		case	0X85:	//			ADD	A	L		
-			tempM = " - 0x85 - ADD A L";
-			break;
-		case	0X86:	//			ADD	A	(HL)	
-			tempM = " - 0x86 - ADD A (HL)";
-			break;
-		case	0X87:	//			ADD	A	A		
-			tempM = " - 0x87 - ADD A A";
-			break;
-		case	0X88:	//			ADC	A	B		
-			tempM = " - 0x88 - ADC A B";
-			break;
-		case	0X89:	//			ADC	A	C		
-			tempM = " - 0x89 - ADC A C";
-			break;
-		case	0X8A:	//			ADC	A	D	
-			tempM = " - 0x8A - ADC A D";
-			break;
-		case	0X8B:	//			ADC	A	E		
-			tempM = " - 0x8B - ADC A E";
-			break;
-		case	0X8C:	//			ADC	A	H	
-			tempM = " - 0x8C - ADC A H";
-			break;
-		case	0X8D:	//			ADC	A	L	
-			tempM = " - 0x8D - ADC A L";
-			break;
-		case	0X8E:	//			ADC	A	(HL)	
-			tempM = " - 0x8E - ADC A (HL)";
-			break;
-		case	0X8F:	//			ADC	A	A		
-			tempM = " - 0x8F - ADC A A";
-			break;
-		case	0X90:	//			SUB	B			
-			tempM = " - 0x90 - SUB B";
-			break;
-		case	0X91:	//			SUB	C			
-			tempM = " - 0x91 - SUB C";
-			break;
-		case	0X92:	//			SUB	D	
-			tempM = " - 0x92 - SUB D";
-			break;
-		case	0X93:	//			SUB	E			
-			tempM = " - 0x93 - SUB E";
-			break;
-		case	0X94:	//			SUB	H		
-			tempM = " - 0x94 - SUB H";
-			break;
-		case	0X95:	//			SUB	L	
-			tempM = " - 0x95 - SUB L";
-			break;
-		case	0X97:	//			SUB	A		
-			tempM = " - 0x97 - SUB A";
-			break;
-		case	0X98:	//			SBC	A	B	
-			tempM = " - 0x98 - SBC A B";
-			break;
-		case	0X99:	//			SBC	A	C		
-			tempM = " - 0x99 - SBC A C";
-			break;
-		case	0X9A:	//			SBC	A	D	
-			tempM = " - 0x9A - SBC A D";
-			break;
-		case	0X9B:	//			SBC	A	E		
-			tempM = " - 0x9B - SBC A E";
-			break;
-		case	0X9C:	//			SBC	A	H	
-			tempM = " - 0x9C - SBC A H";
-			break;
-		case	0X9D:	//			SBC	A	L	
-			tempM = " - 0x9D - SBC A L";
-			break;
-		case	0X9E:	//			SBC	A	(HL)	
-			tempM = " - 0x9E - SBC A (HL)";
-			break;
-		case	0X9F:	//			SBC	A	A		
-			tempM = " - 0x9F - SBC A A";
-			break;
-		case	0XA0:	//			AND	B		
-			tempM = " - 0xA0 - AND B";
-			break;
-		case	0XA1:	//			AND	C		
-			tempM = " - 0xA1 - AND C";
-			break;
-		case	0XA2:	//			AND	D		
-			tempM = " - 0xA2 - AND D";
-			break;
-		case	0XA3:	//			AND	E		
-			tempM = " - 0xA3 - AND E";
-			break;
-		case	0XA4:	//			AND	H		
-			tempM = " - 0xA4 - AND H";
-			break;
-		case	0XA5:	//			AND	L			
-			tempM = " - 0xA5 - AND L";
-			break;
-		case	0XA6:	//			AND	(HL)	
-			tempM = " - 0xA6 - AND (HL)";
-			break;
-		case	0XA7:	//			AND	A			
-			tempM = " - 0xA7 - AND A";
-			break;
-		case	0XA8:	//			XOR	B			
-			tempM = " - 0xA8 - XOR B";
-			break;
-		case	0XA9:	//			XOR	C			
-			tempM = " - 0xA9 - XOR C";
-			break;
-		case	0XAA:	//			XOR	D			
-			tempM = " - 0xAA - XOR D";
-			break;
-		case	0XAB:	//			XOR	E			
-			tempM = " - 0xAB - XOR E";
-			break;
-		case	0XAC:	//			XOR	H			
-			tempM = " - 0xAC - XOR H";
-			break;
-		case	0XAD:	//			XOR	L			
-			tempM = " - 0xAD - XOR L";
-			break;
-		case	0XAE:	//			XOR	(HL)			
-			tempM = " - 0xAE - XOR (HL)";
-			break;
-		case	0XAF:	//			XOR	A
-			XORAR8(Ra, "A", "A");
-			tempM = " - 0xAF - XOR A";
-			break;
-		case	0XB0:	//			OR	B			
-			tempM = " - 0xB0 - OR B";
-			break;
-		case	0XB1:	//			OR	C			
-			tempM = " - 0xB1 - OR C";
-			break;
-		case	0XB2:	//			OR	D			
-			tempM = " - 0xB2 - OR D";
-			break;
-		case	0XB3:	//			OR	E			
-			tempM = " - 0xB3 - OR E";
-			break;
-		case	0XB4:	//			OR	H			
-			tempM = " - 0xB4 - OR H";
-			break;
-		case	0XB5:	//			OR	L			
-			tempM = " - 0xB5 - OR L";
-			break;
-		case	0XB6:	//			OR	(HL)			
-			tempM = " - 0xB6 - OR (HL)";
-			break;
-		case	0XB7:	//			OR	A			
-			tempM = " - 0xB7 - OR A";
-			break;
-		case	0XB8:	//			CP	B			
-			tempM = " - 0xB8 - CP B";
-			break;
-		case	0XB9:	//			CP	C			
-			tempM = " - 0xB9 - CP C";
-			break;
-		case	0XBA:	//			CP	D			
-			tempM = " - 0xBA - CP D";
-			break;
-		case	0XBB:	//			CP	E			
-			tempM = " - 0xBB - CP E";
-			break;
-		case	0XBC:	//			CP	H			
-			tempM = " - 0xBC - CP H";
-			break;
-		case	0XBD:	//			CP	L			
-			tempM = " - 0xBD - CP L";
-			break;
-		case	0XBE:	//			CP	(HL)			
-			tempM = " - 0xBE - CP (HL)";
-			break;
-		case	0XBF:	//			CP	A		
-			tempM = " - 0xBF - CP A";
-			break;
-		case	0XC0:	//			RET	NZ		
-			tempM = " - 0xC0 - RET NZ";
-			break;
-		case	0XC1:	//			POP	BC		
-			tempM = " - 0xC1 - POP BC";
-			break;
-		case	0XC2:	//	bb	aa	JP	NZ	$aabb	
-			tempM = " - 0xC2 - JP NZ $aabb";
-			break;
-		case	0XC3:	//	bb	aa	JP	$aabb			
-			JP$aabb($aabb);
-	
-			tempM = " - 0xC3 - JUMP $aabb";
-			break;
-		case	0XC4:	//	bb	aa	CALL	NZ	$aabb	
-			tempM = " - 0xC4 - CALL NZ $aabb";
-			break;
-		case	0XC5:	//			PUSH	BC			
-			tempM = " - 0xC5 - PUSH BC";
-			break;
-		case	0XC6:	//	xx		ADD	A	$xx	
-			tempM = " - 0xC6 - ADD A $xx";
-			break;
-		case	0XC7:	//			RST	$ 0		
-			tempM = " - 0xC7 - RST $ 0";
-			break;
-		case	0XC8:	//			RET	Z			
-			tempM = " - 0xC8 - RET Z";
-			break;
-		case	0XC9:	//			RET				
-			tempM = " - 0xC9 - RET";
-			break;
-		case	0XCA:	//	bb	aa	JP	Z	$aabb		
-			tempM = " - 0xC2A - JP Z $aabb";
-			break;
-
-		case	0XCB00:	//			RLC	B		
-			tempM = " - 0xCB00 - RLC B";
-			break;
-		case	0XCB01:	//			RLC	C	
-			tempM = " - 0xCB01 - RLC C";
-			break;
-		case	0XCB02:	//			RLC	D		
-			tempM = " - 0xCB02 - RLC D";
-			break;
-		case	0XCB03:	//			RLC	E			
-			tempM = " - 0xCB03 - RLC E";
-			break;
-		case	0XCB04:	//			RLC	H			
-			tempM = " - 0xCB04 - RLC H";
-			break;
-		case	0XCB05:	//			RLC	L			
-			tempM = " - 0xCB05 - RLC L";
-			break;
-		case	0XCB06:	//			RLC	(HL)			
-			tempM = " - 0xCB06 - RLC (HL)";
-			break;
-		case	0XCB07:	//			RLC	A			
-			tempM = " - 0xCB07 - RLC A";
-			break;
-		case	0XCB08:	//			RRC	B			
-			tempM = " - 0xCB08 - RRC B";
-			break;
-		case	0XCB09:	//			RRC	C			
-			tempM = " - 0xCB09 - RRC C";
-			break;
-		case	0XCB0A:	//			RRC	D			
-			tempM = " - 0xCB0A - RRC D";
-			break;
-		case	0XCB0B:	//			RRC	E			
-			tempM = " - 0xCB0B - RRC E";
-			break;
-		case	0XCB0C:	//			RRC	H			
-			tempM = " - 0xCB0C - RRC H";
-			break;
-		case	0XCB0D:	//			RRC	L			
-			tempM = " - 0xCB0D - RRC L";
-			break;
-		case	0XCB0E:	//			RRC	(HL)			
-			tempM = " - 0xCB0E - RRC (HL)";
-			break;
-		case	0XCB0F:	//			RRC	A			
-			tempM = " - 0xCB0F - RRC A";
-			break;
-		case	0XCB10:	//			RL	B			
-			tempM = " - 0xCB10 - RL B";
-			break;
-		case	0XCB11:	//			RL	C			
-			tempM = " - 0xCB11 - RL C";
-			break;
-		case	0XCB12:	//			RL	D			
-			tempM = " - 0xCB12 - RL D";
-			break;
-		case	0XCB13:	//			RL	E			
-			tempM = " - 0xCB13 - RL E";
-			break;
-		case	0XCB14:	//			RL	H			
-			tempM = " - 0xCB14 - RL H";
-			break;
-		case	0XCB15:	//			RL	L			
-			tempM = " - 0xCB15 - RL L";
-			break;
-		case	0XCB16:	//			RL	(HL)			
-			tempM = " - 0xCB16 - RL (HL)";
-			break;
-		case	0XCB17:	//			RL	A			
-			tempM = " - 0xCB17 - RL A";
-			break;
-		case	0XCB18:	//			RR	B			
-			tempM = " - 0xCB18 - RR B";
-			break;
-		case	0XCB19:	//			RR	C			
-			tempM = " - 0xCB19 - RR C";
-			break;
-		case	0XCB1A:	//			RR	D			
-			tempM = " - 0xCB1A - RR D";
-			break;
-		case	0XCB1B:	//			RR	E			
-			tempM = " - 0xCB1B - RR E";
-			break;
-		case	0XCB1C:	//			RR	H			
-			tempM = " - 0xCB1C - RR H";
-			break;
-		case	0XCB1D:	//			RR	L			
-			tempM = " - 0xCB1D - RR L";
-			break;
-		case	0XCB1E:	//			RR	(HL)			
-			tempM = " - 0xCB1E - RR (HL)";
-			break;
-		case	0XCB1F:	//			RR	A			
-			tempM = " - 0xCB1F - RR E";
-			break;
-		case	0XCB20:	//			SLA	B			
-			tempM = " - 0xCB20 - SLA B";
-			break;
-		case	0XCB21:	//			SLA	C			
-			tempM = " - 0xCB21 - SLA C";
-			break;
-		case	0XCB22:	//			SLA	D			
-			tempM = " - 0xCB22 - SLA D";
-			break;
-		case	0XCB23:	//			SLA	E			
-			tempM = " - 0xCB23 - SLA E";
-			break;
-		case	0XCB24:	//			SLA	H			
-			tempM = " - 0xCB24 - SLA H";
-			break;
-		case	0XCB25:	//			SLA	L			
-			tempM = " - 0xCB25 - SLA L";
-			break;
-		case	0XCB26:	//			SLA	(HL)			
-			tempM = " - 0xCB26 - SLA (HL)";
-			break;
-		case	0XCB27:	//			SLA	A			
-			tempM = " - 0xCB27 - SLA A";
-			break;
-		case	0XCB28:	//			SRA	B			
-			tempM = " - 0xCB28 - SRA B";
-			break;
-		case	0XCB29:	//			SRA	C			
-			tempM = " - 0xCB29 - SRA C";
-			break;
-		case	0XCB2A:	//			SRA	D		
-			tempM = " - 0xCB2A - SRD D";
-			break;
-		case	0XCB2B:	//			SRA	E		
-			tempM = " - 0xCB2B - SRA E";
-			break;
-		case	0XCB2C:	//			SRA	H			
-			tempM = " - 0xCB2C - SRA H";
-			break;
-		case	0XCB2D:	//			SRA	L		
-			tempM = " - 0xCB2D - SRA L";
-			break;
-		case	0XCB2E:	//			SRA	(HL)			
-			tempM = " - 0xCB2E - SRA (HL)";
-			break;
-		case	0XCB2F:	//			SRA	A			
-			tempM = " - 0xCB2F - SRA A";
-			break;
+		case 0X00:	NOP();				Dm = " - 0x00 - NOP";			break;
+		case 0X01:						Dm = " - 0x01 - LD BC $aabb";	break;
+		case 0X02:						Dm = " - 0x02 - LD (BC) $aabb";	break;
+		case 0X03:INC16R(Rbc, "BC");	Dm = " - 0x03 - INC BC";		break;
+		case 0X04:INC8R(Rb, "B");		Dm = " - 0x04 - INC B";			break;
+		case 0X05:DEC8R(Rb, "B");		Dm = " - 0x05 - DEC B";			break;
+		case 0X06:LDR8$xx(Rb, (int)$xx, "B"); Dm = " - 0x06 - LD B $xx";		break;
+		case 0X07:						Dm = " - 0x07 - RLCA";			break;
+		case 0X08:						Dm = " - 0x08 - LD ($aabb) SP";	break;
+		case 0X09:						Dm = " - 0x09 - ADD HL BC";		break;
+		case 0X0A:						Dm = " - 0x0A - LD A (BC)";		break;
+		case 0X0B:						Dm = " - 0x0B - DEC BC";		break;
+		case 0X0C:INC8R(Rc, "C");		Dm = " - 0x0C - INC C";			break;
+		case 0X0D:DEC8R(Rc, "C");		Dm = " - 0x0D - DEC C";			break;
+		case 0X0E:LDR8$xx(Rc, (int)$xx, "C"); Dm = " - 0x0E - LD C $xx";		break;
+		case 0X0F:						Dm = " - 0x0F - RRCA";			break;
+		case 0X10:						Dm = " - 0x10 - STOP";			break;
+		case 0X11:						Dm = " - 0x11 - LD DE $aabb";	break;
+		case 0X12:						Dm = " - 0x12 - LD (DE) A";		break;
+		case 0X13:INC16R(Rde, "DE");	Dm = " - 0x13 - INC DE";		break;
+		case 0X14:INC8R(Rd, "D");		Dm = " - 0x14 - INC D";			break;
+		case 0X15:DEC8R(Rd, "D");		Dm = " - 0x15 - DEC D";			break;
+		case 0X16:LDR8$xx(Rd, (int)$xx, "D");	Dm = " - 0x15 - LD D $xx ";		break;
+		case 0X17:						Dm = " - 0x17 - RLA";			break;
+		case 0X18:						Dm = " - 0x18 - JR $xx";		break;
+		case 0X19:						Dm = " - 0x19 - ADD HL DE";		break;
+		case 0X1A:						Dm = " - 0x1A - LD A (DE)";		break;
+		case 0X1B:						Dm = " - 0x1B - DEC DE";		break;
+		case 0X1C:INC8R(Re, "E");		Dm = " - 0x1C - INC E";			break;
+		case 0X1D:DEC8R(Re, "E");		Dm = " - 0x1D - DEC E";			break;
+		case 0X1E:LDR8$xx(Re, (int)$xx, "E");	Dm = " - 0x1E - LD E $xx";		break;
+		case 0X1F:						Dm = " - 0x1F - RRA";			break;
+		case 0X20:JRCC$xx("NZ", (int)$xx);	Dm = " - 0x20 - JR NZ $xx";		break;
+		case 0X21:LOADR16$aabb(Rhl, $aabb , "HL");	Dm = " - 0x21 - LD HL $aabb";	break;
+		case 0X22:						Dm = " - 0x22 - LD (HLI) A";	break;
+		case 0X23:INC16R(Rhl, "HL");	Dm = " - 0x23 - INC HL";		break;
+		case 0X24:INC8R(Rh, "H");		Dm = " - 0x24 - INC H";			break;
+		case 0X25:DEC8R(Rh, "H");		Dm = " - 0x25 - DEC H";			break;
+		case 0X26:LDR8$xx(Rh, (int)$xx, "H");	Dm = " - 0x26 - LD H $xx";		break;
+		case 0X27:						Dm = " - 0x27 - DAA";			break;
+		case 0X28:						Dm = " - 0x28 - JR Z $xx";		break;
+		case 0X29:						Dm = " - 0x29 - ADD HL HL";		break;
+		case 0X2A:						Dm = " - 0x2A - LD A (HLI)";	break;
+		case 0X2B:						Dm = " - 0x2B - DEC HL";		break;
+		case 0X2C:INC8R(Rl, "L");		Dm = " - 0x2C - INC L";			break;
+		case 0X2D:DEC8R(Rl, "L");		Dm = " - 0x2D - DEC L";			break;
+		case 0X2E:LDR8$xx(Rl, (int)$xx, "L");	Dm = " - 0x2E - LD L $xx";		break;
+		case 0X2F:						Dm = " - 0x2F - CPL";			break;
+		case 0X30:						Dm = " - 0x30 - JR NC $xx";		break;
+		case 0X31:						Dm = " - 0x31 - LD SP $aabb";	break;
+		case 0X32:LOADDhlMR8(Ra, "(HL)", "A");	Dm = " - 0x32 - LDD (HLD) A";	break;
+		case 0X33:INC16R(sp, "SP");		Dm = " - 0x33 - INC SP";		break;
+		case 0X34:						Dm = " - 0x34 - INC (HL)";		break;
+		case 0X35:						Dm = " - 0x2B - DEC HL";		break;
+		case 0X36:						Dm = " - 0x36 - LD (HL) $xx";	break;
+		case 0X37:						Dm = " - 0x37 - SCF";			break;
+		case 0X38:						Dm = " - 0x38 - JR C $xx";		break;
+		case 0X39:						Dm = " - 0x39 - ADD HL SP";		break;
+		case 0X3A:						Dm = " - 0x3A - LD A (HLD)";	break;
+		case 0X3B:						Dm = " - 0x3B - DEC SP";		break;
+		case 0X3C:INC8R(Ra, "A");		Dm = " - 0x3C - INC A";			break;
+		case 0X3D:DEC8R(Ra, "A");		Dm = " - 0x3D - DEC A";			break;
+		case 0X3E:LDR8$xx(Ra, (int)$xx, "A");	Dm = " - 0x3E - LD A $xx";		break;
+		case 0X3F:						Dm = " - 0x3F - CCF";			break;
+		case 0X40:LOADR8R8(Rb, Rb, "B", "B");	Dm = " - 0x40 - LD B B";		break;
+		case 0X41:LOADR8R8(Rb, Rc, "B", "C");	Dm = " - 0x41 - LD B C";		break;
+		case 0X42:LOADR8R8(Rb, Rd, "B", "D");	Dm = " - 0x42 - LD B D";		break;
+		case 0X43:LOADR8R8(Rb, Re, "B", "E");	Dm = " - 0x43 - LD B E";		break;
+		case 0X44:LOADR8R8(Rb, Rh, "B", "H");	Dm = " - 0x44 - LD B H";		break;
+		case 0X45:LOADR8R8(Rb, Rl, "B", "L");	Dm = " - 0x45 - LD B L";		break;
+		case 0X46:LOADR8R8(Rb, memoryA[Rhl], "B", "(HL)");	Dm = " - 0x46 - LD B (HL)";		break;
+		case 0X47:LOADR8R8(Rb, Ra, "B", "A");	Dm = " - 0x47 - LD B A";		break;
+		case 0X48:LOADR8R8(Rc, Rb, "C", "B");	Dm = " - 0x48 - LD C B";		break;
+		case 0X49:LOADR8R8(Rc, Rc, "C", "C");	Dm = " - 0x49 - LD C C";		break;
+		case 0X4A:LOADR8R8(Rc, Rd, "C", "D");	Dm = " - 0x4A - LD C D";		break;
+		case 0X4B:LOADR8R8(Rc, Re, "C", "E");	Dm = " - 0x4B - LD C E";		break;
+		case 0X4C:LOADR8R8(Rc, Rh, "C", "H");	Dm = " - 0x4C - LD C H";		break;
+		case 0X4D:LOADR8R8(Rc, Rl, "C", "L");	Dm = " - 0x4D - LD C L";		break;
+		case 0X4E:LOADR8R8(Rc, memoryA[Rhl], "C", "(HL)");	Dm = " - 0x4E - LD C (HL)";		break;
+		case 0X4F:LOADR8R8(Rc, Ra, "C", "A");	Dm = " - 0x4F - LD C A";		break;
+		case 0X50:LOADR8R8(Rd, Rb, "D", "B");	Dm = " - 0x50 - LD D B";		break;
+		case 0X51:LOADR8R8(Rd, Rc, "D", "C");	Dm = " - 0x51 - LD D C";		break;
+		case 0X52:LOADR8R8(Rd, Rd, "D", "D");	Dm = " - 0x52 - LD D D";		break;
+		case 0X53:LOADR8R8(Rd, Re, "D", "E");	Dm = " - 0x53 - LD D E";		break;
+		case 0X54:LOADR8R8(Rd, Rh, "D", "H");	Dm = " - 0x54 - LD D H";		break;
+		case 0X55:LOADR8R8(Rd, Rl, "D", "L");	Dm = " - 0x55 - LD D L";		break;
+		case 0X56:LOADR8R8(Rd, memoryA[Rhl], "D", "(HL)");	Dm = " - 0x56 - LD D (HL)";		break;
+		case 0X57:LOADR8R8(Rd, Ra, "D", "A");	Dm = " - 0x57 - LD D A";		break;
+		case 0X58:LOADR8R8(Re, Rb, "E", "B");	Dm = " - 0x58 - LD E B";		break;
+		case 0X59:LOADR8R8(Re, Rc, "E", "C");	Dm = " - 0x59 - LD E C";		break;
+		case 0X5A:LOADR8R8(Re, Rd, "E", "D");	Dm = " - 0x5A - LD E D";		break;
+		case 0X5B:LOADR8R8(Re, Re, "E", "E");	Dm = " - 0x5B - LD E E";		break;
+		case 0X5C:LOADR8R8(Re, Rh, "E", "H");	Dm = " - 0x5C - LD E H";		break;
+		case 0X5D:LOADR8R8(Re, Rl, "E", "L");	Dm = " - 0x5D - LD E L";		break;
+		case 0X5E:LOADR8R8(Re, memoryA[Rhl], "E", "(HL)");	Dm = " - 0x5E - LD E (HL)";		break;
+		case 0X5F:LOADR8R8(Re, Ra, "E", "A");	Dm = " - 0x5F - LD E A";		break;
+		case 0X60:LOADR8R8(Rh, Rb, "H", "B");	Dm = " - 0x60 - LD H B";		break;
+		case 0X61:LOADR8R8(Rh, Rc, "H", "C");	Dm = " - 0x61 - LD H C";		break;
+		case 0X62:LOADR8R8(Rh, Rd, "H", "D");	Dm = " - 0x62 - LD H D";		break;
+		case 0X63:LOADR8R8(Rh, Re, "H", "E");	Dm = " - 0x63 - LD H E";		break;
+		case 0X64:LOADR8R8(Rh, Rh, "H", "H");	Dm = " - 0x64 - LD H H";		break;
+		case 0X65:LOADR8R8(Rh, Rl, "H", "L");	Dm = " - 0x65 - LD H L";		break;
+		case 0X66:LOADR8R8(Rh, memoryA[Rhl], "H", "(HL)");	Dm = " - 0x66 - LD H (HL)";		break;
+		case 0X67:LOADR8R8(Re, memoryA[Rhl], "E", "(HL)");	Dm = " - 0x67 - LD E (HL)";		break;
+		case 0X68:LOADR8R8(Rl, Rb, "L", "B");	Dm = " - 0x68 - LD L B";		break;
+		case 0X69:LOADR8R8(Rl, Rc, "L", "C");	Dm = " - 0x69 - LD L C";		break;
+		case 0X6A:LOADR8R8(Rl, Rd, "L", "D");	Dm = " - 0x6A - LD L D";		break;
+		case 0X6B:LOADR8R8(Rl, Re, "L", "E");	Dm = " - 0x6B - LD L E";		break;
+		case 0X6C:LOADR8R8(Rl, Rh, "L", "H");	Dm = " - 0x6C - LD L H";		break;
+		case 0X6D:LOADR8R8(Rl , Rl, "L", "L");	Dm = " - 0x6D - LD L L";		break;
+		case 0X6E:LOADR8R8(Rl, memoryA[Rhl], "L", "(HL)");	Dm = " - 0x6E - LD L (HL)";		break;
+		case 0X6F:LOADR8R8(Rh, Ra, "H", "A");	Dm = " - 0x6F - LD H A";		break;
+		case 0X70:LOADR8R8(memoryA[Rhl], Rb, "(HL)", "B");	Dm = " - 0x70 - LD (HL) B";		break;
+		case 0X71:LOADR8R8(memoryA[Rhl], Rc, "(HL)", "C");	Dm = " - 0x71 - LD (HL) C";		break;
+		case 0X72:LOADR8R8(memoryA[Rhl], Rd, "(HL)", "D");	Dm = " - 0x72 - LD (HL) D";		break;
+		case 0X73:LOADR8R8(memoryA[Rhl], Re, "(HL)", "E");	Dm = " - 0x73 - LD (HL) E";		break;
+		case 0X74:LOADR8R8(memoryA[Rhl], Rh, "(HL)", "H");	Dm = " - 0x74 - LD (HL) H";		break;
+		case 0X75:LOADR8R8(memoryA[Rhl], Rl, "(HL)", "L");	Dm = " - 0x75 - LD (HL) L";		break;
+		case 0X76:						Dm = " - 0x76 - HALT";			break;
+		case 0X77:LOADR8R8(memoryA[Rhl], Ra, "(HL)", "A");	Dm = " - 0x77 - LD (HL) A";		break;
+		case 0X78:LOADR8R8(Ra, Rb, "A", "B");	Dm = " - 0x78 - LD A B";		break;
+		case 0X79:LOADR8R8(Ra, Rc, "A", "C");	Dm = " - 0x79 - LD A C";		break;
+		case 0X7A:LOADR8R8(Ra, Rd, "A", "D");	Dm = " - 0x7A - LD A D";		break;
+		case 0X7B:LOADR8R8(Ra, Re, "A", "E");	Dm = " - 0x7B - LD A E";		break;
+		case 0X7C:LOADR8R8(Ra, Rh, "A", "H");	Dm = " - 0x7C - LD A H";		break;
+		case 0X7D:LOADR8R8(Ra, Rl, "A", "L");	Dm = " - 0x7D - LD A L";		break;
+		case 0X7E:LOADR8R8(Ra, memoryA[Rhl], "A", "(HL)");Dm = " - 0x7E - LD A (HL)";		break;
+		case 0X7F:LOADR8R8(Ra, Ra, "A", "A");	Dm = " - 0x7F - LD A A";		break;
+		case 0X80:ADDA8R(Rb, "A", "B");	Dm = " - 0x80 - ADD A B";		break;
+		case 0X81:ADDA8R(Rc, "A", "C");	Dm = " - 0x81 - ADD A C";		break;
+		case 0X82:ADDA8R(Rd, "A", "D");	Dm = " - 0x82 - ADD A D";		break;
+		case 0X83:ADDA8R(Re, "A", "E");	Dm = " - 0x83 - ADD A E";		break;
+		case 0X84:ADDA8R(Rh, "A", "H");	Dm = " - 0x84 - ADD A H";		break;
+		case 0X85:ADDA8R(Rl, "A", "L");	Dm = " - 0x85 - ADD A L";		break;
+		case 0X86:ADDA8R(memoryA[Rhl], "A", "(HL)");	Dm = " - 0x86 - ADD A (HL)";	break;
+		case 0X87:ADDA8R(Ra, "A", "A");	Dm = " - 0x87 - ADD A A";		break;
+		case 0X88:						Dm = " - 0x88 - ADC A B";		break;
+		case 0X89:						Dm = " - 0x89 - ADC A C";		break;
+		case 0X8A:						Dm = " - 0x8A - ADC A D";		break;
+		case 0X8B:						Dm = " - 0x8B - ADC A E";		break;
+		case 0X8C:						Dm = " - 0x8C - ADC A H";		break;
+		case 0X8D:						Dm = " - 0x8D - ADC A L";		break;
+		case 0X8E:						Dm = " - 0x8E - ADC A (HL)";	break;
+		case 0X8F:						Dm = " - 0x8F - ADC A A";		break;
+		case 0X90:SUBAR8(Rb, "A", "B");	Dm = " - 0x90 - SUB B";			break;
+		case 0X91:SUBAR8(Rc, "A", "C");	Dm = " - 0x91 - SUB C";			break;
+		case 0X92:SUBAR8(Rd, "A", "D");	Dm = " - 0x92 - SUB D";			break;
+		case 0X93:SUBAR8(Re, "A", "E");	Dm = " - 0x93 - SUB E";			break;
+		case 0X94:SUBAR8(Rh, "A", "H");	Dm = " - 0x94 - SUB H";			break;
+		case 0X95:SUBAR8(Rl, "A", "L");	Dm = " - 0x95 - SUB L";			break;
+		case 0X97:SUBAR8(Ra, "A", "A");	Dm = " - 0x97 - SUB A";			break;
+		case 0X98:						Dm = " - 0x98 - SBC A B";		break;
+		case 0X99:						Dm = " - 0x99 - SBC A C";		break;
+		case 0X9A:						Dm = " - 0x9A - SBC A D";		break;
+		case 0X9B:						Dm = " - 0x9B - SBC A E";		break;
+		case 0X9C:						Dm = " - 0x9C - SBC A H";		break;
+		case 0X9D:						Dm = " - 0x9D - SBC A L";		break;
+		case 0X9E:						Dm = " - 0x9E - SBC A (HL)";	break;
+		case 0X9F:						Dm = " - 0x9F - SBC A A";		break;
+		case 0XA0:ANDA8R(Rb, "A", "B");	Dm = " - 0xA0 - AND B";			break;
+		case 0XA1:ANDA8R(Rc, "A", "C");	Dm = " - 0xA1 - AND C";			break;
+		case 0XA2:ANDA8R(Rd, "A", "D");	Dm = " - 0xA2 - AND D";			break;
+		case 0XA3:ANDA8R(Re, "A", "E");	Dm = " - 0xA3 - AND E";			break;
+		case 0XA4:ANDA8R(Rh, "A", "H");	Dm = " - 0xA4 - AND H";			break;
+		case 0XA5:ANDA8R(Rl, "A", "L");	Dm = " - 0xA5 - AND L";			break;
+		case 0XA6:ANDA8R(memoryA[Rhl], "A", "(HL)");	Dm = " - 0xA6 - AND (HL)";		break;
+		case 0XA7:ANDA8R(Ra, "A", "A");	Dm = " - 0xA7 - AND A";			break;
+		case 0XA8:XORAR8(Rb, "A", "B");	Dm = " - 0xA8 - XOR B";			break;
+		case 0XA9:XORAR8(Rc, "A", "C");	Dm = " - 0xA9 - XOR C";			break;
+		case 0XAA:XORAR8(Rd, "A", "D");	Dm = " - 0xAA - XOR D";			break;
+		case 0XAB:XORAR8(Re, "A", "E");	Dm = " - 0xAB - XOR E";			break;
+		case 0XAC:XORAR8(Rh, "A", "H");	Dm = " - 0xAC - XOR H";			break;
+		case 0XAD:XORAR8(Rl, "A", "L");	Dm = " - 0xAD - XOR L";			break;
+		case 0XAE:XORAR8(memoryA[Rhl], "A", "(HL)");	Dm = " - 0xAE - XOR (HL)";		break;
+		case 0XAF:XORAR8(Ra, "A", "A");	Dm = " - 0xAF - XOR A";			break;
+		case 0XB0:ORRA8R(Rb, "A", "B");	Dm = " - 0xB0 - OR B";			break;
+		case 0XB1:ORRA8R(Rc, "A", "C");	Dm = " - 0xB1 - OR C";			break;
+		case 0XB2:ORRA8R(Rd, "A", "D");	Dm = " - 0xB2 - OR D";			break;
+		case 0XB3:ORRA8R(Re, "A", "E");	Dm = " - 0xB3 - OR E";			break;
+		case 0XB4:ORRA8R(Rh, "A", "H");	Dm = " - 0xB4 - OR H";			break;
+		case 0XB5:ORRA8R(Rl, "A", "L");	Dm = " - 0xB5 - OR L";			break;
+		case 0XB6:ORRA8R(memoryA[Rhl], "A", "(HL)");	Dm = " - 0xB6 - OR (HL)";		break;
+		case 0XB7:ORRA8R(Rb, "A", "A");	Dm = " - 0xB7 - OR A";			break;
+		case 0XB8:						Dm = " - 0xB8 - CP B";			break;
+		case 0XB9:						Dm = " - 0xB9 - CP C";			break;
+		case 0XBA:						Dm = " - 0xBA - CP D";			break;
+		case 0XBB:						Dm = " - 0xBB - CP E";			break;
+		case 0XBC:						Dm = " - 0xBC - CP H";			break;
+		case 0XBD:						Dm = " - 0xBD - CP L";			break;
+		case 0XBE:						Dm = " - 0xBE - CP (HL)";		break;
+		case 0XBF:						Dm = " - 0xBF - CP A";			break;
+		case 0XC0:						Dm = " - 0xC0 - RET NZ";		break;
+		case 0XC1:						Dm = " - 0xC1 - POP BC";		break;
+		case 0XC2:						Dm = " - 0xC2 - JP NZ $aabb";	break;
+		case 0XC3:	JP$aabb($aabb);		Dm = " - 0xC3 - JUMP $aabb";	break;
+		case 0XC4:						Dm = " - 0xC4 - CALL NZ $aabb";	break;
+		case 0XC5:						Dm = " - 0xC5 - PUSH BC";		break;
+		case 0XC6:						Dm = " - 0xC6 - ADD A $xx";		break;
+		case 0XC7:						Dm = " - 0xC7 - RST $ 0";		break;
+		case 0XC8:						Dm = " - 0xC8 - RET Z";			break;
+		case 0XC9:						Dm = " - 0xC9 - RET";			break;
+		case 0XCA:						Dm = " - 0xCA - JP Z $aabb";	break;
+		case 0XCB00:					Dm = " - 0xCB00 - RLC B";		break;
+		case 0XCB01:					Dm = " - 0xCB01 - RLC C";		break;
+		case 0XCB02:					Dm = " - 0xCB02 - RLC D";		break;
+		case 0XCB03:					Dm = " - 0xCB03 - RLC E";		break;
+		case 0XCB04:					Dm = " - 0xCB04 - RLC H";		break;
+		case 0XCB05:					Dm = " - 0xCB05 - RLC L";		break;
+		case 0XCB06:					Dm = " - 0xCB06 - RLC (HL)";	break;
+		case 0XCB07:					Dm = " - 0xCB07 - RLC A";		break;
+		case 0XCB08:					Dm = " - 0xCB08 - RRC B";		break;
+		case 0XCB09:					Dm = " - 0xCB09 - RRC C";		break;
+		case 0XCB0A:					Dm = " - 0xCB0A - RRC D";		break;
+		case 0XCB0B:					Dm = " - 0xCB0B - RRC E";		break;
+		case 0XCB0C:					Dm = " - 0xCB0C - RRC H";		break;
+		case 0XCB0D:					Dm = " - 0xCB0D - RRC L";		break;
+		case 0XCB0E:					Dm = " - 0xCB0E - RRC (HL)";	break;
+		case 0XCB0F:					Dm = " - 0xCB0F - RRC A";		break;
+		case 0XCB10:					Dm = " - 0xCB10 - RL B";		break;
+		case 0XCB11:					Dm = " - 0xCB11 - RL C";		break;
+		case 0XCB12:					Dm = " - 0xCB12 - RL D";		break;
+		case 0XCB13:					Dm = " - 0xCB13 - RL E";		break;
+		case 0XCB14:					Dm = " - 0xCB14 - RL H";		break;
+		case 0XCB15:					Dm = " - 0xCB15 - RL L";		break;
+		case 0XCB16:					Dm = " - 0xCB16 - RL (HL)";		break;
+		case 0XCB17:					Dm = " - 0xCB17 - RL A";		break;
+		case 0XCB18:					Dm = " - 0xCB18 - RR B";		break;
+		case 0XCB19:					Dm = " - 0xCB19 - RR C";		break;
+		case 0XCB1A:					Dm = " - 0xCB1A - RR D";		break;
+		case 0XCB1B:					Dm = " - 0xCB1B - RR E";		break;
+		case 0XCB1C:					Dm = " - 0xCB1C - RR H";		break;
+		case 0XCB1D:					Dm = " - 0xCB1D - RR L";		break;
+		case 0XCB1E:					Dm = " - 0xCB1E - RR (HL)";		break;
+		case 0XCB1F:					Dm = " - 0xCB1F - RR E";		break;
+		case 0XCB20:					Dm = " - 0xCB20 - SLA B";		break;
+		case 0XCB21:					Dm = " - 0xCB21 - SLA C";		break;
+		case 0XCB22:					Dm = " - 0xCB22 - SLA D";		break;
+		case 0XCB23:					Dm = " - 0xCB23 - SLA E";		break;
+		case 0XCB24:					Dm = " - 0xCB24 - SLA H";		break;
+		case 0XCB25:					Dm = " - 0xCB25 - SLA L";		break;
+		case 0XCB26:					Dm = " - 0xCB26 - SLA (HL)";	break;
+		case 0XCB27:					Dm = " - 0xCB27 - SLA A";		break;
+		case 0XCB28:					Dm = " - 0xCB28 - SRA B";		break;
+		case 0XCB29:					Dm = " - 0xCB29 - SRA C";		break;
+		case 0XCB2A:					Dm = " - 0xCB2A - SRD D";		break;
+		case 0XCB2B:					Dm = " - 0xCB2B - SRA E";		break;
+		case 0XCB2C:					Dm = " - 0xCB2C - SRA H";		break;
+		case 0XCB2D:					Dm = " - 0xCB2D - SRA L";		break;
+		case 0XCB2E:					Dm = " - 0xCB2E - SRA (HL)";	break;
+		case 0XCB2F:					Dm = " - 0xCB2F - SRA A";		break;
 			/////////////////REVISAR ESTA TRANSICION ////////////
-		case	0XCB37:	//			SWAP	A			
-			tempM = " - 0xCB37 - SWAP A";
-			break;
-		case	0XCB38:	//			SRL	B			
-			tempM = " - 0xCB38 - SRL B";
-			break;
-		case	0XCB39:	//			SRL	C		
-			tempM = " - 0xCB39 - SRL C";
-			break;
-		case	0XCB3A:	//			SRL	D			
-			tempM = " - 0xCB3A - SRL D";
-			break;
-		case	0XCB3B:	//			SRL	E		
-			tempM = " - 0xCB3B - SRL E";
-			break;
-		case	0XCB3C:	//			SRL	H			
-			tempM = " - 0xCB3C - SRL H";
-			break;
-		case	0XCB3D:	//			SRL	L		
-			tempM = " - 0xCB3D - SRL L";
-			break;
-		case	0XCB3E:	//			SRL	(HL)		
-			tempM = " - 0xCB3E - SRL (HL)";
-			break;
-		case	0XCB3F:	//			SRL	A			
-			tempM = " - 0xCB3F - SRL A";
-			break;
-		case	0XCB40:	//			BIT	0	B		
-			tempM = " - 0xCB40 - BIT 0 B";
-			break;
-		case	0XCB41:	//			BIT	0	C		
-			tempM = " - 0xCB41 - BIT 0 C";
-			break;
-		case	0XCB42:	//			BIT	0	D		
-			tempM = " - 0xCB42 - BIT 0 D";
-			break;
-		case	0XCB43:	//			BIT	0	E	
-			tempM = " - 0xCB43 - BIT 0 E";
-			break;
-		case	0XCB44:	//			BIT	0	H	
-			tempM = " - 0xCB44 - BIT 0 H";
-			break;
-		case	0XCB45:	//			BIT	0	L		
-			tempM = " - 0xCB45 - BIT 0 L";
-			break;
-		case	0XCB46:	//			BIT	0	(HL)	
-			tempM = " - 0xCB46 - BIT 0 (HL)";
-			break;
-		case	0XCB47:	//			BIT	0	A		
-			tempM = " - 0xCB47 - BIT 0 A";
-			break;
-		case	0XCB48:	//			BIT	1	B	
-			tempM = " - 0xCB48 - BIT 1 B";
-			break;
-		case	0XCB49:	//			BIT	1	C		
-			tempM = " - 0xCB49 - BIT 1 C";
-			break;
-		case	0XCB4A:	//			BIT	1	D		
-			tempM = " - 0xCB4A - BIT 1 D";
-			break;
-		case	0XCB4B:	//			BIT	1	E		
-			tempM = " - 0xCB4B - BIT 1 E";
-			break;
-		case	0XCB4C:	//			BIT	1	H		
-			tempM = " - 0xCB4C - BIT 1 H";
-			break;
-		case	0XCB4D:	//			BIT	1	L		
-			tempM = " - 0xCB4D - BIT 1 L";
-			break;
-		case	0XCB4E:	//			BIT	1	(HL)	
-			tempM = " - 0xCB4A - BIT 1 (HL)";
-			break;
-		case	0XCB4F:	//			BIT	1	A		
-			tempM = " - 0xCB4F - BIT 1 A";
-			break;
-		case	0XCB50:	//			BIT	2	B		
-			tempM = " - 0xCB50 - BIT 2 B";
-			break;
-		case	0XCB51:	//			BIT	2	C		
-			tempM = " - 0xCB51 - BIT 2 C";
-			break;
-		case	0XCB52:	//			BIT	2	D		
-			tempM = " - 0xCB52 - BIT 2 D";
-			break;
-		case	0XCB53:	//			BIT	2	E	
-			tempM = " - 0xCB53 - BIT 2 E";
-			break;
-		case	0XCB54:	//			BIT	2	H	
-			tempM = " - 0xCB54 - BIT 2 H";
-			break;
-		case	0XCB55:	//			BIT	2	L		
-			tempM = " - 0xCB55 - BIT 2 L";
-			break;
-		case	0XCB56:	//			BIT	2	(HL)		
-			tempM = " - 0xCB56 - BIT 2 (HL)";
-			break;
-		case	0XCB57:	//			BIT	2	A		
-			tempM = " - 0xCB57 - BIT 2 A";
-			break;
-		case	0XCB58:	//			BIT	3	B	
-			tempM = " - 0xCB58 - BIT 3 B";
-			break;
-		case	0XCB59:	//			BIT	3	C	
-			tempM = " - 0xCB59 - BIT 3 C";
-			break;
-		case	0XCB5A:	//			BIT	3	D	
-			tempM = " - 0xCB5A - BIT 3 D";
-			break;
-		case	0XCB5B:	//			BIT	3	E		
-			tempM = " - 0xCB5B - BIT 3 E";
-			break;
-		case	0XCB5C:	//			BIT	3	H	
-			tempM = " - 0xCB5C - BIT 3 H";
-			break;
-		case	0XCB5D:	//			BIT	3	L		
-			tempM = " - 0xCB5D - BIT 3 L";
-			break;
-		case	0XCB5E:	//			BIT	3	(HL)	
-			tempM = " - 0xCB5E - BIT 3 (HL)";
-			break;
-		case	0XCB5F:	//			BIT	3	A		
-			tempM = " - 0xCB5F - BIT 3 A";
-			break;
-		case	0XCB60:	//			BIT	4	B		
-			tempM = " - 0xCB60 - BIT 4 B";
-			break;
-		case	0XCB61:	//			BIT	4	C		
-			tempM = " - 0xCB61 - BIT 4 C";
-			break;
-		case	0XCB62:	//			BIT	4	D		
-			tempM = " - 0xCB62 - BIT 4 D";
-			break;
-		case	0XCB63:	//			BIT	4	E	
-			tempM = " - 0xCB63 - BIR 4 E";
-			break;
-		case	0XCB64:	//			BIT	4	H		
-			tempM = " - 0xCB64 - BIT 4 H";
-			break;
-		case	0XCB65:	//			BIT	4	L		
-			tempM = " - 0xCB65 - BIT 4 L";
-			break;
-		case	0XCB66:	//			BIT	4	(HL)	
-			tempM = " - 0xCB66 - BIT 4 (HL)";
-			break;
-		case	0XCB67:	//			BIT	4	A		
-			tempM = " - 0xCB67 - BIT 4 A";
-			break;
-		case	0XCB68:	//			BIT	5	B		
-			tempM = " - 0xCB68 - BIT 5 B";
-			break;
-		case	0XCB69:	//			BIT	5	C		
-			tempM = " - 0xCB69 - BIT 5 C";
-			break;
-		case	0XCB6A:	//			BIT	5	D		
-			tempM = " - 0xCB6A - BIT 5 D";
-			break;
-		case	0XCB6B:	//			BIT	5	E		
-			tempM = " - 0xCB6B - BIT 5 E";
-			break;
-		case	0XCB6C:	//			BIT	5	H		
-			tempM = " - 0xCB6C - BIT 5 H";
-			break;
-		case	0XCB6D:	//			BIT	5	L		
-			tempM = " - 0xCB6D - BIT 5 L";
-			break;
-		case	0XCB6E:	//			BIT	5	(HL)	
-			tempM = " - 0xCB6E - BIT 5 (HL)";
-			break;
-		case	0XCB6F:	//			BIT	5	A		
-			tempM = " - 0xCB6F - BIT 5 A";
-			break;
-		case	0XCB70:	//			BIT	6	B		
-			tempM = " - 0xCB70 - BIT 6 B";
-			break;
-		case	0XCB71:	//			BIT	6	C		
-			tempM = " - 0xCB71 - BIT 6 C";
-			break;
-		case	0XCB72:	//			BIT	6	D		
-			tempM = " - 0xCB72 - BIT 6 D";
-			break;
-		case	0XCB73:	//			BIT	6	E		
-			tempM = " - 0xCB73 - BIT 6 E";
-			break;
-		case	0XCB74:	//			BIT	6	H		
-			tempM = " - 0xCB74 - BIT 6 H";
-			break;
-		case	0XCB75:	//			BIT	6	L	
-			tempM = " - 0xCB75 - BIT 6 L";
-			break;
-		case	0XCB76:	//			BIT	6	(HL)	
-			tempM = " - 0xCB76 - BIT 6 (HL)";
-			break;
-		case	0XCB77:	//			BIT	6	A	
-			tempM = " - 0xCB77 - BIT 6 A";
-			break;
-		case	0XCB78:	//			BIT	7	B	
-			tempM = " - 0xCB78 - BIT 7 B";
-			break;
-		case	0XCB79:	//			BIT	7	C	
-			tempM = " - 0xCB79 - BIT 7 C";
-			break;
-		case	0XCB7A:	//			BIT	7	D	
-			tempM = " - 0xCB7A - BIT 7 D";
-			break;
-		case	0XCB7B:	//			BIT	7	E	
-			tempM = " - 0xCB7B - BIT 7 E";
-			break;
-		case	0XCB7C:	//			BIT	7	H	
-			tempM = " - 0xCB7C - BIT 7 H";
-			break;
-		case	0XCB7D:	//			BIT	7	(HL)	
-			tempM = " - 0xCB7D - BIT 7 (HL)";
-			break;
-		case	0XCB7F:	//			BIT	7	A	
-			tempM = " - 0xCB7F - BIT 7 A";
-			break;
-		case	0XCB80:	//			RES	0	B	
-			tempM = " - 0xCB80 - RES 0 B";
-			break;
-		case	0XCB81:	//			RES	0	C	
-			tempM = " - 0xCB81 - RES 0 C";
-			break;
-		case	0XCB82:	//			RES	0	D	
-			tempM = " - 0xCB82 - RES 0 D";
-			break;
-		case	0XCB83:	//			RES	0	E	
-			tempM = " - 0xCB83 - RES 0 E";
-			break;
-		case	0XCB84:	//			RES	0	H	
-			tempM = " - 0xCB84 - RES 0 H";
-			break;
-		case	0XCB85:	//			RES	0	L	
-			tempM = " - 0xCB85 - RES 0 L";
-			break;
-		case	0XCB86:	//			RES	0	(HL)	
-			tempM = " - 0xCB86 - RES 0 (HL)";
-			break;
-		case	0XCB87:	//			RES	0	A	
-			tempM = " - 0xCB87 - RES 0 A";
-			break;
-		case	0XCB88:	//			RES	1	B	
-			tempM = " - 0xCB88 - RES 1 B";
-			break;
-		case	0XCB89:	//			RES	1	C	
-			tempM = " - 0xCB89 - RES 1 C";
-			break;
-		case	0XCB8A:	//			RES	1	D	
-			tempM = " - 0xCB8A - RES 1 D";
-			break;
-		case	0XCB8B:	//			RES	1	E	
-			tempM = " - 0xCB8B - RES 1 E";
-			break;
-		case	0XCB8C:	//			RES	1	H	
-			tempM = " - 0xCB8C - RES 1 H";
-			break;
-		case	0XCB8D:	//			RES	1	L	
-			tempM = " - 0xCB8D - RES 1 L";
-			break;
-		case	0XCB8E:	//			RES	1	(HL)	
-			tempM = " - 0xCB8E - RES 1 (HL)";
-			break;
-		case	0XCB8F:	//			RES	1	A	
-			tempM = " - 0xCB8F - RES 1 A";
-			break;
-		case	0XCB90:	//			RES	2	B	
-			tempM = " - 0xCB90 - RES 2 B";
-			break;
-		case	0XCB91:	//			RES	2	C	
-			tempM = " - 0xCB91 - RES 2 C";
-			break;
-		case	0XCB92:	//			RES	2	D	
-			tempM = " - 0xCB92 - RES 2 D";
-			break;
-		case	0XCB93:	//			RES	2	E	
-			tempM = " - 0xCB93 - RES 2 E";
-			break;
-		case	0XCB94:	//			RES	2	H	
-			tempM = " - 0xCB94 - RES 2 H";
-			break;
-		case	0XCB95:	//			RES	2	L	
-			tempM = " - 0xCB95 - RES 2 L";
-			break;
-		case	0XCB96:	//			RES	2	(HL)	
-			tempM = " - 0xCB96 - RES 2 (HL)";
-			break;
-		case	0XCB97:	//			RES	2	A	
-			tempM = " - 0xCB97 - RES 2 A";
-			break;
-		case	0XCB98:	//			RES	3	B	
-			tempM = " - 0xCB98 - RES 3 B";
-			break;
-		case	0XCB99:	//			RES	3	C	
-			tempM = " - 0xCB99 - RES 3 B";
-			break;
-		case	0XCB9A:	//			RES	3	D	
-			tempM = " - 0xCB9A - RES 3 D";
-			break;
-		case	0XCB9B:	//			RES	3	E	
-			tempM = " - 0xCB9B - RES 3 E";
-			break;
-		case	0XCB9C:	//			RES	3	H	
-			tempM = " - 0xCB9C - RES 3 H";
-			break;
-		case	0XCB9D:	//			RES	3	L	
-			tempM = " - 0xCB9D - RES 3 L";
-			break;
-		case	0XCB9E:	//			RES	3	(HL)	
-			tempM = " - 0xCB9E - RES 3 (HL)";
-			break;
-		case	0XCB9F:	//			RES	3	A	
-			tempM = " - 0xCB9F - RES 3 A";
-			break;
-		case	0XCBA0:	//			RES	4	B	
-			tempM = " - 0xCBA0 - RES 4 B";
-			break;
-		case	0XCBA1:	//			RES	4	C	
-			tempM = " - 0xCBA1 - RES 4 C";
-			break;
-		case	0XCBA2:	//			RES	4	D		
-			tempM = " - 0xCBA2 - RES 4 D";
-			break;
-		case	0XCBA3:	//			RES	4	E	
-			tempM = " - 0xCBA3 - RES 4 E";
-			break;
-		case	0XCBA4:	//			RES	4	H	
-			tempM = " - 0xCBA4 - RES 4 H";
-			break;
-		case	0XCBA5:	//			RES	4	L	
-			tempM = " - 0xCBA5 - RES 4 L";
-			break;
-		case	0XCBA6:	//			RES	4	(HL)	
-			tempM = " - 0xCBA6 - RES 4 (HL)";
-			break;
-		case	0XCBA7:	//			RES	4	A	
-			tempM = " - 0xCBA7 - RES 4 A";
-			break;
-		case	0XCBA8:	//			RES	5	B	
-			tempM = " - 0xCBA8 - RES 5 B";
-			break;
-		case	0XCBA9:	//			RES	5	C	
-			tempM = " - 0xCBA9 - RES 5 C";
-			break;
-		case	0XCBAA:	//			RES	5	D	
-			tempM = " - 0xCBAA - RES 5 D";
-			break;
-		case	0XCBAB:	//			RES	5	E	
-			tempM = " - 0xCBAB - RES 5 E";
-			break;
-		case	0XCBAC:	//			RES	5	H	
-			tempM = " - 0xCBAC - RES 5 H";
-			break;
-		case	0XCBAD:	//			RES	5	L	
-			tempM = " - 0xCBAD - RES 5 L";
-			break;
-		case	0XCBAE:	//			RES	5	(HL)	
-			tempM = " - 0xCBAE - RES 5 (HL)";
-			break;
-		case	0XCBAF:	//			RES	5	A	
-			tempM = " - 0xCBAF - RES 5 A";
-			break;
-		case	0XCBB0:	//			RES	6	B	
-			tempM = " - 0xCBB0 - RES 6 B";
-			break;
-		case	0XCBB1:	//			RES	6	C	
-			tempM = " - 0xCBB1 - RES 6 C";
-			break;
-		case	0XCBB2:	//			RES	6	D	
-			tempM = " - 0xCBB2 - RES 6 D";
-			break;
-		case	0XCBB3:	//			RES	6	E	
-			tempM = " - 0xCBB3 - RES 6 E";
-			break;
-		case	0XCBB4:	//			RES	6	H	
-			tempM = " - 0xCBB4 - RES 6 H";
-			break;
-		case	0XCBB5:	//			RES	6	L	
-			tempM = " - 0xCBB5 - RES 6 L";
-			break;
-		case	0XCBB6:	//			RES	6	(HL)	
-			tempM = " - 0xCBB6 - RES 6 (HL)";
-			break;
-		case	0XCBB7:	//			RES	6	A	
-			tempM = " - 0xCBB7 - RES 6 A";
-			break;
-		case	0XCBB8:	//			RES	7	B	
-			tempM = " - 0xCBB8 - RES 7 B";
-			break;
-		case	0XCBB9:	//			RES	7	C	
-			tempM = " - 0xCBB9 - RES 7 C";
-			break;
-		case	0XCBBA:	//			RES	7	D	
-			tempM = " - 0xCBBA - RES 7 D";
-			break;
-		case	0XCBBB:	//			RES	7	E	
-			tempM = " - 0xCBBB - RES 7 E";
-			break;
-		case	0XCBBC:	//			RES	7	H	
-			tempM = " - 0xCBBC - RES 7 H";
-			break;
-		case	0XCBBD:	//			RES	7	L	
-			tempM = " - 0xCBBD - RES 7 L";
-			break;
-		case	0XCBBE:	//			RES	7	(HL)	
-			tempM = " - 0xCBBE - RES 7 (HL)";
-			break;
-		case	0XCBBF:	//			RES	7	A	
-			tempM = " - 0xCBBF - RES 7 A";
-			break;
-		case	0XCBC0:	//			SET	0	B	
-			tempM = " - 0xCBC0 - SET 0 B";
-			break;
-		case	0XCBC1:	//			SET	0	C	
-			tempM = " - 0xCBC1 - SET 0 C";
-			break;
-		case	0XCBC2:	//			SET	0	D	
-			tempM = " - 0xCBC2 - SET 0 D";
-			break;
-		case	0XCBC3:	//			SET	0	E	
-			tempM = " - 0xCBC3 - SET 0 E";
-			break;
-		case	0XCBC4:	//			SET	0	H	
-			tempM = " - 0xCBC4 - SET 0 H";
-			break;
-		case	0XCBC5:	//			SET	0	L	
-			tempM = " - 0xCBC5 - SET 0 L";
-			break;
-		case	0XCBC6:	//			SET	0	(HL)	
-			tempM = " - 0xCBC6 - SET 0 (HL)";
-			break;
-		case	0XCBC7:	//			SET	0	A	
-			tempM = " - 0xCBC7 - SET 0 a";
-			break;
-		case	0XCBC8:	//			SET	1	B	
-			tempM = " - 0xCBC8 - SET 1 B";
-			break;
-		case	0XCBC9:	//			SET	1	C	
-			tempM = " - 0xCBC9 - SET 1 C";
-			break;
-		case	0XCBCA:	//			SET	1	D	
-			tempM = " - 0xCBCA - SET 1 D";
-			break;
-		case	0XCBCB:	//			SET	1	E	
-			tempM = " - 0xCBCB - SET 1 E";
-			break;
-		case	0XCBCC:	//			SET	1	H	
-			tempM = " - 0xCBCC - SET 1 H";
-			break;
-		case	0XCBCD:	//			SET	1	L	
-			tempM = " - 0xCBCD - SET 1 L";
-			break;
-		case	0XCBCE:	//			SET	1	(HL)	
-			tempM = " - 0xCBCE - SET 1 (HL)";
-			break;
-		case	0XCBCF:	//			SET	1	A	
-			tempM = " - 0xCBCF - SET 1 A";
-			break;
-		case	0XCBD0:	//			SET	2	B	
-			tempM = " - 0xCBD0 - SET 2 B";
-			break;
-		case	0XCBD1:	//			SET	2	C	
-			tempM = " - 0xCBD1 - SET 2 C";
-			break;
-		case	0XCBD2:	//			SET	2	D	
-			tempM = " - 0xCBD2 - SET 2 D";
-			break;
-		case	0XCBD3:	//			SET	2	E	
-			tempM = " - 0xCBD3 - SET 2 E";
-			break;
-		case	0XCBD4:	//			SET	2	H	
-			tempM = " - 0xCBD4 - SET 2 H";
-			break;
-		case	0XCBD5:	//			SET	2	L	
-			tempM = " - 0xCBD5 - SET 2 L";
-			break;
-		case	0XCBD6:	//			SET	2	(HL)	
-			tempM = " - 0xCBD6 - SET 2 (HL)";
-			break;
-		case	0XCBD7:	//			SET	2	A	
-			tempM = " - 0xCBD7 - SET 2 A";
-			break;
-		case	0XCBD8:	//			SET	3	B	
-			tempM = " - 0xCBD8 - SET 3 B";
-			break;
-		case	0XCBD9:	//			SET	3	C	
-			tempM = " - 0xCBD9 - SET 3 C";
-			break;
-		case	0XCBDA:	//			SET	3	D	
-			tempM = " - 0xCBDA - SET 3 D";
-			break;
-		case	0XCBDB:	//			SET	3	E	
-			tempM = " - 0xCBD8 - SET 3 E";
-			break;
-		case	0XCBDC:	//			SET	3	H	
-			tempM = " - 0xCBDC - SET 3 H";
-			break;
-		case	0XCBDD:	//			SET	3	L	
-			tempM = " - 0xCBDD - SET 3 L";
-			break;
-		case	0XCBDE:	//			SET	3	(HL)	
-			tempM = " - 0xCBDE - SET 3 (HL)";
-			break;
-		case	0XCBDF:	//			SET	3	A	
-			tempM = " - 0xCBDF - SET 3 A";
-			break;
-		case	0XCBE0:	//			SET	4	B	
-			tempM = " - 0xCBE0 - SET 4 B";
-			break;
-		case	0XCBE1:	//			SET	4	C	
-			tempM = " - 0xCBE1 - SET 4 C";
-			break;
-		case	0XCBE2:	//			SET	4	D	
-			tempM = " - 0xCBE2 - SET 4 D";
-			break;
-		case	0XCBE3:	//			SET	4	E	
-			tempM = " - 0xCBE3 - SET 4 E";
-			break;
-		case	0XCBE4:	//			SET	4	H	
-			tempM = " - 0xCBE4 - SET 4 H";
-			break;
-		case	0XCBE5:	//			SET	4	L	
-			tempM = " - 0xCBE5 - SET 4 L";
-			break;
-		case	0XCBE6:	//			SET	4	(HL)	
-			tempM = " - 0xCBE6 - SET 4 (HL)";
-			break;
-		case	0XCBE7:	//			SET	4	A	
-			tempM = " - 0xCBE7 - SET 4 A";
-			break;
-		case	0XCBE8:	//			SET	5	B	
-			tempM = " - 0xCBE8 - SET 5 B";
-			break;
-		case	0XCBE9:	//			SET	5	C	
-			tempM = " - 0xCBE9 - SET 5 C";
-			break;
-		case	0XCBEA:	//			SET	5	D	
-			tempM = " - 0xCBEA - SET 5 D";
-			break;
-		case	0XCBEB:	//			SET	5	E	
-			tempM = " - 0xCBEB - SET 5 E";
-			break;
-		case	0XCBEC:	//			SET	5	H	
-			tempM = " - 0xCBEC - SET 5 H";
-			break;
-		case	0XCBED:	//			SET	5	L	
-			tempM = " - 0xCBED - SET 5 L";
-			break;
-		case	0XCBEE:	//			SET	5	(HL)	
-			tempM = " - 0xCBEE - SET 5 (HL)";
-			break;
-		case	0XCBEF:	//			SET	5	A	
-			tempM = " - 0xCBEF - SET 5 A";
-			break;
-		case	0XCBF0:	//			SET	6	B	
-			tempM = " - 0xCBF0 - SET 6 B";
-			break;
-		case	0XCBF1:	//			SET	6	C	
-			tempM = " - 0xCBF1 - SET 6 C";
-			break;
-		case	0XCBF2:	//			SET	6	D	
-			tempM = " - 0xCBF2 - SET 6 D";
-			break;
-		case	0XCBF3:	//			SET	6	E	
-			tempM = " - 0xCBF3 - SET 6 E";
-			break;
-		case	0XCBF4:	//			SET	6	H	
-			tempM = " - 0xCBF4 - SET 6 H";
-			break;
-		case	0XCBF5:	//			SET	6	L	
-			tempM = " - 0xCBF5 - SET 6 L";
-			break;
-		case	0XCBF6:	//			SET	6	(HL)	
-			tempM = " - 0xCBF6 - SET 6 (HL)";
-			break;
-		case	0XCBF7:	//			SET	6	A	
-			tempM = " - 0xCBF7 - SET 6 A";
-			break;
-		case	0XCBF8:	//			SET	7	B	
-			tempM = " - 0xCBF8 - SET 7 B";
-			break;
-		case	0XCBF9:	//			SET	7	C	
-			tempM = " - 0xCBF9 - SET 7 C";
-			break;
-		case	0XCBFA:	//			SET	7	D	
-			tempM = " - 0xCBFA - SET 7 D";
-			break;
-		case	0XCBFB:	//			SET	7	E	
-			tempM = " - 0xCBFB - SET 7 E";
-			break;
-		case	0XCBFC:	//			SET	7	H	
-			tempM = " - 0xCBFC - SET 7 H";
-			break;
-		case	0XCBFD:	//			SET	7	L	
-			tempM = " - 0xCBFD - SET 7 L";
-			break;
-		case	0XCBFE:	//			SET	7	(HL)	
-			tempM = " - 0xCBFE - SET 7 (HL)";
-			break;
-		case	0XCBFF:	//			SET	7	A
-			tempM = " - 0xCBFF - SET 7 A";
-			break;
+		case 0XCB37:					Dm = " - 0xCB37 - SWAP A";		break;
+		case 0XCB38:					Dm = " - 0xCB38 - SRL B";		break;
+		case 0XCB39:					Dm = " - 0xCB39 - SRL C";		break;
+		case 0XCB3A:					Dm = " - 0xCB3A - SRL D";		break;
+		case 0XCB3B:					Dm = " - 0xCB3B - SRL E";		break;
+		case 0XCB3C:					Dm = " - 0xCB3C - SRL H";		break;
+		case 0XCB3D:					Dm = " - 0xCB3D - SRL L";		break;
+		case 0XCB3E:					Dm = " - 0xCB3E - SRL (HL)";	break;
+		case 0XCB3F:					Dm = " - 0xCB3F - SRL A";		break;
+		case 0XCB40:					Dm = " - 0xCB40 - BIT 0 B";		break;
+		case 0XCB41:					Dm = " - 0xCB41 - BIT 0 C";		break;
+		case 0XCB42:					Dm = " - 0xCB42 - BIT 0 D";		break;
+		case 0XCB43:					Dm = " - 0xCB43 - BIT 0 E";		break;
+		case 0XCB44:					Dm = " - 0xCB44 - BIT 0 H";		break;
+		case 0XCB45:					Dm = " - 0xCB45 - BIT 0 L";		break;
+		case 0XCB46:					Dm = " - 0xCB46 - BIT 0 (HL)";	break;
+		case 0XCB47:					Dm = " - 0xCB47 - BIT 0 A";		break;
+		case 0XCB48:					Dm = " - 0xCB48 - BIT 1 B";		break;
+		case 0XCB49:					Dm = " - 0xCB49 - BIT 1 C";		break;
+		case 0XCB4A:					Dm = " - 0xCB4A - BIT 1 D";		break;
+		case 0XCB4B:					Dm = " - 0xCB4B - BIT 1 E";		break;
+		case 0XCB4C:					Dm = " - 0xCB4C - BIT 1 H";		break;
+		case 0XCB4D:					Dm = " - 0xCB4D - BIT 1 L";		break;
+		case 0XCB4E:					Dm = " - 0xCB4A - BIT 1 (HL)";	break;
+		case 0XCB4F:					Dm = " - 0xCB4F - BIT 1 A";		break;
+		case 0XCB50:					Dm = " - 0xCB50 - BIT 2 B";		break;
+		case 0XCB51:					Dm = " - 0xCB51 - BIT 2 C";		break;
+		case 0XCB52:					Dm = " - 0xCB52 - BIT 2 D";		break;
+		case 0XCB53:					Dm = " - 0xCB53 - BIT 2 E";		break;
+		case 0XCB54:					Dm = " - 0xCB54 - BIT 2 H";		break;
+		case 0XCB55:					Dm = " - 0xCB55 - BIT 2 L";		break;
+		case 0XCB56:					Dm = " - 0xCB56 - BIT 2 (HL)";	break;
+		case 0XCB57:					Dm = " - 0xCB57 - BIT 2 A";		break;
+		case 0XCB58:					Dm = " - 0xCB58 - BIT 3 B";		break;
+		case 0XCB59:					Dm = " - 0xCB59 - BIT 3 C";		break;
+		case 0XCB5A:					Dm = " - 0xCB5A - BIT 3 D";		break;
+		case 0XCB5B:					Dm = " - 0xCB5B - BIT 3 E";		break;
+		case 0XCB5C:					Dm = " - 0xCB5C - BIT 3 H";		break;
+		case 0XCB5D:					Dm = " - 0xCB5D - BIT 3 L";		break;
+		case 0XCB5E:					Dm = " - 0xCB5E - BIT 3 (HL)";	break;
+		case 0XCB5F:					Dm = " - 0xCB5F - BIT 3 A";		break;
+		case 0XCB60:					Dm = " - 0xCB60 - BIT 4 B";		break;
+		case 0XCB61:					Dm = " - 0xCB61 - BIT 4 C";		break;
+		case 0XCB62:					Dm = " - 0xCB62 - BIT 4 D";		break;
+		case 0XCB63:					Dm = " - 0xCB63 - BIR 4 E";		break;
+		case 0XCB64:					Dm = " - 0xCB64 - BIT 4 H";		break;
+		case 0XCB65:					Dm = " - 0xCB65 - BIT 4 L";		break;
+		case 0XCB66:					Dm = " - 0xCB66 - BIT 4 (HL)";	break;
+		case 0XCB67:					Dm = " - 0xCB67 - BIT 4 A";		break;
+		case 0XCB68:					Dm = " - 0xCB68 - BIT 5 B";		break;
+		case 0XCB69:					Dm = " - 0xCB69 - BIT 5 C";		break;
+		case 0XCB6A:					Dm = " - 0xCB6A - BIT 5 D";		break;
+		case 0XCB6B:					Dm = " - 0xCB6B - BIT 5 E";		break;
+		case 0XCB6C:					Dm = " - 0xCB6C - BIT 5 H";		break;
+		case 0XCB6D:					Dm = " - 0xCB6D - BIT 5 L";		break;
+		case 0XCB6E:					Dm = " - 0xCB6E - BIT 5 (HL)";	break;
+		case 0XCB6F:					Dm = " - 0xCB6F - BIT 5 A";		break;
+		case 0XCB70:					Dm = " - 0xCB70 - BIT 6 B";		break;
+		case 0XCB71:					Dm = " - 0xCB71 - BIT 6 C";		break;
+		case 0XCB72:					Dm = " - 0xCB72 - BIT 6 D";		break;
+		case 0XCB73:					Dm = " - 0xCB73 - BIT 6 E";		break;
+		case 0XCB74:					Dm = " - 0xCB74 - BIT 6 H";		break;
+		case 0XCB75:					Dm = " - 0xCB75 - BIT 6 L";		break;
+		case 0XCB76:					Dm = " - 0xCB76 - BIT 6 (HL)";	break;
+		case 0XCB77:					Dm = " - 0xCB77 - BIT 6 A";		break;
+		case 0XCB78:					Dm = " - 0xCB78 - BIT 7 B";		break;
+		case 0XCB79:					Dm = " - 0xCB79 - BIT 7 C";		break;
+		case 0XCB7A:					Dm = " - 0xCB7A - BIT 7 D";		break;
+		case 0XCB7B:					Dm = " - 0xCB7B - BIT 7 E";		break;
+		case 0XCB7C:					Dm = " - 0xCB7C - BIT 7 H";		break;
+		case 0XCB7D:					Dm = " - 0xCB7D - BIT 7 (HL)";	break;
+		case 0XCB7F:					Dm = " - 0xCB7F - BIT 7 A";		break;
+		case 0XCB80:					Dm = " - 0xCB80 - RES 0 B";		break;
+		case 0XCB81:					Dm = " - 0xCB81 - RES 0 C";		break;
+		case 0XCB82:					Dm = " - 0xCB82 - RES 0 D";		break;
+		case 0XCB83:					Dm = " - 0xCB83 - RES 0 E";		break;
+		case 0XCB84:					Dm = " - 0xCB84 - RES 0 H";		break;
+		case 0XCB85:					Dm = " - 0xCB85 - RES 0 L";		break;
+		case 0XCB86:					Dm = " - 0xCB86 - RES 0 (HL)";	break;
+		case 0XCB87:					Dm = " - 0xCB87 - RES 0 A";		break;
+		case 0XCB88:					Dm = " - 0xCB88 - RES 1 B";		break;
+		case 0XCB89:					Dm = " - 0xCB89 - RES 1 C";		break;
+		case 0XCB8A:					Dm = " - 0xCB8A - RES 1 D";		break;
+		case 0XCB8B:					Dm = " - 0xCB8B - RES 1 E";		break;
+		case 0XCB8C:					Dm = " - 0xCB8C - RES 1 H";		break;
+		case 0XCB8D:					Dm = " - 0xCB8D - RES 1 L";		break;
+		case 0XCB8E:					Dm = " - 0xCB8E - RES 1 (HL)";	break;
+		case 0XCB8F:					Dm = " - 0xCB8F - RES 1 A";		break;
+		case 0XCB90:					Dm = " - 0xCB90 - RES 2 B";		break;
+		case 0XCB91:					Dm = " - 0xCB91 - RES 2 C";		break;
+		case 0XCB92:					Dm = " - 0xCB92 - RES 2 D";		break;
+		case 0XCB93:					Dm = " - 0xCB93 - RES 2 E";		break;
+		case 0XCB94:					Dm = " - 0xCB94 - RES 2 H";		break;
+		case 0XCB95:					Dm = " - 0xCB95 - RES 2 L";		break;
+		case 0XCB96:					Dm = " - 0xCB96 - RES 2 (HL)";	break;
+		case 0XCB97:					Dm = " - 0xCB97 - RES 2 A";		break;
+		case 0XCB98:					Dm = " - 0xCB98 - RES 3 B";		break;
+		case 0XCB99:					Dm = " - 0xCB99 - RES 3 B";		break;
+		case 0XCB9A:					Dm = " - 0xCB9A - RES 3 D";		break;
+		case 0XCB9B:					Dm = " - 0xCB9B - RES 3 E";		break;
+		case 0XCB9C:					Dm = " - 0xCB9C - RES 3 H";		break;
+		case 0XCB9D:					Dm = " - 0xCB9D - RES 3 L";		break;
+		case 0XCB9E:					Dm = " - 0xCB9E - RES 3 (HL)";	break;
+		case 0XCB9F:					Dm = " - 0xCB9F - RES 3 A";		break;
+		case 0XCBA0:					Dm = " - 0xCBA0 - RES 4 B";		break;
+		case 0XCBA1:					Dm = " - 0xCBA1 - RES 4 C";		break;
+		case 0XCBA2:					Dm = " - 0xCBA2 - RES 4 D";		break;
+		case 0XCBA3:					Dm = " - 0xCBA3 - RES 4 E";		break;
+		case 0XCBA4:					Dm = " - 0xCBA4 - RES 4 H";		break;
+		case 0XCBA5:					Dm = " - 0xCBA5 - RES 4 L";		break;
+		case 0XCBA6:					Dm = " - 0xCBA6 - RES 4 (HL)";	break;
+		case 0XCBA7:					Dm = " - 0xCBA7 - RES 4 A";		break;
+		case 0XCBA8:					Dm = " - 0xCBA8 - RES 5 B";		break;
+		case 0XCBA9:					Dm = " - 0xCBA9 - RES 5 C";		break;
+		case 0XCBAA:					Dm = " - 0xCBAA - RES 5 D";		break;
+		case 0XCBAB:					Dm = " - 0xCBAB - RES 5 E";		break;
+		case 0XCBAC:					Dm = " - 0xCBAC - RES 5 H";		break;
+		case 0XCBAD:					Dm = " - 0xCBAD - RES 5 L";		break;
+		case 0XCBAE:					Dm = " - 0xCBAE - RES 5 (HL)";	break;
+		case 0XCBAF:					Dm = " - 0xCBAF - RES 5 A";		break;
+		case 0XCBB0:					Dm = " - 0xCBB0 - RES 6 B";		break;
+		case 0XCBB1:					Dm = " - 0xCBB1 - RES 6 C";		break;
+		case 0XCBB2:					Dm = " - 0xCBB2 - RES 6 D";		break;
+		case 0XCBB3:					Dm = " - 0xCBB3 - RES 6 E";		break;
+		case 0XCBB4:					Dm = " - 0xCBB4 - RES 6 H";		break;
+		case 0XCBB5:					Dm = " - 0xCBB5 - RES 6 L";		break;
+		case 0XCBB6:					Dm = " - 0xCBB6 - RES 6 (HL)";	break;
+		case 0XCBB7:					Dm = " - 0xCBB7 - RES 6 A";		break;
+		case 0XCBB8:					Dm = " - 0xCBB8 - RES 7 B";		break;
+		case 0XCBB9:					Dm = " - 0xCBB9 - RES 7 C";		break;
+		case 0XCBBA:					Dm = " - 0xCBBA - RES 7 D";		break;
+		case 0XCBBB:					Dm = " - 0xCBBB - RES 7 E";		break;
+		case 0XCBBC:					Dm = " - 0xCBBC - RES 7 H";		break;
+		case 0XCBBD:					Dm = " - 0xCBBD - RES 7 L";		break;
+		case 0XCBBE:					Dm = " - 0xCBBE - RES 7 (HL)";	break;
+		case 0XCBBF:					Dm = " - 0xCBBF - RES 7 A";		break;
+		case 0XCBC0:					Dm = " - 0xCBC0 - SET 0 B";		break;
+		case 0XCBC1:					Dm = " - 0xCBC1 - SET 0 C";		break;
+		case 0XCBC2:					Dm = " - 0xCBC2 - SET 0 D";		break;
+		case 0XCBC3:					Dm = " - 0xCBC3 - SET 0 E";		break;
+		case 0XCBC4:					Dm = " - 0xCBC4 - SET 0 H";		break;
+		case 0XCBC5:					Dm = " - 0xCBC5 - SET 0 L";		break;
+		case 0XCBC6:					Dm = " - 0xCBC6 - SET 0 (HL)";	break;
+		case 0XCBC7:					Dm = " - 0xCBC7 - SET 0 a";		break;
+		case 0XCBC8:					Dm = " - 0xCBC8 - SET 1 B";		break;
+		case 0XCBC9:					Dm = " - 0xCBC9 - SET 1 C";		break;
+		case 0XCBCA:					Dm = " - 0xCBCA - SET 1 D";		break;
+		case 0XCBCB:					Dm = " - 0xCBCB - SET 1 E";		break;
+		case 0XCBCC:					Dm = " - 0xCBCC - SET 1 H";		break;
+		case 0XCBCD:					Dm = " - 0xCBCD - SET 1 L";		break;
+		case 0XCBCE:					Dm = " - 0xCBCE - SET 1 (HL)";	break;
+		case 0XCBCF:					Dm = " - 0xCBCF - SET 1 A";		break;
+		case 0XCBD0:					Dm = " - 0xCBD0 - SET 2 B";		break;
+		case 0XCBD1:					Dm = " - 0xCBD1 - SET 2 C";		break;
+		case 0XCBD2:					Dm = " - 0xCBD2 - SET 2 D";		break;
+		case 0XCBD3:					Dm = " - 0xCBD3 - SET 2 E";		break;
+		case 0XCBD4:					Dm = " - 0xCBD4 - SET 2 H";		break;
+		case 0XCBD5:					Dm = " - 0xCBD5 - SET 2 L";		break;
+		case 0XCBD6:					Dm = " - 0xCBD6 - SET 2 (HL)";	break;
+		case 0XCBD7:					Dm = " - 0xCBD7 - SET 2 A";		break;
+		case 0XCBD8:					Dm = " - 0xCBD8 - SET 3 B";		break;
+		case 0XCBD9:					Dm = " - 0xCBD9 - SET 3 C";		break;
+		case 0XCBDA:					Dm = " - 0xCBDA - SET 3 D";		break;
+		case 0XCBDB:					Dm = " - 0xCBD8 - SET 3 E";		break;
+		case 0XCBDC:					Dm = " - 0xCBDC - SET 3 H";		break;
+		case 0XCBDD:					Dm = " - 0xCBDD - SET 3 L";		break;
+		case 0XCBDE:					Dm = " - 0xCBDE - SET 3 (HL)";	break;
+		case 0XCBDF:					Dm = " - 0xCBDF - SET 3 A";		break;
+		case 0XCBE0:					Dm = " - 0xCBE0 - SET 4 B";		break;
+		case 0XCBE1:					Dm = " - 0xCBE1 - SET 4 C";		break;
+		case 0XCBE2:					Dm = " - 0xCBE2 - SET 4 D";		break;
+		case 0XCBE3:					Dm = " - 0xCBE3 - SET 4 E";		break;
+		case 0XCBE4:					Dm = " - 0xCBE4 - SET 4 H";		break;
+		case 0XCBE5:					Dm = " - 0xCBE5 - SET 4 L";		break;
+		case 0XCBE6:					Dm = " - 0xCBE6 - SET 4 (HL)";	break;
+		case 0XCBE7:					Dm = " - 0xCBE7 - SET 4 A";		break;
+		case 0XCBE8:					Dm = " - 0xCBE8 - SET 5 B";		break;
+		case 0XCBE9:					Dm = " - 0xCBE9 - SET 5 C";		break;
+		case 0XCBEA:					Dm = " - 0xCBEA - SET 5 D";		break;
+		case 0XCBEB:					Dm = " - 0xCBEB - SET 5 E";		break;
+		case 0XCBEC:					Dm = " - 0xCBEC - SET 5 H";		break;
+		case 0XCBED:					Dm = " - 0xCBED - SET 5 L";		break;
+		case 0XCBEE:					Dm = " - 0xCBEE - SET 5 (HL)";	break;
+		case 0XCBEF:					Dm = " - 0xCBEF - SET 5 A";		break;
+		case 0XCBF0:					Dm = " - 0xCBF0 - SET 6 B";		break;
+		case 0XCBF1:					Dm = " - 0xCBF1 - SET 6 C";		break;
+		case 0XCBF2:					Dm = " - 0xCBF2 - SET 6 D";		break;
+		case 0XCBF3:					Dm = " - 0xCBF3 - SET 6 E";		break;
+		case 0XCBF4:					Dm = " - 0xCBF4 - SET 6 H";		break;
+		case 0XCBF5:					Dm = " - 0xCBF5 - SET 6 L";		break;
+		case 0XCBF6:					Dm = " - 0xCBF6 - SET 6 (HL)";	break;
+		case 0XCBF7:					Dm = " - 0xCBF7 - SET 6 A";		break;
+		case 0XCBF8:					Dm = " - 0xCBF8 - SET 7 B";		break;
+		case 0XCBF9:					Dm = " - 0xCBF9 - SET 7 C";		break;
+		case 0XCBFA:					Dm = " - 0xCBFA - SET 7 D";		break;
+		case 0XCBFB:					Dm = " - 0xCBFB - SET 7 E";		break;
+		case 0XCBFC:					Dm = " - 0xCBFC - SET 7 H";		break;
+		case 0XCBFD:					Dm = " - 0xCBFD - SET 7 L";		break;
+		case 0XCBFE:					Dm = " - 0xCBFE - SET 7 (HL)";	break;
+		case 0XCBFF:					Dm = " - 0xCBFF - SET 7 A";		break;
 
-		case	0XCC:	//	bb	aa	CALL	Z	$aabb	
-			tempM = " - 0xCC - CALL Z $aabb";
-			break;
-		case	0XCD:	//	bb	aa	CALL	$aabb		
-			tempM = " - 0xCD - CALL $aabb";
-			break;
-		case	0XCE:	//	xx		ADC	A	$xx		
-			tempM = " - 0xCE - ADC A $xx";
-			break;
-		case	0XCF:	//			RST	$ 8
-			tempM = " - 0xCF - RST $8";
-			break;
-		case	0XD0:	//			RET	NC			
-			tempM = " - 0xD0 - RET NC";
-			break;
-		case	0XD1:	//			POP	DE			
-			tempM = " - 0xD1 - POP DE";
-			break;
-		case	0XD2:	//	bb	aa	JP	NC	$aabb	
-			tempM = " - 0xD2 - JP NC $aabb";
-			break;
-		case	0XD4:	//	bb	aa	CALL	NC	$aabb
-			tempM = " - 0xD4 - CALL NC $aabb";
-			break;
-		case	0XD5:	//			PUSH	DE
-			tempM = " - 0xD5 - PUSH DE";
-			break;
-		case	0XD6:	//	xx		SUB	$xx			
-			tempM = " - 0xD6 - SUB $xx";
-			break;
-		case	0XD7:	//			RST	$ 10			
-			tempM = " - 0xD7 - RST $10";
-			break;
-		case	0XD8:	//			RET	C
-			tempM = " - 0xD8 - RET C";
-			break;
-		case	0XD9:	//			RETI
-			tempM = " - 0xD9 - RETI";
-			break;
-		case	0XDA:	//	bb	aa	JP	C	$aabb		
-			tempM = " - 0xDA - JP C $aabb";
-			break;
-		case	0XDC:	//	bb	aa	CALL	C	$aabb
-			tempM = " - 0xDC - CALL C $aabb";
-			break;
-		case	0XDE:	//	xx		SBC	A	$xx		
-			tempM = " - 0xDE - SBC A $xx";
-			break;
-		case	0XDF:	//			RST	$ 18
-			tempM = " - 0xDF - RST $18";
-			break;
-		case	0XE0:	//	xx		LD	($xx)	A
-			tempM = " - 0xE0 - LD ($xx) A";
-			break;
-		case	0XE1:	//			POP	HL			
-			tempM = " - 0xE1 - POP HL";
-			break;
-		case	0XE2:	//			LD	(C)	A
-			tempM = " - 0xE2 - LD (C) A";
-			break;
-		case	0XE5:	//			PUSH	HL
-			tempM = " - 0xE5 - PUSH HL";
-		case	0XE6:	//	xx		AND	$xx		
-			tempM = " - 0xE6 - AND $xx";
-			break;
-		case	0XE7:	//			RST	$ 20
-			tempM = " - 0xE7 - RST $20";
-			break;
-		case	0XE8:	//	xx		ADD	SP	xx		
-			tempM = " - 0xE8 - ADD SP xx";
-			break;
-		case	0XE9:	//			JP	(HL)
-			tempM = " - 0xE9 - JP (HL)";
-			break;
-		case	0XEA:	//	bb	aa	LD	($aabb)	A
-			tempM = " - 0xEA - LD ($aabb) A";
-			break;
-		case	0XEE:	//	xx		XOR	$xx			
-			tempM = " - 0xEE - XOR $xx";
-			break;
-		case	0XEF:	//			RST	$ 28
-			tempM = " - 0xEF - RST $28";
-			break;
-		case	0XF0:	//	xx		LD	A	($xx)
-			tempM = " - 0xF0 - LD A ($xx)";
-			break;
-		case	0XF1:	//			POP	AF			
-			tempM = " - 0xF1 - POP AF";
-			break;
-		case	0XF2:	//			LD	A	(C)
-			tempM = " - 0xF2 - LD A (C)";
-			break;
-		case	0XF3:	//			DI	
-			tempM = " - 0xF3 - DI";
-			// Y EL F4!!!???/
-			break;
-		case	0XF5:	//			PUSH	AF
-			tempM = " - 0xF5 - PUSH AF";
-			break;
-		case	0XF6:	//	xx		OR	$xx		
-			tempM = " - 0xF6 - xx OR $xx";
-			break;
-		case	0XF7:	//			RST	$ 30
-			tempM = " - 0xF7 - RST $30";
-			break;
-		case	0XF8:	//			LD	HL	SP		
-			tempM = " - 0xF8 - LD HL SP";
-			break;
-		case	0XF9:	//			LD	SP	HL
-			tempM = " - 0xF9 - LD SP HL";
-			break;
-		case	0XFA:	//	bb	aa	LD	A	($aabb)
-			tempM = " - 0xFA - LD A ($aabb)";
-			break;
-		case	0XFB:	//			EI	
-			tempM = " - 0xFB - EI";
-			break;
-		case	0XFE:	//	xx		CP	$xx			
-			tempM = " - 0xFE - CP $xx";
-			break;
-		case	0XFF:	//			RST	$ 38			
-			tempM = " - 0xFF - RST $38";
-			break;
+		case 0XCC:						Dm = " - 0xCC - CALL Z $aabb";	break;
+		case 0XCD:						Dm = " - 0xCD - CALL $aabb";	break;
+		case 0XCE:						Dm = " - 0xCE - ADC A $xx";		break;
+		case 0XCF:						Dm = " - 0xCF - RST $8";		break;
+		case 0XD0:						Dm = " - 0xD0 - RET NC";		break;
+		case 0XD1:						Dm = " - 0xD1 - POP DE";		break;
+		case 0XD2:						Dm = " - 0xD2 - JP NC $aabb";	break;
+		case 0XD4:						Dm = " - 0xD4 - CALL NC $aabb";	break;
+		case 0XD5:						Dm = " - 0xD5 - PUSH DE";		break;
+		case 0XD6:						Dm = " - 0xD6 - SUB $xx";		break;
+		case 0XD7:						Dm = " - 0xD7 - RST $10";		break;
+		case 0XD8:						Dm = " - 0xD8 - RET C";			break;
+		case 0XD9:						Dm = " - 0xD9 - RETI";			break;
+		case 0XDA:						Dm = " - 0xDA - JP C $aabb";	break;
+		case 0XDC:						Dm = " - 0xDC - CALL C $aabb";	break;
+		case 0XDE:						Dm = " - 0xDE - SBC A $xx";		break;
+		case 0XDF:						Dm = " - 0xDF - RST $18";		break;
+		case 0XE0:						Dm = " - 0xE0 - LD ($xx) A";	break;
+		case 0XE1:						Dm = " - 0xE1 - POP HL";		break;
+		case 0XE2:						Dm = " - 0xE2 - LD (C) A";		break;
+		case 0XE5:						Dm = " - 0xE5 - PUSH HL";		break;
+		case 0XE6:						Dm = " - 0xE6 - AND $xx";		break;
+		case 0XE7:						Dm = " - 0xE7 - RST $20";		break;
+		case 0XE8:						Dm = " - 0xE8 - ADD SP xx";		break;
+		case 0XE9:						Dm = " - 0xE9 - JP (HL)";		break;
+		case 0XEA:						Dm = " - 0xEA - LD ($aabb) A";	break;
+		case 0XEE:						Dm = " - 0xEE - XOR $xx";		break;
+		case 0XEF:						Dm = " - 0xEF - RST $28";		break;
+		case 0XF0:						Dm = " - 0xF0 - LD A ($xx)";	break;
+		case 0XF1:						Dm = " - 0xF1 - POP AF";		break;
+		case 0XF2:						Dm = " - 0xF2 - LD A (C)";		break;
+		case 0XF3:DI();					Dm = " - 0xF3 - DI";			break;
+			//is F4 missing?
+		case 0XF5:						Dm = " - 0xF5 - PUSH AF";		break;
+		case 0XF6:						Dm = " - 0xF6 - xx OR $xx";		break;
+		case 0XF7:						Dm = " - 0xF7 - RST $30";		break;
+		case 0XF8:						Dm = " - 0xF8 - LD HL SP";		break;
+		case 0XF9:						Dm = " - 0xF9 - LD SP HL";		break;
+		case 0XFA:						Dm = " - 0xFA - LD A ($aabb)";	break;
+		case 0XFB:						Dm = " - 0xFB - EI";			break;
+		case 0XFE:						Dm = " - 0xFE - CP $xx";		break;
+		case 0XFF:						Dm = " - 0xFF - RST $38";		break;
 
 		default:
 			std::cout << "ERROR CASE NOT FOUND " << "opcode" << std::hex << std::setw(2) << std::setfill('0') << int(opcode) << "\n";
 			break;	
 		}		
-		std::cout << "Next opcode" << " | " << "Engager: " << std::hex << std::setw(4) << std::setfill('0') << opcode << "-" << tempM << "\n";
+		std::cout << "Next opcode" << " | " << "Engager: " << std::hex << std::setw(4) << std::setfill('0') << opcode << "-" << Dm << "\n";
 		//std::cout << "$aabb: " << std::hex << (int)$aabb << "\n"; // To Dissasemble
 		
 	} //end opDecoder
 
 #pragma endregion
-
 
 	void Reset() {
 		Ra = 0x1;
@@ -2584,8 +1894,7 @@ public:
 		Rhl = 0x014d;
 		//gb::NOP();
 	}
-
-	void dispatch() {
+	void FlagResearch() {
 		
 		
 
@@ -2615,7 +1924,6 @@ public:
 		
 		*/
 	} // Modulo aprendizaje
-
 	void LoadFile()
 	{
 		std::ifstream fin(ROM, std::ios::binary);
@@ -2623,10 +1931,9 @@ public:
 		for (int i = 0; i < 0x8000; i++)	{	fin.get(letter);	memoryA[i] = letter;	}
 	}; // fin LoadFile
 
+}; //-- End class GB
 
-}; //-- Fin class GB
 //-- Modulo Main
-
 int main()
 {
 	//experimental SDL support
@@ -2659,10 +1966,13 @@ int main()
 	//- Main execution loop
 	//- Currently Pausing after each Opcode
 	///////////////////////////////////////////////////////////////////////////////////////
-
+	int cpuClock;
 	while (1)	{
+		for (cpuClock = 0; cpuClock < 19000; cpuClock+=opLen)
+		{
 		gameboy.RegComb();
 		gameboy.opDecoder();
+		}
 		std::cin.get();
 }
 	return 0;
