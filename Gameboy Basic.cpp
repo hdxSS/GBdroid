@@ -1,16 +1,16 @@
 // Gameboy Basic.cpp : Defines the entry point for the console application.
 //
 
-#include "stdafx.h"
-#include <iomanip>
+//#include "stdafx.h"
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <algorithm>
 #include <cstdlib>
 #include <bitset>
 #include <string>
 #include <sstream>
-//#include <SDL2/SDL.h>
+#include <SDL2/SDL.h>
 #include <random>
 
 //Modules
@@ -26,7 +26,7 @@
 
 //SDL support
 
-//SDL_Renderer* renderer = NULL;
+SDL_Renderer* renderer = NULL;
 
 int min;
 int max;
@@ -82,9 +82,9 @@ public:
 //- This section can be enabled or disabled, but is meant for research
 ///////////////////////////////////////////////////////////////////////////////////////		
 	
-	/*
-	//
-	//SDL_Rect pixel[144][164]; // la pantalla es de 256 x 256 pero 144 y 164 son visibles
+	
+	
+	SDL_Rect pixel[144][164]; // la pantalla es de 256 x 256 pero 144 y 164 son visibles
 	void gfxHandler()
 	{
 	unsigned int rowN;
@@ -181,7 +181,7 @@ public:
 	//acceso a paleta, orden y preferencia
 
 
-	for (int z = 0; z<300; z++)
+	for (int z = 0; z<10; z++)
 	{
 	for (int j = 0; j<145; j++)
 	{
@@ -200,7 +200,7 @@ public:
 	cg = 96;
 	cb = 96;
 	}
-	-	//		 //way of selecting GREEN
+		//		 //way of selecting GREEN
 	//		 else if ((rand() % 100 == 1)){
 	//		 	cr=0;
 	//		 	cg=255;
@@ -236,7 +236,7 @@ public:
 	SDL_RenderPresent(renderer);
 	}//Video support
 	}//gfxHandler
-	*/
+	
 
 ///////////////////////////////////////////////////////////////////////////////////////
 //- Im using the MMU as a BP for when the CPU is mature enough to start accesing VRAM 
@@ -247,10 +247,10 @@ public:
 			std::cout << "MMU ROM bank0" << "\n";
 			if (pc == 0x2817)
 			{
-				std::cout << "//////////////////////////////////////////////////////////////////////" << "\n";
-				std::cout << "Drawing Starting\n";
-				std::cout << "//////////////////////////////////////////////////////////////////////" << "\n";
-				std::cin.get();
+	//			std::cout << "//////////////////////////////////////////////////////////////////////" << "\n";
+			//	std::cout << "Drawing Starting\n";
+			//	std::cout << "//////////////////////////////////////////////////////////////////////" << "\n";
+		//		std::cin.get();
 			}
 		}
 		else if (pc >= 0x4000 && pc < 0x8000) { std::cout << "MMU ROM bank1" << "\n";					}
@@ -659,9 +659,9 @@ void RegRecombiner(std::string Dtarget) {
 	void DI() {
 		opclock = 1;
 		opLen = 1;
-		pc += opLen;
+		
 		functType = "DISABLE INTERRUPTS ";
-		std::cin.get();
+		pc += opLen;
 		//FLGH(3, 3, 3, 3);
 	}
 	void EI() {
@@ -1836,7 +1836,7 @@ void RegRecombiner(std::string Dtarget) {
 		case 0XDC:						Dm = " - 0xDC - CALL C $aabb";	break;
 		case 0XDE:						Dm = " - 0xDE - SBC A $xx";		break;
 		case 0XDF:						Dm = " - 0xDF - RST $18";		break;
-		case 0XE0:						Dm = " - 0xE0 - LD ($xx) A";	break;
+		case 0XE0:	Dm = " - 0xE0 - LD ($xx) A"; BoxDeb();	break;
 		case 0XE1:						Dm = " - 0xE1 - POP HL";		break;
 		case 0XE2:						Dm = " - 0xE2 - LD (C) A";		break;
 		case 0XE5:						Dm = " - 0xE5 - PUSH HL";		break;
@@ -1850,7 +1850,7 @@ void RegRecombiner(std::string Dtarget) {
 		case 0XF0:						Dm = " - 0xF0 - LD A ($xx)";	break;
 		case 0XF1:						Dm = " - 0xF1 - POP AF";		break;
 		case 0XF2:						Dm = " - 0xF2 - LD A (C)";		break;
-		case 0XF3:DI();					Dm = " - 0xF3 - DI";			break;
+		case 0XF3: DI();					Dm = " - 0xF3 - DI";			break;
 			//is F4 missing?
 		case 0XF5:						Dm = " - 0xF5 - PUSH AF";		break;
 		case 0XF6:						Dm = " - 0xF6 - xx OR $xx";		break;
@@ -1872,6 +1872,11 @@ void RegRecombiner(std::string Dtarget) {
 	} //end opDecoder
 
 #pragma endregion
+
+void BoxDeb() {  
+//if every missing opcode use this i can capture the debug m3ssage with ease. BOXdeb debugger is the not mapped case error
+	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M", Dm.c_str() ,NULL);
+}
 
 	void Reset() {
 		Ra = 0x1;
@@ -1937,8 +1942,8 @@ void RegRecombiner(std::string Dtarget) {
 int main()
 {
 	//experimental SDL support
-	nullRender = true;
-	/*
+	nullRender = false;
+	
 	if (!nullRender)
 	{
 		//TTF_Init();
@@ -1952,7 +1957,7 @@ int main()
 		renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
 
 	}
-	*/
+	
 	///////////////////////////////////////////////////////////////////////////////////////
 	//- On Init - Set Base values to Regs, Load Rom from memory, Assign Memory to Mem Array
 	//- A little Choppy Atm - Room for improvement
@@ -1966,14 +1971,16 @@ int main()
 	//- Main execution loop
 	//- Currently Pausing after each Opcode
 	///////////////////////////////////////////////////////////////////////////////////////
-	int cpuClock;
 	while (1)	{
-		for (cpuClock = 0; cpuClock < 19000; cpuClock+=opLen)
-		{
+		
+	//	gameboy.gfxHandler();
 		gameboy.RegComb();
 		gameboy.opDecoder();
-		}
-		std::cin.get();
+		
+		
+
+		
+	//	std::cin.get();
 }
 	return 0;
 }
