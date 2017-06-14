@@ -427,7 +427,7 @@ void RegRecombiner(std::string Dtarget) {
 ///////////////////////////////////////////////////////////////////////////////////////
 
 	//Instruction Preset
-	/*
+/*
 		////-- Instruction preset
 		opLen = 1;
 		FLGH(2, 0, 2, 2, $any, Ra, 1 );
@@ -436,9 +436,9 @@ void RegRecombiner(std::string Dtarget) {
 		functType = funcText.str();
 		opDeb();
 		pc += opLen;
-		////-- Instruction preset
+		*/		////-- Instruction preset
 
-	*/ //Hidden Instruction Preset //
+	 //Hidden Instruction Preset //
 	//Instruction Preset
 
 	void ADC8RhlM(unsigned short &$any, std::string Dtarget, std::string Starget) { // n + carry flag to A
@@ -1968,12 +1968,11 @@ int main()
 	///////////////////////////////////////////////////////////////////////////////////////
 	int cpuClock;
 	while (1)	{
-		for (cpuClock = 0; cpuClock < 19000; cpuClock+=opLen)
-		{
+		
 		gameboy.RegComb();
 		gameboy.opDecoder();
 		}
 		std::cin.get();
-}
+
 	return 0;
 }
