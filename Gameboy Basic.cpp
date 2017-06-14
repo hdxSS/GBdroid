@@ -1,7 +1,7 @@
 // Gameboy Basic.cpp : Defines the entry point for the console application.
 //
 
-//#include "stdafx.h"
+#include "stdafx.h" // Windows only
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -10,7 +10,8 @@
 #include <bitset>
 #include <string>
 #include <sstream>
-#include <SDL2/SDL.h>
+#include <SDL.h> // android Only
+//#include <SDL2.h>
 #include <random>
 
 //Modules
@@ -56,7 +57,7 @@ unsigned short _16bitIn;
 unsigned long fullOpcode;
 unsigned char $bb;
 unsigned char $aa;
-signed char $xx;
+signed int $xx;
 unsigned char _8bitIn3;
 
 unsigned char TempRf;
@@ -244,23 +245,31 @@ public:
 ///////////////////////////////////////////////////////////////////////////////////////
 	void MMU() {	
 		if (pc < 0x4000) {
-			std::cout << "MMU ROM bank0" << "\n";
+			//std::cout << "MMU ROM bank0" << "\n";
 			if (pc == 0x2817)
 			{
-	//			std::cout << "//////////////////////////////////////////////////////////////////////" << "\n";
-			//	std::cout << "Drawing Starting\n";
-			//	std::cout << "//////////////////////////////////////////////////////////////////////" << "\n";
+	//			//std::cout << "//////////////////////////////////////////////////////////////////////" << "\n";
+			//	//std::cout << "Drawing Starting\n";
+			//	//std::cout << "//////////////////////////////////////////////////////////////////////" << "\n";
 		//		std::cin.get();
 			}
 		}
-		else if (pc >= 0x4000 && pc < 0x8000) { std::cout << "MMU ROM bank1" << "\n";					}
-		else if (pc >= 0x8000 && pc < 0xA000) { std::cout << "MMU GFX" << "\n"; std::cin.get();			} //Break point GFX
-		else if (pc >= 0xA000 && pc < 0xC000) { std::cout << "MMU EXT RAM bank" << "\n";				}
-		else if (pc >= 0xC000 && pc < 0xE000) { std::cout << "MMU WORKING RAM" << "\n";					}
-		else if (pc >= 0xE000 && pc < 0xFE00) { std::cout << "MMU WORKING RAM SHADOW" << "\n";			}
-		else if (pc >= 0xFE00 && pc < 0xFF00) { std::cout << "MMU GFX SPRITES" << "\n"; std::cin.get(); } //Break point GFX
-		else if (pc >= 0xFF00 && pc < 0xFF80) { std::cout << "MMU INPUT" << "\n";						}
-		else if (pc >= 0xFF80 && pc < 0xFFFF) { std::cout << "MMU ZERO PAGE RAM" << "\n";				}
+		else if (pc >= 0x4000 && pc < 0x8000) { //std::cout << "MMU ROM bank1" << "\n"; 
+		}
+		else if (pc >= 0x8000 && pc < 0xA000) { //std::cout << "MMU GFX" << "\n"; std::cin.get();			
+		} //Break point GFX
+		else if (pc >= 0xA000 && pc < 0xC000) { //std::cout << "MMU EXT RAM bank" << "\n";				
+		}
+		else if (pc >= 0xC000 && pc < 0xE000) { //std::cout << "MMU WORKING RAM" << "\n";					
+		}
+		else if (pc >= 0xE000 && pc < 0xFE00) { //std::cout << "MMU WORKING RAM SHADOW" << "\n";			
+		}
+		else if (pc >= 0xFE00 && pc < 0xFF00) { //std::cout << "MMU GFX SPRITES" << "\n"; std::cin.get(); 
+		} //Break point GFX
+		else if (pc >= 0xFF00 && pc < 0xFF80) { //std::cout << "MMU INPUT" << "\n";						
+		}
+		else if (pc >= 0xFF80 && pc < 0xFFFF) { //std::cout << "MMU ZERO PAGE RAM" << "\n";				
+		}
 	}
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -348,7 +357,8 @@ public:
 				case 2:
 				Rf_as_bit.set(6);
 				
-				if (((TT1 & 0xF) - (TT2 & 0xF)) & 0x10 == 0x10) { Rf_as_bit.set(5); std::cout << " H SET " << "\n"; }
+				if (((TT1 & 0xF) - (TT2 & 0xF)) & 0x10 == 0x10) { Rf_as_bit.set(5); //std::cout << " H SET " << "\n"; 
+				}
 				else { Rf_as_bit.reset(5); }
 				break;
 			}// END N - Optype Switch
@@ -383,7 +393,7 @@ public:
 		if (Rf_as_bit.test(7)) { TempRf = 0; std::bitset<8> Rf_as_Tbit(TempRf); Rf_as_Tbit.set(7); TempRf = Rf_as_Tbit.to_ulong(); }
 
 		//Display Box for Flags - Maybe Switch position
-		std::cout << "Z[" << Rf_as_bit.test(7) << "] N[" << Rf_as_bit.test(6) << "] H[" << Rf_as_bit.test(5) << "] C[" << Rf_as_bit.test(4) << "]\n";
+		//std::cout << "Z[" << Rf_as_bit.test(7) << "] N[" << Rf_as_bit.test(6) << "] H[" << Rf_as_bit.test(5) << "] C[" << Rf_as_bit.test(4) << "]\n";
 		Rf = Rf_as_bit.to_ulong();
 	}
 #pragma endregion
@@ -407,10 +417,10 @@ void RegComb() {
 		gb::Rcomb(3);
 		}
 		//-Done
-		std::cout << "\nAF: " << std::hex << (int)Raf << "\n";
-		std::cout << "BC: " << std::hex << (int)Rbc << "\n";
-		std::cout << "DE: " << std::hex << (int)Rde << "\n";
-		std::cout << "HL: " << std::hex << (int)Rhl << "\n";
+		//std::cout << "\nAF: " << std::hex << (int)Raf << "\n";
+		//std::cout << "BC: " << std::hex << (int)Rbc << "\n";
+		//std::cout << "DE: " << std::hex << (int)Rde << "\n";
+		//std::cout << "HL: " << std::hex << (int)Rhl << "\n";
 	}
 void RegRecombiner(std::string Dtarget) {
 	if (Dtarget == "AF") { Ra = Raf >> 8; Rf = (Raf & 0xF); }
@@ -550,36 +560,38 @@ void RegRecombiner(std::string Dtarget) {
 
 		switch (memoryA[Rhl] << bitnum) { // refinar 0x1
 		case 1:
-			std::cout << "tested positive\n";
+			break;
 
 		case 0:
-			std::cout << "tested negative\n";
-		}
-		//FLGH(2, 0, 1, 3);
-		opclock = 2;
-		functType = "BIT (HL) ";
-		//CALCFLG(Ra, _8int, 3) //set optype4 op de revision valor memoryA[Rhl] o hacer directo aca
 
-		//bit test agains
-		//update timers
+			//FLGH(2, 0, 1, 3);
+			opclock = 2;
+			functType = "BIT (HL) ";
+			//CALCFLG(Ra, _8int, 3) //set optype4 op de revision valor memoryA[Rhl] o hacer directo aca
+
+			//bit test agains
+			//update timers
+			break;
+		}
 	}
 	void BIT8R(unsigned char bitnum, unsigned char &_8r) {
 
 		switch (_8r << bitnum) { // refinar 0x1
 		case 1:
-			std::cout << "tested positive\n";
+			//std::cout << "tested positive\n";
 
 		case 0:
-			std::cout << "tested negative\n";
-		}
-		//FLGH(2, 0, 1, 3);
-		opclock = 2;
-		functType = "BIT 8R ";
-		//CALCFLG(Ra, _8int, 3) //set optype4 op de revision valor memoryA[Rhl] o hacer directo aca
-		//bit test agains
-		//update timers
+			//std::cout << "tested negative\n";
 
+			//FLGH(2, 0, 1, 3);
+			opclock = 2;
+			functType = "BIT 8R ";
+			//CALCFLG(Ra, _8int, 3) //set optype4 op de revision valor memoryA[Rhl] o hacer directo aca
+			//bit test agains
+			//update timers
+		}
 	}
+	
 	void CALLpcF$aabb(int flagcc, unsigned short _16BA) {
 
 		if (flagcc == 1)
@@ -736,7 +748,7 @@ void RegRecombiner(std::string Dtarget) {
 	void JRCC$xx(std::string flagOp, signed char _$xx) {
 		////-- Instruction preset
 		opLen = 2;
-		//std::cout << "8bit int inm " << (int)_$xx << "\n";
+		////std::cout << "8bit int inm " << (int)_$xx << "\n";
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 		funcText << "JR + $xx IF FlagBit = TRUE  ->";
 		functType = funcText.str();
@@ -753,14 +765,14 @@ void RegRecombiner(std::string Dtarget) {
 		if (flagChecker.test(byteNum) == testCase)
 		{
 			std::string result = "TRUE\n";
-			std::cout << "Case " << flagOp << "tested " << result;
+			//std::cout << "Case " << flagOp << "tested " << result;
 			pc = pc + _$xx + opLen;
 		}
 
 		else if (flagChecker.test(byteNum) != testCase)
 		{
 			std::string result = "FALSE\n";
-			std::cout << "Case " << flagOp << "tested " << result;
+			//std::cout << "Case " << flagOp << "tested " << result;
 			pc += opLen;
 		}
 		////-- Instruction preset
@@ -929,19 +941,17 @@ void RegRecombiner(std::string Dtarget) {
 		////-- Instruction preset
 
 	}
-	void LOADHAOFF(unsigned char off) { //LDH
-
-		memoryA[0xff00 + off] = Ra;
-		//update timers
-		opclock = 2;
+	void LOADHAOFF(signed int $_xx, unsigned char R8, std::string Starget) { //LDH
+		////-- Instruction preset
 		opLen = 2;
+		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
+		memoryA[0xff00 + $_xx] = Ra;
+		funcText << "LDH " << std::hex << (int)$_xx << ", " << Starget;
+		functType = funcText.str();
+		opDeb();
 		pc += opLen;
-		//update flags
-		functType = "LD";
-		//DebugReg(functType);
-		//FLGH(3, 3, 3, 3);
+		////-- Instruction preset
 	}
-
 	void LOADAHOFF(unsigned char off) { //LDH
 
 		Ra = memoryA[0xff00 + off];
@@ -1303,7 +1313,7 @@ void RegRecombiner(std::string Dtarget) {
 		if (pc == 0x100)
 		{
 			MMU();
-			std::cout << "Executing line: " << std::hex << "pc:" << pc << " -> " << opcode << " " << "NOP" << "\n";
+			//std::cout << "Executing line: " << std::hex << "pc:" << pc << " -> " << opcode << " " << "NOP" << "\n";
 			//FLGH(3, 3, 3, 3);
 			pc += 1;
 			opLen = 3;
@@ -1311,34 +1321,34 @@ void RegRecombiner(std::string Dtarget) {
 		else {
 
 			if (opLen == 1) {
-				std::cout << "--------------------------------------------------------" << "\n";
+				//std::cout << "--------------------------------------------------------" << "\n";
 				MMU();
-				std::cout << "--------------------------------------------------------" << "\n";
-				std::cout << "Executing line: " << std::hex << "pc: " << std::setw(4) << std::setfill('0') << pc << " -> " << std::setw(4) << std::setfill('0') << opcode << " | " << functType << "\n";
-				std::cout << "--------------------------------------------------------" << "\n";
-				//std::cout << "$aabb: " << std::hex << (int)$aabb << "\n";
+				//std::cout << "--------------------------------------------------------" << "\n";
+				//std::cout << "Executing line: " << std::hex << "pc: " << std::setw(4) << std::setfill('0') << pc << " -> " << std::setw(4) << std::setfill('0') << opcode << " | " << functType << "\n";
+				//std::cout << "--------------------------------------------------------" << "\n";
+				////std::cout << "$aabb: " << std::hex << (int)$aabb << "\n";
 			}
 
 			else if (opLen == 2) {
-				std::cout << "--------------------------------------------------------" << "\n";
+				//std::cout << "--------------------------------------------------------" << "\n";
 				MMU();
-				std::cout << "--------------------------------------------------------" << "\n";
-				std::cout << "Executing line: " << std::hex << "pc: " << std::setw(4) << std::setfill('0') << pc << " -> " << std::setw(4) << std::setfill('0') << opcode << " " << std::hex << std::setw(2) << std::setfill('0') << (int)$bb << " | " << functType << "\n";
-				std::cout << "--------------------------------------------------------" << "\n";
-				//std::cout << "$aabb: " << std::hex << (int)$aabb << "\n";
+				//std::cout << "--------------------------------------------------------" << "\n";
+				//std::cout << "Executing line: " << std::hex << "pc: " << std::setw(4) << std::setfill('0') << pc << " -> " << std::setw(4) << std::setfill('0') << opcode << " " << std::hex << std::setw(2) << std::setfill('0') << (int)$bb << " | " << functType << "\n";
+				//std::cout << "--------------------------------------------------------" << "\n";
+				////std::cout << "$aabb: " << std::hex << (int)$aabb << "\n";
 			}
 
 			else if (opLen == 3) {
-				std::cout << "--------------------------------------------------------" << "\n";
+				//std::cout << "--------------------------------------------------------" << "\n";
 				MMU();
-				std::cout << "--------------------------------------------------------" << "\n";
-				std::cout << "Executing line: " << std::hex << "pc: " << std::setw(4) << std::setfill('0') << pc << " -> " << std::setw(4) << std::setfill('0') << opcode << " " << std::hex << std::setw(2) << std::setfill('0') << (int)$bb << " " << std::setw(2) << std::setfill('0') << (int)$aa << " | " << functType << "\n";
-				std::cout << "--------------------------------------------------------" << "\n";
-				//std::cout << "$aabb: " << std::hex << (int)$aabb << "\n";
+				//std::cout << "--------------------------------------------------------" << "\n";
+				//std::cout << "Executing line: " << std::hex << "pc: " << std::setw(4) << std::setfill('0') << pc << " -> " << std::setw(4) << std::setfill('0') << opcode << " " << std::hex << std::setw(2) << std::setfill('0') << (int)$bb << " " << std::setw(2) << std::setfill('0') << (int)$aa << " | " << functType << "\n";
+				//std::cout << "--------------------------------------------------------" << "\n";
+				////std::cout << "$aabb: " << std::hex << (int)$aabb << "\n";
 			}
 			else
 			{
-				std::cout << "Como diablos me sali del ciclo???" << "Cuanto vale opLen?: " << (int(opLen)) << "\n";
+				//std::cout << "Como diablos me sali del ciclo???" << "Cuanto vale opLen?: " << (int(opLen)) << "\n";
 			}
 		}
 		funcText.str(std::string());
@@ -1361,6 +1371,9 @@ void RegRecombiner(std::string Dtarget) {
 		memoryA[Rhl] = memoryA[Rhl];
 		_8bitIn3 = memoryA[pc + 3];
 		$aabb = (memoryA[pc + 2] << 8) | (memoryA[pc + 1]);
+
+		
+
 		//_8bitInM = memoryA[_8bitIn];
 
 		// aa bb = 16bit integer
@@ -1781,93 +1794,93 @@ void RegRecombiner(std::string Dtarget) {
 		case 0XCBD8:					Dm = " - 0xCBD8 - SET 3 B";		break;
 		case 0XCBD9:					Dm = " - 0xCBD9 - SET 3 C";		break;
 		case 0XCBDA:					Dm = " - 0xCBDA - SET 3 D";		break;
-		case 0XCBDB:					Dm = " - 0xCBD8 - SET 3 E";		break;
-		case 0XCBDC:					Dm = " - 0xCBDC - SET 3 H";		break;
-		case 0XCBDD:					Dm = " - 0xCBDD - SET 3 L";		break;
-		case 0XCBDE:					Dm = " - 0xCBDE - SET 3 (HL)";	break;
-		case 0XCBDF:					Dm = " - 0xCBDF - SET 3 A";		break;
-		case 0XCBE0:					Dm = " - 0xCBE0 - SET 4 B";		break;
-		case 0XCBE1:					Dm = " - 0xCBE1 - SET 4 C";		break;
-		case 0XCBE2:					Dm = " - 0xCBE2 - SET 4 D";		break;
-		case 0XCBE3:					Dm = " - 0xCBE3 - SET 4 E";		break;
-		case 0XCBE4:					Dm = " - 0xCBE4 - SET 4 H";		break;
-		case 0XCBE5:					Dm = " - 0xCBE5 - SET 4 L";		break;
-		case 0XCBE6:					Dm = " - 0xCBE6 - SET 4 (HL)";	break;
-		case 0XCBE7:					Dm = " - 0xCBE7 - SET 4 A";		break;
-		case 0XCBE8:					Dm = " - 0xCBE8 - SET 5 B";		break;
-		case 0XCBE9:					Dm = " - 0xCBE9 - SET 5 C";		break;
-		case 0XCBEA:					Dm = " - 0xCBEA - SET 5 D";		break;
-		case 0XCBEB:					Dm = " - 0xCBEB - SET 5 E";		break;
-		case 0XCBEC:					Dm = " - 0xCBEC - SET 5 H";		break;
-		case 0XCBED:					Dm = " - 0xCBED - SET 5 L";		break;
-		case 0XCBEE:					Dm = " - 0xCBEE - SET 5 (HL)";	break;
-		case 0XCBEF:					Dm = " - 0xCBEF - SET 5 A";		break;
-		case 0XCBF0:					Dm = " - 0xCBF0 - SET 6 B";		break;
-		case 0XCBF1:					Dm = " - 0xCBF1 - SET 6 C";		break;
-		case 0XCBF2:					Dm = " - 0xCBF2 - SET 6 D";		break;
-		case 0XCBF3:					Dm = " - 0xCBF3 - SET 6 E";		break;
-		case 0XCBF4:					Dm = " - 0xCBF4 - SET 6 H";		break;
-		case 0XCBF5:					Dm = " - 0xCBF5 - SET 6 L";		break;
-		case 0XCBF6:					Dm = " - 0xCBF6 - SET 6 (HL)";	break;
-		case 0XCBF7:					Dm = " - 0xCBF7 - SET 6 A";		break;
-		case 0XCBF8:					Dm = " - 0xCBF8 - SET 7 B";		break;
-		case 0XCBF9:					Dm = " - 0xCBF9 - SET 7 C";		break;
-		case 0XCBFA:					Dm = " - 0xCBFA - SET 7 D";		break;
-		case 0XCBFB:					Dm = " - 0xCBFB - SET 7 E";		break;
-		case 0XCBFC:					Dm = " - 0xCBFC - SET 7 H";		break;
-		case 0XCBFD:					Dm = " - 0xCBFD - SET 7 L";		break;
-		case 0XCBFE:					Dm = " - 0xCBFE - SET 7 (HL)";	break;
-		case 0XCBFF:					Dm = " - 0xCBFF - SET 7 A";		break;
+		case 0XCBDB:	Dm = " - 0xCBD8 - SET 3 E";		break;
+		case 0XCBDC:	Dm = " - 0xCBDC - SET 3 H";		break;
+		case 0XCBDD:	Dm = " - 0xCBDD - SET 3 L";		break;
+		case 0XCBDE:	Dm = " - 0xCBDE - SET 3 (HL)";	break;
+		case 0XCBDF:	Dm = " - 0xCBDF - SET 3 A";		break;
+		case 0XCBE0:	Dm = " - 0xCBE0 - SET 4 B";		break;
+		case 0XCBE1:	Dm = " - 0xCBE1 - SET 4 C";		break;
+		case 0XCBE2:	Dm = " - 0xCBE2 - SET 4 D";		break;
+		case 0XCBE3:	Dm = " - 0xCBE3 - SET 4 E";		break;
+		case 0XCBE4:	Dm = " - 0xCBE4 - SET 4 H";		break;
+		case 0XCBE5:	Dm = " - 0xCBE5 - SET 4 L";		break;
+		case 0XCBE6:	Dm = " - 0xCBE6 - SET 4 (HL)";	break;
+		case 0XCBE7:	Dm = " - 0xCBE7 - SET 4 A";		break;
+		case 0XCBE8:	Dm = " - 0xCBE8 - SET 5 B";		break;
+		case 0XCBE9:	Dm = " - 0xCBE9 - SET 5 C";		break;
+		case 0XCBEA:	Dm = " - 0xCBEA - SET 5 D";		break;
+		case 0XCBEB:	Dm = " - 0xCBEB - SET 5 E";		break;
+		case 0XCBEC:	Dm = " - 0xCBEC - SET 5 H";		break;
+		case 0XCBED:	Dm = " - 0xCBED - SET 5 L";		break;
+		case 0XCBEE:	Dm = " - 0xCBEE - SET 5 (HL)";	break;
+		case 0XCBEF:	Dm = " - 0xCBEF - SET 5 A";		break;
+		case 0XCBF0:	Dm = " - 0xCBF0 - SET 6 B";		break;
+		case 0XCBF1:	Dm = " - 0xCBF1 - SET 6 C";		break;
+		case 0XCBF2:	Dm = " - 0xCBF2 - SET 6 D";		break;
+		case 0XCBF3:	Dm = " - 0xCBF3 - SET 6 E";		break;
+		case 0XCBF4:	Dm = " - 0xCBF4 - SET 6 H";		break;
+		case 0XCBF5:	Dm = " - 0xCBF5 - SET 6 L";		break;
+		case 0XCBF6:	Dm = " - 0xCBF6 - SET 6 (HL)";	break;
+		case 0XCBF7:	Dm = " - 0xCBF7 - SET 6 A";		break;
+		case 0XCBF8:	Dm = " - 0xCBF8 - SET 7 B";		break;
+		case 0XCBF9:	Dm = " - 0xCBF9 - SET 7 C";		break;
+		case 0XCBFA:	Dm = " - 0xCBFA - SET 7 D";		break;
+		case 0XCBFB:	Dm = " - 0xCBFB - SET 7 E";		break;
+		case 0XCBFC:	Dm = " - 0xCBFC - SET 7 H";		break;
+		case 0XCBFD:	Dm = " - 0xCBFD - SET 7 L";		break;
+		case 0XCBFE:	Dm = " - 0xCBFE - SET 7 (HL)";	break;
+		case 0XCBFF:	Dm = " - 0xCBFF - SET 7 A";		break;
 
-		case 0XCC:						Dm = " - 0xCC - CALL Z $aabb";	break;
-		case 0XCD:						Dm = " - 0xCD - CALL $aabb";	break;
-		case 0XCE:						Dm = " - 0xCE - ADC A $xx";		break;
-		case 0XCF:						Dm = " - 0xCF - RST $8";		break;
-		case 0XD0:						Dm = " - 0xD0 - RET NC";		break;
-		case 0XD1:						Dm = " - 0xD1 - POP DE";		break;
-		case 0XD2:						Dm = " - 0xD2 - JP NC $aabb";	break;
-		case 0XD4:						Dm = " - 0xD4 - CALL NC $aabb";	break;
-		case 0XD5:						Dm = " - 0xD5 - PUSH DE";		break;
-		case 0XD6:						Dm = " - 0xD6 - SUB $xx";		break;
-		case 0XD7:						Dm = " - 0xD7 - RST $10";		break;
-		case 0XD8:						Dm = " - 0xD8 - RET C";			break;
-		case 0XD9:						Dm = " - 0xD9 - RETI";			break;
-		case 0XDA:						Dm = " - 0xDA - JP C $aabb";	break;
-		case 0XDC:						Dm = " - 0xDC - CALL C $aabb";	break;
-		case 0XDE:						Dm = " - 0xDE - SBC A $xx";		break;
-		case 0XDF:						Dm = " - 0xDF - RST $18";		break;
-		case 0XE0:	Dm = " - 0xE0 - LD ($xx) A"; BoxDeb();	break;
-		case 0XE1:						Dm = " - 0xE1 - POP HL";		break;
-		case 0XE2:						Dm = " - 0xE2 - LD (C) A";		break;
-		case 0XE5:						Dm = " - 0xE5 - PUSH HL";		break;
-		case 0XE6:						Dm = " - 0xE6 - AND $xx";		break;
-		case 0XE7:						Dm = " - 0xE7 - RST $20";		break;
-		case 0XE8:						Dm = " - 0xE8 - ADD SP xx";		break;
-		case 0XE9:						Dm = " - 0xE9 - JP (HL)";		break;
-		case 0XEA:						Dm = " - 0xEA - LD ($aabb) A";	break;
-		case 0XEE:						Dm = " - 0xEE - XOR $xx";		break;
-		case 0XEF:						Dm = " - 0xEF - RST $28";		break;
-		case 0XF0:						Dm = " - 0xF0 - LD A ($xx)";	break;
-		case 0XF1:						Dm = " - 0xF1 - POP AF";		break;
-		case 0XF2:						Dm = " - 0xF2 - LD A (C)";		break;
-		case 0XF3: DI();					Dm = " - 0xF3 - DI";			break;
+		case 0XCC:	Dm = " - 0xCC - CALL Z $aabb";	break;
+		case 0XCD:	Dm = " - 0xCD - CALL $aabb";	break;
+		case 0XCE:	Dm = " - 0xCE - ADC A $xx";		break;
+		case 0XCF:	Dm = " - 0xCF - RST $8";		break;
+		case 0XD0:	Dm = " - 0xD0 - RET NC";		break;
+		case 0XD1:	Dm = " - 0xD1 - POP DE";		break;
+		case 0XD2:	Dm = " - 0xD2 - JP NC $aabb";	break;
+		case 0XD4:	Dm = " - 0xD4 - CALL NC $aabb";	break;
+		case 0XD5:	Dm = " - 0xD5 - PUSH DE";		break;
+		case 0XD6:	Dm = " - 0xD6 - SUB $xx";		break;
+		case 0XD7:	Dm = " - 0xD7 - RST $10";		break;
+		case 0XD8:	Dm = " - 0xD8 - RET C";			break;
+		case 0XD9:	Dm = " - 0xD9 - RETI";			break;
+		case 0XDA:	Dm = " - 0xDA - JP C $aabb";	break;
+		case 0XDC:	Dm = " - 0xDC - CALL C $aabb";	break;
+		case 0XDE:	Dm = " - 0xDE - SBC A $xx";		break;
+		case 0XDF:	Dm = " - 0xDF - RST $18";		break;
+		case 0XE0: LOADHAOFF($xx, Ra, "Ra");	 Dm = " - 0xE0 - LDH ($xx) A"; break;
+		case 0XE1:						Dm = " - 0xE1 - POP HL"; BoxDeb();		break;
+		case 0XE2:						Dm = " - 0xE2 - LD (C) A"; BoxDeb();		break;
+		case 0XE5:						Dm = " - 0xE5 - PUSH HL"; BoxDeb();		break;
+		case 0XE6:						Dm = " - 0xE6 - AND $xx"; BoxDeb();		break;
+		case 0XE7:						Dm = " - 0xE7 - RST $20"; BoxDeb();		break;
+		case 0XE8:						Dm = " - 0xE8 - ADD SP xx";	BoxDeb();	break;
+		case 0XE9:						Dm = " - 0xE9 - JP (HL)";	BoxDeb();	break;
+		case 0XEA:						Dm = " - 0xEA - LD ($aabb) A"; BoxDeb();	break;
+		case 0XEE:						Dm = " - 0xEE - XOR $xx";	BoxDeb();	break;
+		case 0XEF:						Dm = " - 0xEF - RST $28";	BoxDeb();	break;
+		case 0XF0:						Dm = " - 0xF0 - LD A ($xx)"; BoxDeb();	break;
+		case 0XF1:						Dm = " - 0xF1 - POP AF";	BoxDeb();	break;
+		case 0XF2:						Dm = " - 0xF2 - LD A (C)";	BoxDeb();	break;
+		case 0XF3: DI();				Dm = " - 0xF3 - DI";					break;
 			//is F4 missing?
-		case 0XF5:						Dm = " - 0xF5 - PUSH AF";		break;
-		case 0XF6:						Dm = " - 0xF6 - xx OR $xx";		break;
-		case 0XF7:						Dm = " - 0xF7 - RST $30";		break;
-		case 0XF8:						Dm = " - 0xF8 - LD HL SP";		break;
-		case 0XF9:						Dm = " - 0xF9 - LD SP HL";		break;
-		case 0XFA:						Dm = " - 0xFA - LD A ($aabb)";	break;
-		case 0XFB:						Dm = " - 0xFB - EI";			break;
-		case 0XFE:						Dm = " - 0xFE - CP $xx";		break;
-		case 0XFF:						Dm = " - 0xFF - RST $38";		break;
+		case 0XF5:						Dm = " - 0xF5 - PUSH AF";	BoxDeb();	break;
+		case 0XF6:						Dm = " - 0xF6 - xx OR $xx";	BoxDeb();	break;
+		case 0XF7:						Dm = " - 0xF7 - RST $30";	BoxDeb();	break;
+		case 0XF8:						Dm = " - 0xF8 - LD HL SP";	BoxDeb();	break;
+		case 0XF9:						Dm = " - 0xF9 - LD SP HL";	BoxDeb();	break;
+		case 0XFA:						Dm = " - 0xFA - LD A ($aabb)"; BoxDeb();	break;
+		case 0XFB:						Dm = " - 0xFB - EI";	BoxDeb();		break;
+		case 0XFE:						Dm = " - 0xFE - CP $xx";	BoxDeb();	break;
+		case 0XFF:						Dm = " - 0xFF - RST $38";	BoxDeb();	break;
 
 		default:
-			std::cout << "ERROR CASE NOT FOUND " << "opcode" << std::hex << std::setw(2) << std::setfill('0') << int(opcode) << "\n";
+			//std::cout << "ERROR CASE NOT FOUND " << "opcode" << std::hex << std::setw(2) << std::setfill('0') << int(opcode) << "\n";
 			break;	
 		}		
-		std::cout << "Next opcode" << " | " << "Engager: " << std::hex << std::setw(4) << std::setfill('0') << opcode << "-" << Dm << "\n";
-		//std::cout << "$aabb: " << std::hex << (int)$aabb << "\n"; // To Dissasemble
+		//std::cout << "Next opcode" << " | " << "Engager: " << std::hex << std::setw(4) << std::setfill('0') << opcode << "-" << Dm << "\n";
+		////std::cout << "$aabb: " << std::hex << (int)$aabb << "\n"; // To Dissasemble
 		
 	} //end opDecoder
 
@@ -1875,7 +1888,18 @@ void RegRecombiner(std::string Dtarget) {
 
 void BoxDeb() {  
 //if every missing opcode use this i can capture the debug m3ssage with ease. BOXdeb debugger is the not mapped case error
-	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M", Dm.c_str() ,NULL);
+	std::stringstream Debug;
+	Debug.str(std::string());
+	Debug << "AF: " << std::hex << std::setw(4) << std::setfill('0') << int(Raf) << "    " << "BC: " << std::hex << std::setw(4) << std::setfill('0') << int(Rbc) << "\n"
+		<< "DE: " << std::hex << std::setw(4) << std::setfill('0') << int(Rde) << "    " << "HL: " << std::hex << std::setw(4) << std::setfill('0') << int(Rhl) << "\n"
+		<< "PC: " << std::hex << std::setw(4) << std::setfill('0') << int(pc) << "    " << "EI" << " " << "\n"
+		<< "IF: " << "  " << "DI: " << "\n"
+			<< "Next engager opcode: " << std::hex << std::setw(4) << std::setfill('0') << opcode << "\n"
+			<< Dm.c_str();
+	std::string mergedDebug;
+	mergedDebug = Debug.str();
+
+	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M", mergedDebug.c_str(), NULL);
 }
 
 	void Reset() {
@@ -1908,10 +1932,10 @@ void BoxDeb() {
 		Rf = 0xB0;
 		unsigned char a = 0xf0;
 		
-		std::cout << "Rf desde Reg: " << std::hex << (int)Rf << "\n";
+		//std::cout << "Rf desde Reg: " << std::hex << (int)Rf << "\n";
 		std::bitset<8> x(Rf);
 
-		std::cout << "Rf transformado: " << std::hex << x << "\n";
+		//std::cout << "Rf transformado: " << std::hex << x << "\n";
 
 		//x.reset(7); // Reset Z
 		//x.reset(6); // Reset N
@@ -1924,7 +1948,7 @@ void BoxDeb() {
 		//x.set(4); // Set C
 
 		Rf = x.to_ulong();
-		std::cout << "Rf Bitseteado: " << std::hex << (int)Rf << "\n";
+		//std::cout << "Rf Bitseteado: " << std::hex << (int)Rf << "\n";
 
 		
 		*/
@@ -1932,14 +1956,15 @@ void BoxDeb() {
 	void LoadFile()
 	{
 		std::ifstream fin(ROM, std::ios::binary);
-		if (!fin)	{	std::cout << "File not found " << std::endl;	}
+		if (!fin)	{	//std::cout << "File not found " << std::endl;	
+		}
 		for (int i = 0; i < 0x8000; i++)	{	fin.get(letter);	memoryA[i] = letter;	}
 	}; // fin LoadFile
 
 }; //-- End class GB
 
 //-- Modulo Main
-int main()
+int main(int argc, char *argv[])
 {
 	//experimental SDL support
 	nullRender = false;
@@ -1951,8 +1976,8 @@ int main()
 		// SDL_Window* debugger = NULL;
 
 		window = SDL_CreateWindow
-			("Gb++AV", SDL_WINDOWPOS_UNDEFINED,
-			SDL_WINDOWPOS_UNDEFINED, 1080, 1920, SDL_WINDOW_SHOWN);
+			("GBdroid", SDL_WINDOWPOS_UNDEFINED,
+			SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_SHOWN);
 
 		renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
 

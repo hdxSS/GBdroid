@@ -44,6 +44,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <IncludePath>C:\Bp\RocketLeagueTrainer v0.3.9\Chip Resources\SDL2-2.0.3\include;C:\Bp\RocketLeagueTrainer v0.3.9\Chip Resources\SDL2_ttf-devel-2.0.14-VC\SDL2_ttf-2.0.14\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Bp\RocketLeagueTrainer v0.3.9\Chip Resources\SDL2-2.0.3\lib\x86;C:\Bp\RocketLeagueTrainer v0.3.9\Chip Resources\SDL2_ttf-devel-2.0.14-VC\SDL2_ttf-2.0.14\lib\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -73,6 +75,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>SDL2.lib;SDL2main.lib;SDL2_ttf.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
