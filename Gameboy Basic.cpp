@@ -1,7 +1,7 @@
 // Gameboy Basic.cpp : Defines the entry point for the console application.
 //
 
-//#include "stdafx.h" // Windows only
+#include "stdafx.h" // Windows only
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -10,8 +10,8 @@
 #include <bitset>
 #include <string>
 #include <sstream>
-//#include <SDL.h> // android Only
-#include <SDL2/SDL.h>
+#include <SDL.h> //for windows
+//#include <SDL2/SDL.h> //for android
 #include <random>
 
 //Modules
@@ -39,7 +39,7 @@ unsigned char  memoryT[0xFFFF];
 unsigned char memoryA[0xFFFF];
 char letter;
 unsigned char addr;
-unsigned short opcode;
+long opcode;
 unsigned char opLen;
 std::string functType;
 unsigned short $aabb;
@@ -76,6 +76,14 @@ public:
 	unsigned char mathTC2 = 0;
 	unsigned char mathTS1 = 0;
 	unsigned char mathTS2 = 0;
+
+	unsigned short IF;
+	bool DInt = false;
+	bool EInt = true;
+
+	unsigned char TIMA, TMA, TAC, NR10, NR11, NR12, NR14, NR21, NR22, NR24, NR30, NR31, NR32, NR33, NR41, NR42, NR43, NR50, NR51, NR52, LCDC, SCY, SCX, LYC, BGP, OBP0, OBP1, WY, WX ;
+
+
 
 	unsigned char Z,N,H,C;
 	float Rm, Rt;
@@ -575,24 +583,34 @@ void RegRecombiner(std::string Dtarget) {
 			break;
 		}
 	}
-	void BIT8R(unsigned char bitnum, unsigned char &_8r) {
+	/* BIT8R(unsigned char bitnum, std::string flagAf, unsigned char &_8r) {
 
-		switch (_8r << bitnum) { // refinar 0x1
-		case 1:
-			//std::cout << "tested positive\n";
+		
 
-		case 0:
-			//std::cout << "tested negative\n";
+			////-- Instruction preset
+			opLen = 2;
+			////std::cout << "8bit int inm " << (int)_$xx << "\n";
+			FLGH(2, 0, 1, 3, NULL, NULL, NULL);
+			funcText << "BIT " << bitnum;
+			functType = funcText.str();
+			opDeb();
+			std::bitset<8> flagChecker(Rf);
+			unsigned char byteNum;
+			unsigned char testCase;
+			if (flagAf == "Z"){ byteNum = 7; Rf = 1; }
+			else if (flagAf == "N"){ byteNum = 6; testCase = 1; }
+			3321
 
-			//FLGH(2, 0, 1, 3);
-			opclock = 2;
-			functType = "BIT 8R ";
-			//CALCFLG(Ra, _8int, 3) //set optype4 op de revision valor memoryA[Rhl] o hacer directo aca
-			//bit test agains
-			//update timers
-		}
-	}
+				4
+			else if (flagAf == "H"){ byteNum = 5; testCase = 1; }
+			else if (flagAf == "C"){ byteNum = 4; testCase = 1; }
+
+			pc += opLen;
+			////-- Instruction preset	
+
 	
+	}
+	*/
 	void CALLpcF$aabb(int flagcc, unsigned short _16BA) {
 
 		if (flagcc == 1)
@@ -1364,8 +1382,10 @@ void RegRecombiner(std::string Dtarget) {
 	void opDecoder() {
 		
 		_16bitIn = (memoryA[pc + 2] << 8) | memoryA[pc + 3];
-		fullOpcode = (memoryA[pc] << 16 | memoryA[pc + 1] << 8 | memoryA[pc + 2]);
+		fullOpcode = memoryA[pc] << 8 | memoryA[pc + 1];
+		//opcode = memoryA[pc];
 		opcode = memoryA[pc];
+		unsigned short opcodeCB = memoryA[pc] | memoryA[pc + 1];
 		$bb = memoryA[pc + 1];
 		$xx = memoryA[pc + 1];
 		$aa = memoryA[pc + 2];
@@ -1380,7 +1400,7 @@ BoxDeb();
 		// aa bb = 16bit integer
 		//Opcode is also refered as ENGAGER a 16bit Entity capable of capuring from 00 to FFFF
 
-		switch (opcode) {
+		switch (opcode & 0x00FF) {
 		case 0X00:	NOP();				Dm = " - 0x00 - NOP";			break;
 		case 0X01:						Dm = " - 0x01 - LD BC $aabb";	break;
 		case 0X02:						Dm = " - 0x02 - LD (BC) $aabb";	break;
@@ -1583,255 +1603,262 @@ BoxDeb();
 		case 0XC8:						Dm = " - 0xC8 - RET Z";			break;
 		case 0XC9:						Dm = " - 0xC9 - RET";			break;
 		case 0XCA:						Dm = " - 0xCA - JP Z $aabb";	break;
-		case 0XCB00:					Dm = " - 0xCB00 - RLC B";		break;
-		case 0XCB01:					Dm = " - 0xCB01 - RLC C";		break;
-		case 0XCB02:					Dm = " - 0xCB02 - RLC D";		break;
-		case 0XCB03:					Dm = " - 0xCB03 - RLC E";		break;
-		case 0XCB04:					Dm = " - 0xCB04 - RLC H";		break;
-		case 0XCB05:					Dm = " - 0xCB05 - RLC L";		break;
-		case 0XCB06:					Dm = " - 0xCB06 - RLC (HL)";	break;
-		case 0XCB07:					Dm = " - 0xCB07 - RLC A";		break;
-		case 0XCB08:					Dm = " - 0xCB08 - RRC B";		break;
-		case 0XCB09:					Dm = " - 0xCB09 - RRC C";		break;
-		case 0XCB0A:					Dm = " - 0xCB0A - RRC D";		break;
-		case 0XCB0B:					Dm = " - 0xCB0B - RRC E";		break;
-		case 0XCB0C:					Dm = " - 0xCB0C - RRC H";		break;
-		case 0XCB0D:					Dm = " - 0xCB0D - RRC L";		break;
-		case 0XCB0E:					Dm = " - 0xCB0E - RRC (HL)";	break;
-		case 0XCB0F:					Dm = " - 0xCB0F - RRC A";		break;
-		case 0XCB10:					Dm = " - 0xCB10 - RL B";		break;
-		case 0XCB11:					Dm = " - 0xCB11 - RL C";		break;
-		case 0XCB12:					Dm = " - 0xCB12 - RL D";		break;
-		case 0XCB13:					Dm = " - 0xCB13 - RL E";		break;
-		case 0XCB14:					Dm = " - 0xCB14 - RL H";		break;
-		case 0XCB15:					Dm = " - 0xCB15 - RL L";		break;
-		case 0XCB16:					Dm = " - 0xCB16 - RL (HL)";		break;
-		case 0XCB17:					Dm = " - 0xCB17 - RL A";		break;
-		case 0XCB18:					Dm = " - 0xCB18 - RR B";		break;
-		case 0XCB19:					Dm = " - 0xCB19 - RR C";		break;
-		case 0XCB1A:					Dm = " - 0xCB1A - RR D";		break;
-		case 0XCB1B:					Dm = " - 0xCB1B - RR E";		break;
-		case 0XCB1C:					Dm = " - 0xCB1C - RR H";		break;
-		case 0XCB1D:					Dm = " - 0xCB1D - RR L";		break;
-		case 0XCB1E:					Dm = " - 0xCB1E - RR (HL)";		break;
-		case 0XCB1F:					Dm = " - 0xCB1F - RR E";		break;
-		case 0XCB20:					Dm = " - 0xCB20 - SLA B";		break;
-		case 0XCB21:					Dm = " - 0xCB21 - SLA C";		break;
-		case 0XCB22:					Dm = " - 0xCB22 - SLA D";		break;
-		case 0XCB23:					Dm = " - 0xCB23 - SLA E";		break;
-		case 0XCB24:					Dm = " - 0xCB24 - SLA H";		break;
-		case 0XCB25:					Dm = " - 0xCB25 - SLA L";		break;
-		case 0XCB26:					Dm = " - 0xCB26 - SLA (HL)";	break;
-		case 0XCB27:					Dm = " - 0xCB27 - SLA A";		break;
-		case 0XCB28:					Dm = " - 0xCB28 - SRA B";		break;
-		case 0XCB29:					Dm = " - 0xCB29 - SRA C";		break;
-		case 0XCB2A:					Dm = " - 0xCB2A - SRD D";		break;
-		case 0XCB2B:					Dm = " - 0xCB2B - SRA E";		break;
-		case 0XCB2C:					Dm = " - 0xCB2C - SRA H";		break;
-		case 0XCB2D:					Dm = " - 0xCB2D - SRA L";		break;
-		case 0XCB2E:					Dm = " - 0xCB2E - SRA (HL)";	break;
-		case 0XCB2F:					Dm = " - 0xCB2F - SRA A";		break;
-			/////////////////REVISAR ESTA TRANSICION ////////////
-		case 0XCB37:					Dm = " - 0xCB37 - SWAP A";		break;
-		case 0XCB38:					Dm = " - 0xCB38 - SRL B";		break;
-		case 0XCB39:					Dm = " - 0xCB39 - SRL C";		break;
-		case 0XCB3A:					Dm = " - 0xCB3A - SRL D";		break;
-		case 0XCB3B:					Dm = " - 0xCB3B - SRL E";		break;
-		case 0XCB3C:					Dm = " - 0xCB3C - SRL H";		break;
-		case 0XCB3D:					Dm = " - 0xCB3D - SRL L";		break;
-		case 0XCB3E:					Dm = " - 0xCB3E - SRL (HL)";	break;
-		case 0XCB3F:					Dm = " - 0xCB3F - SRL A";		break;
-		case 0XCB40:					Dm = " - 0xCB40 - BIT 0 B";		break;
-		case 0XCB41:					Dm = " - 0xCB41 - BIT 0 C";		break;
-		case 0XCB42:					Dm = " - 0xCB42 - BIT 0 D";		break;
-		case 0XCB43:					Dm = " - 0xCB43 - BIT 0 E";		break;
-		case 0XCB44:					Dm = " - 0xCB44 - BIT 0 H";		break;
-		case 0XCB45:					Dm = " - 0xCB45 - BIT 0 L";		break;
-		case 0XCB46:					Dm = " - 0xCB46 - BIT 0 (HL)";	break;
-		case 0XCB47:					Dm = " - 0xCB47 - BIT 0 A";		break;
-		case 0XCB48:					Dm = " - 0xCB48 - BIT 1 B";		break;
-		case 0XCB49:					Dm = " - 0xCB49 - BIT 1 C";		break;
-		case 0XCB4A:					Dm = " - 0xCB4A - BIT 1 D";		break;
-		case 0XCB4B:					Dm = " - 0xCB4B - BIT 1 E";		break;
-		case 0XCB4C:					Dm = " - 0xCB4C - BIT 1 H";		break;
-		case 0XCB4D:					Dm = " - 0xCB4D - BIT 1 L";		break;
-		case 0XCB4E:					Dm = " - 0xCB4A - BIT 1 (HL)";	break;
-		case 0XCB4F:					Dm = " - 0xCB4F - BIT 1 A";		break;
-		case 0XCB50:					Dm = " - 0xCB50 - BIT 2 B";		break;
-		case 0XCB51:					Dm = " - 0xCB51 - BIT 2 C";		break;
-		case 0XCB52:					Dm = " - 0xCB52 - BIT 2 D";		break;
-		case 0XCB53:					Dm = " - 0xCB53 - BIT 2 E";		break;
-		case 0XCB54:					Dm = " - 0xCB54 - BIT 2 H";		break;
-		case 0XCB55:					Dm = " - 0xCB55 - BIT 2 L";		break;
-		case 0XCB56:					Dm = " - 0xCB56 - BIT 2 (HL)";	break;
-		case 0XCB57:					Dm = " - 0xCB57 - BIT 2 A";		break;
-		case 0XCB58:					Dm = " - 0xCB58 - BIT 3 B";		break;
-		case 0XCB59:					Dm = " - 0xCB59 - BIT 3 C";		break;
-		case 0XCB5A:					Dm = " - 0xCB5A - BIT 3 D";		break;
-		case 0XCB5B:					Dm = " - 0xCB5B - BIT 3 E";		break;
-		case 0XCB5C:					Dm = " - 0xCB5C - BIT 3 H";		break;
-		case 0XCB5D:					Dm = " - 0xCB5D - BIT 3 L";		break;
-		case 0XCB5E:					Dm = " - 0xCB5E - BIT 3 (HL)";	break;
-		case 0XCB5F:					Dm = " - 0xCB5F - BIT 3 A";		break;
-		case 0XCB60:					Dm = " - 0xCB60 - BIT 4 B";		break;
-		case 0XCB61:					Dm = " - 0xCB61 - BIT 4 C";		break;
-		case 0XCB62:					Dm = " - 0xCB62 - BIT 4 D";		break;
-		case 0XCB63:					Dm = " - 0xCB63 - BIR 4 E";		break;
-		case 0XCB64:					Dm = " - 0xCB64 - BIT 4 H";		break;
-		case 0XCB65:					Dm = " - 0xCB65 - BIT 4 L";		break;
-		case 0XCB66:					Dm = " - 0xCB66 - BIT 4 (HL)";	break;
-		case 0XCB67:					Dm = " - 0xCB67 - BIT 4 A";		break;
-		case 0XCB68:					Dm = " - 0xCB68 - BIT 5 B";		break;
-		case 0XCB69:					Dm = " - 0xCB69 - BIT 5 C";		break;
-		case 0XCB6A:					Dm = " - 0xCB6A - BIT 5 D";		break;
-		case 0XCB6B:					Dm = " - 0xCB6B - BIT 5 E";		break;
-		case 0XCB6C:					Dm = " - 0xCB6C - BIT 5 H";		break;
-		case 0XCB6D:					Dm = " - 0xCB6D - BIT 5 L";		break;
-		case 0XCB6E:					Dm = " - 0xCB6E - BIT 5 (HL)";	break;
-		case 0XCB6F:					Dm = " - 0xCB6F - BIT 5 A";		break;
-		case 0XCB70:					Dm = " - 0xCB70 - BIT 6 B";		break;
-		case 0XCB71:					Dm = " - 0xCB71 - BIT 6 C";		break;
-		case 0XCB72:					Dm = " - 0xCB72 - BIT 6 D";		break;
-		case 0XCB73:					Dm = " - 0xCB73 - BIT 6 E";		break;
-		case 0XCB74:					Dm = " - 0xCB74 - BIT 6 H";		break;
-		case 0XCB75:					Dm = " - 0xCB75 - BIT 6 L";		break;
-		case 0XCB76:					Dm = " - 0xCB76 - BIT 6 (HL)";	break;
-		case 0XCB77:					Dm = " - 0xCB77 - BIT 6 A";		break;
-		case 0XCB78:					Dm = " - 0xCB78 - BIT 7 B";		break;
-		case 0XCB79:					Dm = " - 0xCB79 - BIT 7 C";		break;
-		case 0XCB7A:					Dm = " - 0xCB7A - BIT 7 D";		break;
-		case 0XCB7B:					Dm = " - 0xCB7B - BIT 7 E";		break;
-		case 0XCB7C:					Dm = " - 0xCB7C - BIT 7 H";		break;
-		case 0XCB7D:					Dm = " - 0xCB7D - BIT 7 (HL)";	break;
-		case 0XCB7F:					Dm = " - 0xCB7F - BIT 7 A";		break;
-		case 0XCB80:					Dm = " - 0xCB80 - RES 0 B";		break;
-		case 0XCB81:					Dm = " - 0xCB81 - RES 0 C";		break;
-		case 0XCB82:					Dm = " - 0xCB82 - RES 0 D";		break;
-		case 0XCB83:					Dm = " - 0xCB83 - RES 0 E";		break;
-		case 0XCB84:					Dm = " - 0xCB84 - RES 0 H";		break;
-		case 0XCB85:					Dm = " - 0xCB85 - RES 0 L";		break;
-		case 0XCB86:					Dm = " - 0xCB86 - RES 0 (HL)";	break;
-		case 0XCB87:					Dm = " - 0xCB87 - RES 0 A";		break;
-		case 0XCB88:					Dm = " - 0xCB88 - RES 1 B";		break;
-		case 0XCB89:					Dm = " - 0xCB89 - RES 1 C";		break;
-		case 0XCB8A:					Dm = " - 0xCB8A - RES 1 D";		break;
-		case 0XCB8B:					Dm = " - 0xCB8B - RES 1 E";		break;
-		case 0XCB8C:					Dm = " - 0xCB8C - RES 1 H";		break;
-		case 0XCB8D:					Dm = " - 0xCB8D - RES 1 L";		break;
-		case 0XCB8E:					Dm = " - 0xCB8E - RES 1 (HL)";	break;
-		case 0XCB8F:					Dm = " - 0xCB8F - RES 1 A";		break;
-		case 0XCB90:					Dm = " - 0xCB90 - RES 2 B";		break;
-		case 0XCB91:					Dm = " - 0xCB91 - RES 2 C";		break;
-		case 0XCB92:					Dm = " - 0xCB92 - RES 2 D";		break;
-		case 0XCB93:					Dm = " - 0xCB93 - RES 2 E";		break;
-		case 0XCB94:					Dm = " - 0xCB94 - RES 2 H";		break;
-		case 0XCB95:					Dm = " - 0xCB95 - RES 2 L";		break;
-		case 0XCB96:					Dm = " - 0xCB96 - RES 2 (HL)";	break;
-		case 0XCB97:					Dm = " - 0xCB97 - RES 2 A";		break;
-		case 0XCB98:					Dm = " - 0xCB98 - RES 3 B";		break;
-		case 0XCB99:					Dm = " - 0xCB99 - RES 3 B";		break;
-		case 0XCB9A:					Dm = " - 0xCB9A - RES 3 D";		break;
-		case 0XCB9B:					Dm = " - 0xCB9B - RES 3 E";		break;
-		case 0XCB9C:					Dm = " - 0xCB9C - RES 3 H";		break;
-		case 0XCB9D:					Dm = " - 0xCB9D - RES 3 L";		break;
-		case 0XCB9E:					Dm = " - 0xCB9E - RES 3 (HL)";	break;
-		case 0XCB9F:					Dm = " - 0xCB9F - RES 3 A";		break;
-		case 0XCBA0:					Dm = " - 0xCBA0 - RES 4 B";		break;
-		case 0XCBA1:					Dm = " - 0xCBA1 - RES 4 C";		break;
-		case 0XCBA2:					Dm = " - 0xCBA2 - RES 4 D";		break;
-		case 0XCBA3:					Dm = " - 0xCBA3 - RES 4 E";		break;
-		case 0XCBA4:					Dm = " - 0xCBA4 - RES 4 H";		break;
-		case 0XCBA5:					Dm = " - 0xCBA5 - RES 4 L";		break;
-		case 0XCBA6:					Dm = " - 0xCBA6 - RES 4 (HL)";	break;
-		case 0XCBA7:					Dm = " - 0xCBA7 - RES 4 A";		break;
-		case 0XCBA8:					Dm = " - 0xCBA8 - RES 5 B";		break;
-		case 0XCBA9:					Dm = " - 0xCBA9 - RES 5 C";		break;
-		case 0XCBAA:					Dm = " - 0xCBAA - RES 5 D";		break;
-		case 0XCBAB:					Dm = " - 0xCBAB - RES 5 E";		break;
-		case 0XCBAC:					Dm = " - 0xCBAC - RES 5 H";		break;
-		case 0XCBAD:					Dm = " - 0xCBAD - RES 5 L";		break;
-		case 0XCBAE:					Dm = " - 0xCBAE - RES 5 (HL)";	break;
-		case 0XCBAF:					Dm = " - 0xCBAF - RES 5 A";		break;
-		case 0XCBB0:					Dm = " - 0xCBB0 - RES 6 B";		break;
-		case 0XCBB1:					Dm = " - 0xCBB1 - RES 6 C";		break;
-		case 0XCBB2:					Dm = " - 0xCBB2 - RES 6 D";		break;
-		case 0XCBB3:					Dm = " - 0xCBB3 - RES 6 E";		break;
-		case 0XCBB4:					Dm = " - 0xCBB4 - RES 6 H";		break;
-		case 0XCBB5:					Dm = " - 0xCBB5 - RES 6 L";		break;
-		case 0XCBB6:					Dm = " - 0xCBB6 - RES 6 (HL)";	break;
-		case 0XCBB7:					Dm = " - 0xCBB7 - RES 6 A";		break;
-		case 0XCBB8:					Dm = " - 0xCBB8 - RES 7 B";		break;
-		case 0XCBB9:					Dm = " - 0xCBB9 - RES 7 C";		break;
-		case 0XCBBA:					Dm = " - 0xCBBA - RES 7 D";		break;
-		case 0XCBBB:					Dm = " - 0xCBBB - RES 7 E";		break;
-		case 0XCBBC:					Dm = " - 0xCBBC - RES 7 H";		break;
-		case 0XCBBD:					Dm = " - 0xCBBD - RES 7 L";		break;
-		case 0XCBBE:					Dm = " - 0xCBBE - RES 7 (HL)";	break;
-		case 0XCBBF:					Dm = " - 0xCBBF - RES 7 A";		break;
-		case 0XCBC0:					Dm = " - 0xCBC0 - SET 0 B";		break;
-		case 0XCBC1:					Dm = " - 0xCBC1 - SET 0 C";		break;
-		case 0XCBC2:					Dm = " - 0xCBC2 - SET 0 D";		break;
-		case 0XCBC3:					Dm = " - 0xCBC3 - SET 0 E";		break;
-		case 0XCBC4:					Dm = " - 0xCBC4 - SET 0 H";		break;
-		case 0XCBC5:					Dm = " - 0xCBC5 - SET 0 L";		break;
-		case 0XCBC6:					Dm = " - 0xCBC6 - SET 0 (HL)";	break;
-		case 0XCBC7:					Dm = " - 0xCBC7 - SET 0 a";		break;
-		case 0XCBC8:					Dm = " - 0xCBC8 - SET 1 B";		break;
-		case 0XCBC9:					Dm = " - 0xCBC9 - SET 1 C";		break;
-		case 0XCBCA:					Dm = " - 0xCBCA - SET 1 D";		break;
-		case 0XCBCB:					Dm = " - 0xCBCB - SET 1 E";		break;
-		case 0XCBCC:					Dm = " - 0xCBCC - SET 1 H";		break;
-		case 0XCBCD:					Dm = " - 0xCBCD - SET 1 L";		break;
-		case 0XCBCE:					Dm = " - 0xCBCE - SET 1 (HL)";	break;
-		case 0XCBCF:					Dm = " - 0xCBCF - SET 1 A";		break;
-		case 0XCBD0:					Dm = " - 0xCBD0 - SET 2 B";		break;
-		case 0XCBD1:					Dm = " - 0xCBD1 - SET 2 C";		break;
-		case 0XCBD2:					Dm = " - 0xCBD2 - SET 2 D";		break;
-		case 0XCBD3:					Dm = " - 0xCBD3 - SET 2 E";		break;
-		case 0XCBD4:					Dm = " - 0xCBD4 - SET 2 H";		break;
-		case 0XCBD5:					Dm = " - 0xCBD5 - SET 2 L";		break;
-		case 0XCBD6:					Dm = " - 0xCBD6 - SET 2 (HL)";	break;
-		case 0XCBD7:					Dm = " - 0xCBD7 - SET 2 A";		break;
-		case 0XCBD8:					Dm = " - 0xCBD8 - SET 3 B";		break;
-		case 0XCBD9:					Dm = " - 0xCBD9 - SET 3 C";		break;
-		case 0XCBDA:					Dm = " - 0xCBDA - SET 3 D";		break;
-		case 0XCBDB:	Dm = " - 0xCBD8 - SET 3 E";		break;
-		case 0XCBDC:	Dm = " - 0xCBDC - SET 3 H";		break;
-		case 0XCBDD:	Dm = " - 0xCBDD - SET 3 L";		break;
-		case 0XCBDE:	Dm = " - 0xCBDE - SET 3 (HL)";	break;
-		case 0XCBDF:	Dm = " - 0xCBDF - SET 3 A";		break;
-		case 0XCBE0:	Dm = " - 0xCBE0 - SET 4 B";		break;
-		case 0XCBE1:	Dm = " - 0xCBE1 - SET 4 C";		break;
-		case 0XCBE2:	Dm = " - 0xCBE2 - SET 4 D";		break;
-		case 0XCBE3:	Dm = " - 0xCBE3 - SET 4 E";		break;
-		case 0XCBE4:	Dm = " - 0xCBE4 - SET 4 H";		break;
-		case 0XCBE5:	Dm = " - 0xCBE5 - SET 4 L";		break;
-		case 0XCBE6:	Dm = " - 0xCBE6 - SET 4 (HL)";	break;
-		case 0XCBE7:	Dm = " - 0xCBE7 - SET 4 A";		break;
-		case 0XCBE8:	Dm = " - 0xCBE8 - SET 5 B";		break;
-		case 0XCBE9:	Dm = " - 0xCBE9 - SET 5 C";		break;
-		case 0XCBEA:	Dm = " - 0xCBEA - SET 5 D";		break;
-		case 0XCBEB:	Dm = " - 0xCBEB - SET 5 E";		break;
-		case 0XCBEC:	Dm = " - 0xCBEC - SET 5 H";		break;
-		case 0XCBED:	Dm = " - 0xCBED - SET 5 L";		break;
-		case 0XCBEE:	Dm = " - 0xCBEE - SET 5 (HL)";	break;
-		case 0XCBEF:	Dm = " - 0xCBEF - SET 5 A";		break;
-		case 0XCBF0:	Dm = " - 0xCBF0 - SET 6 B";		break;
-		case 0XCBF1:	Dm = " - 0xCBF1 - SET 6 C";		break;
-		case 0XCBF2:	Dm = " - 0xCBF2 - SET 6 D";		break;
-		case 0XCBF3:	Dm = " - 0xCBF3 - SET 6 E";		break;
-		case 0XCBF4:	Dm = " - 0xCBF4 - SET 6 H";		break;
-		case 0XCBF5:	Dm = " - 0xCBF5 - SET 6 L";		break;
-		case 0XCBF6:	Dm = " - 0xCBF6 - SET 6 (HL)";	break;
-		case 0XCBF7:	Dm = " - 0xCBF7 - SET 6 A";		break;
-		case 0XCBF8:	Dm = " - 0xCBF8 - SET 7 B";		break;
-		case 0XCBF9:	Dm = " - 0xCBF9 - SET 7 C";		break;
-		case 0XCBFA:	Dm = " - 0xCBFA - SET 7 D";		break;
-		case 0XCBFB:	Dm = " - 0xCBFB - SET 7 E";		break;
-		case 0XCBFC:	Dm = " - 0xCBFC - SET 7 H";		break;
-		case 0XCBFD:	Dm = " - 0xCBFD - SET 7 L";		break;
-		case 0XCBFE:	Dm = " - 0xCBFE - SET 7 (HL)";	break;
-		case 0XCBFF:	Dm = " - 0xCBFF - SET 7 A";		break;
+		case 0xCB: {
+			//std::cout << "OPCODE: " << std::hex << std::setw(6) << std::setfill('0') << (int)fullOpcode << "\n";
+			switch (fullOpcode)
+			{
+			case 0XCB00:					Dm = " - 0xCB00 - RLC B";		break;
+			case 0XCB01:					Dm = " - 0xCB01 - RLC C";		break;
+			case 0XCB02:					Dm = " - 0xCB02 - RLC D";		break;
+			case 0XCB03:					Dm = " - 0xCB03 - RLC E";		break;
+			case 0XCB04:					Dm = " - 0xCB04 - RLC H";		break;
+			case 0XCB05:					Dm = " - 0xCB05 - RLC L";		break;
+			case 0XCB06:					Dm = " - 0xCB06 - RLC (HL)";	break;
+			case 0XCB07:					Dm = " - 0xCB07 - RLC A";		break;
+			case 0XCB08:					Dm = " - 0xCB08 - RRC B";		break;
+			case 0XCB09:					Dm = " - 0xCB09 - RRC C";		break;
+			case 0XCB0A:					Dm = " - 0xCB0A - RRC D";		break;
+			case 0XCB0B:					Dm = " - 0xCB0B - RRC E";		break;
+			case 0XCB0C:					Dm = " - 0xCB0C - RRC H";		break;
+			case 0XCB0D:					Dm = " - 0xCB0D - RRC L";		break;
+			case 0XCB0E:					Dm = " - 0xCB0E - RRC (HL)";	break;
+			case 0XCB0F:					Dm = " - 0xCB0F - RRC A";		break;
+			case 0XCB10:					Dm = " - 0xCB10 - RL B";		break;
+			case 0XCB11:					Dm = " - 0xCB11 - RL C";		break;
+			case 0XCB12:					Dm = " - 0xCB12 - RL D";		break;
+			case 0XCB13:					Dm = " - 0xCB13 - RL E";		break;
+			case 0XCB14:					Dm = " - 0xCB14 - RL H";		break;
+			case 0XCB15:					Dm = " - 0xCB15 - RL L";		break;
+			case 0XCB16:					Dm = " - 0xCB16 - RL (HL)";		break;
+			case 0XCB17:					Dm = " - 0xCB17 - RL A";		break;
+			case 0XCB18:					Dm = " - 0xCB18 - RR B";		break;
+			case 0XCB19:					Dm = " - 0xCB19 - RR C";		break;
+			case 0XCB1A:					Dm = " - 0xCB1A - RR D";		break;
+			case 0XCB1B:					Dm = " - 0xCB1B - RR E";		break;
+			case 0XCB1C:					Dm = " - 0xCB1C - RR H";		break;
+			case 0XCB1D:					Dm = " - 0xCB1D - RR L";		break;
+			case 0XCB1E:					Dm = " - 0xCB1E - RR (HL)";		break;
+			case 0XCB1F:					Dm = " - 0xCB1F - RR E";		break;
+			case 0XCB20:					Dm = " - 0xCB20 - SLA B";		break;
+			case 0XCB21:					Dm = " - 0xCB21 - SLA C";		break;
+			case 0XCB22:					Dm = " - 0xCB22 - SLA D";		break;
+			case 0XCB23:					Dm = " - 0xCB23 - SLA E";		break;
+			case 0XCB24:					Dm = " - 0xCB24 - SLA H";		break;
+			case 0XCB25:					Dm = " - 0xCB25 - SLA L";		break;
+			case 0XCB26:					Dm = " - 0xCB26 - SLA (HL)";	break;
+			case 0XCB27:					Dm = " - 0xCB27 - SLA A";		break;
+			case 0XCB28:					Dm = " - 0xCB28 - SRA B";		break;
+			case 0XCB29:					Dm = " - 0xCB29 - SRA C";		break;
+			case 0XCB2A:					Dm = " - 0xCB2A - SRD D";		break;
+			case 0XCB2B:					Dm = " - 0xCB2B - SRA E";		break;
+			case 0XCB2C:					Dm = " - 0xCB2C - SRA H";		break;
+			case 0XCB2D:					Dm = " - 0xCB2D - SRA L";		break;
+			case 0XCB2E:					Dm = " - 0xCB2E - SRA (HL)";	break;
+			case 0XCB2F:					Dm = " - 0xCB2F - SRA A";		break;
+				/////////////////REVISAR ESTA TRANSICION ////////////
+			case 0XCB37:					Dm = " - 0xCB37 - SWAP A";		break;
+			case 0XCB38:					Dm = " - 0xCB38 - SRL B";		break;
+			case 0XCB39:					Dm = " - 0xCB39 - SRL C";		break;
+			case 0XCB3A:					Dm = " - 0xCB3A - SRL D";		break;
+			case 0XCB3B:					Dm = " - 0xCB3B - SRL E";		break;
+			case 0XCB3C:					Dm = " - 0xCB3C - SRL H";		break;
+			case 0XCB3D:					Dm = " - 0xCB3D - SRL L";		break;
+			case 0XCB3E:					Dm = " - 0xCB3E - SRL (HL)";	break;
+			case 0XCB3F:					Dm = " - 0xCB3F - SRL A";		break;
+			case 0XCB40:					Dm = " - 0xCB40 - BIT 0 B";		break;
+			case 0XCB41:					Dm = " - 0xCB41 - BIT 0 C";		break;
+			case 0XCB42:					Dm = " - 0xCB42 - BIT 0 D";		break;
+			case 0XCB43:					Dm = " - 0xCB43 - BIT 0 E";		break;
+			case 0XCB44:					Dm = " - 0xCB44 - BIT 0 H";		break;
+			case 0XCB45:					Dm = " - 0xCB45 - BIT 0 L";		break;
+			case 0XCB46:					Dm = " - 0xCB46 - BIT 0 (HL)";	break;
+			case 0XCB47:					Dm = " - 0xCB47 - BIT 0 A";		break;
+			case 0XCB48:					Dm = " - 0xCB48 - BIT 1 B";		break;
+			case 0XCB49:					Dm = " - 0xCB49 - BIT 1 C";		break;
+			case 0XCB4A:					Dm = " - 0xCB4A - BIT 1 D";		break;
+			case 0XCB4B:					Dm = " - 0xCB4B - BIT 1 E";		break;
+			case 0XCB4C:					Dm = " - 0xCB4C - BIT 1 H";		break;
+			case 0XCB4D:					Dm = " - 0xCB4D - BIT 1 L";		break;
+			case 0XCB4E:					Dm = " - 0xCB4A - BIT 1 (HL)";	break;
+			case 0XCB4F:					Dm = " - 0xCB4F - BIT 1 A";		break;
+			case 0XCB50:					Dm = " - 0xCB50 - BIT 2 B";		break;
+			case 0XCB51:					Dm = " - 0xCB51 - BIT 2 C";		break;
+			case 0XCB52:					Dm = " - 0xCB52 - BIT 2 D";		break;
+			case 0XCB53:					Dm = " - 0xCB53 - BIT 2 E";		break;
+			case 0XCB54:					Dm = " - 0xCB54 - BIT 2 H";		break;
+			case 0XCB55:					Dm = " - 0xCB55 - BIT 2 L";		break;
+			case 0XCB56:					Dm = " - 0xCB56 - BIT 2 (HL)";	break;
+			case 0XCB57:					Dm = " - 0xCB57 - BIT 2 A";		break;
+			case 0XCB58:					Dm = " - 0xCB58 - BIT 3 B";		break;
+			case 0XCB59:					Dm = " - 0xCB59 - BIT 3 C";		break;
+			case 0XCB5A:					Dm = " - 0xCB5A - BIT 3 D";		break;
+			case 0XCB5B:					Dm = " - 0xCB5B - BIT 3 E";		break;
+			case 0XCB5C:					Dm = " - 0xCB5C - BIT 3 H";		break;
+			case 0XCB5D:					Dm = " - 0xCB5D - BIT 3 L";		break;
+			case 0XCB5E:					Dm = " - 0xCB5E - BIT 3 (HL)";	break;
+			case 0XCB5F:					Dm = " - 0xCB5F - BIT 3 A";		break;
+			case 0XCB60:					Dm = " - 0xCB60 - BIT 4 B";		break;
+			case 0XCB61:					Dm = " - 0xCB61 - BIT 4 C";		break;
+			case 0XCB62:					Dm = " - 0xCB62 - BIT 4 D";		break;
+			case 0XCB63:					Dm = " - 0xCB63 - BIR 4 E";		break;
+			case 0XCB64:					Dm = " - 0xCB64 - BIT 4 H";		break;
+			case 0XCB65:					Dm = " - 0xCB65 - BIT 4 L";		break;
+			case 0XCB66:					Dm = " - 0xCB66 - BIT 4 (HL)";	break;
+			case 0XCB67:					Dm = " - 0xCB67 - BIT 4 A";		break;
+			case 0XCB68:					Dm = " - 0xCB68 - BIT 5 B";		break;
+			case 0XCB69:					Dm = " - 0xCB69 - BIT 5 C";		break;
+			case 0XCB6A:					Dm = " - 0xCB6A - BIT 5 D";		break;
+			case 0XCB6B:					Dm = " - 0xCB6B - BIT 5 E";		break;
+			case 0XCB6C:					Dm = " - 0xCB6C - BIT 5 H";		break;
+			case 0XCB6D:					Dm = " - 0xCB6D - BIT 5 L";		break;
+			case 0XCB6E:					Dm = " - 0xCB6E - BIT 5 (HL)";	break;
+			case 0XCB6F:					Dm = " - 0xCB6F - BIT 5 A";		break;
+			case 0XCB70:					Dm = " - 0xCB70 - BIT 6 B";		break;
+			case 0XCB71:					Dm = " - 0xCB71 - BIT 6 C";		break;
+			case 0XCB72:					Dm = " - 0xCB72 - BIT 6 D";		break;
+			case 0XCB73:					Dm = " - 0xCB73 - BIT 6 E";		break;
+			case 0XCB74:					Dm = " - 0xCB74 - BIT 6 H";		break;
+			case 0XCB75:					Dm = " - 0xCB75 - BIT 6 L";		break;
+			case 0XCB76:					Dm = " - 0xCB76 - BIT 6 (HL)";	break;
+			case 0XCB77:					Dm = " - 0xCB77 - BIT 6 A";		break;
+			case 0XCB78:					Dm = " - 0xCB78 - BIT 7 B";		break;
+			case 0XCB79:					Dm = " - 0xCB79 - BIT 7 C";		break;
+			case 0XCB7A:					Dm = " - 0xCB7A - BIT 7 D";		break;
+			case 0XCB7B:					Dm = " - 0xCB7B - BIT 7 E";		break;
+			case 0XCB7C:					Dm = " - 0xCB7C - BIT 7 H";		break;
+			case 0XCB7D:					Dm = " - 0xCB7D - BIT 7 (HL)";	break;
+			case 0XCB7F:					Dm = " - 0xCB7F - BIT 7 A";		break;
+			case 0XCB80:					Dm = " - 0xCB80 - RES 0 B";		break;
+			case 0XCB81:					Dm = " - 0xCB81 - RES 0 C";		break;
+			case 0XCB82:					Dm = " - 0xCB82 - RES 0 D";		break;
+			case 0XCB83:					Dm = " - 0xCB83 - RES 0 E";		break;
+			case 0XCB84:					Dm = " - 0xCB84 - RES 0 H";		break;
+			case 0XCB85:					Dm = " - 0xCB85 - RES 0 L";		break;
+			case 0XCB86:					Dm = " - 0xCB86 - RES 0 (HL)";	break;
+			case 0XCB87:					Dm = " - 0xCB87 - RES 0 A";		break;
+			case 0XCB88:					Dm = " - 0xCB88 - RES 1 B";		break;
+			case 0XCB89:					Dm = " - 0xCB89 - RES 1 C";		break;
+			case 0XCB8A:					Dm = " - 0xCB8A - RES 1 D";		break;
+			case 0XCB8B:					Dm = " - 0xCB8B - RES 1 E";		break;
+			case 0XCB8C:					Dm = " - 0xCB8C - RES 1 H";		break;
+			case 0XCB8D:					Dm = " - 0xCB8D - RES 1 L";		break;
+			case 0XCB8E:					Dm = " - 0xCB8E - RES 1 (HL)";	break;
+			case 0XCB8F:					Dm = " - 0xCB8F - RES 1 A";		break;
+			case 0XCB90:					Dm = " - 0xCB90 - RES 2 B";		break;
+			case 0XCB91:					Dm = " - 0xCB91 - RES 2 C";		break;
+			case 0XCB92:					Dm = " - 0xCB92 - RES 2 D";		break;
+			case 0XCB93:					Dm = " - 0xCB93 - RES 2 E";		break;
+			case 0XCB94:					Dm = " - 0xCB94 - RES 2 H";		break;
+			case 0XCB95:					Dm = " - 0xCB95 - RES 2 L";		break;
+			case 0XCB96:					Dm = " - 0xCB96 - RES 2 (HL)";	break;
+			case 0XCB97:					Dm = " - 0xCB97 - RES 2 A";		break;
+			case 0XCB98:					Dm = " - 0xCB98 - RES 3 B";		break;
+			case 0XCB99:					Dm = " - 0xCB99 - RES 3 B";		break;
+			case 0XCB9A:					Dm = " - 0xCB9A - RES 3 D";		break;
+			case 0XCB9B:					Dm = " - 0xCB9B - RES 3 E";		break;
+			case 0XCB9C:					Dm = " - 0xCB9C - RES 3 H";		break;
+			case 0XCB9D:					Dm = " - 0xCB9D - RES 3 L";		break;
+			case 0XCB9E:					Dm = " - 0xCB9E - RES 3 (HL)";	break;
+			case 0XCB9F:					Dm = " - 0xCB9F - RES 3 A";		break;
+			case 0XCBA0:					Dm = " - 0xCBA0 - RES 4 B";		break;
+			case 0XCBA1:					Dm = " - 0xCBA1 - RES 4 C";		break;
+			case 0XCBA2:					Dm = " - 0xCBA2 - RES 4 D";		break;
+			case 0XCBA3:					Dm = " - 0xCBA3 - RES 4 E";		break;
+			case 0XCBA4:					Dm = " - 0xCBA4 - RES 4 H";		break;
+			case 0XCBA5:					Dm = " - 0xCBA5 - RES 4 L";		break;
+			case 0XCBA6:					Dm = " - 0xCBA6 - RES 4 (HL)";	break;
+			case 0XCBA7:					Dm = " - 0xCBA7 - RES 4 A";		break;
+			case 0XCBA8:					Dm = " - 0xCBA8 - RES 5 B";		break;
+			case 0XCBA9:					Dm = " - 0xCBA9 - RES 5 C";		break;
+			case 0XCBAA:					Dm = " - 0xCBAA - RES 5 D";		break;
+			case 0XCBAB:					Dm = " - 0xCBAB - RES 5 E";		break;
+			case 0XCBAC:					Dm = " - 0xCBAC - RES 5 H";		break;
+			case 0XCBAD:					Dm = " - 0xCBAD - RES 5 L";		break;
+			case 0XCBAE:					Dm = " - 0xCBAE - RES 5 (HL)";	break;
+			case 0XCBAF:					Dm = " - 0xCBAF - RES 5 A";		break;
+			case 0XCBB0:					Dm = " - 0xCBB0 - RES 6 B";		break;
+			case 0XCBB1:					Dm = " - 0xCBB1 - RES 6 C";		break;
+			case 0XCBB2:					Dm = " - 0xCBB2 - RES 6 D";		break;
+			case 0XCBB3:					Dm = " - 0xCBB3 - RES 6 E";		break;
+			case 0XCBB4:					Dm = " - 0xCBB4 - RES 6 H";		break;
+			case 0XCBB5:					Dm = " - 0xCBB5 - RES 6 L";		break;
+			case 0XCBB6:					Dm = " - 0xCBB6 - RES 6 (HL)";	break;
+			case 0XCBB7:					Dm = " - 0xCBB7 - RES 6 A";		break;
+			case 0XCBB8:					Dm = " - 0xCBB8 - RES 7 B";		break;
+			case 0XCBB9:					Dm = " - 0xCBB9 - RES 7 C";		break;
+			case 0XCBBA:					Dm = " - 0xCBBA - RES 7 D";		break;
+			case 0XCBBB:					Dm = " - 0xCBBB - RES 7 E";		break;
+			case 0XCBBC:					Dm = " - 0xCBBC - RES 7 H";		break;
+			case 0XCBBD:					Dm = " - 0xCBBD - RES 7 L";		break;
+			case 0XCBBE:					Dm = " - 0xCBBE - RES 7 (HL)";	break;
+			case 0XCBBF:					Dm = " - 0xCBBF - RES 7 A";		break;
+			case 0XCBC0:					Dm = " - 0xCBC0 - SET 0 B";		break;
+			case 0XCBC1:					Dm = " - 0xCBC1 - SET 0 C";		break;
+			case 0XCBC2:					Dm = " - 0xCBC2 - SET 0 D";		break;
+			case 0XCBC3:					Dm = " - 0xCBC3 - SET 0 E";		break;
+			case 0XCBC4:					Dm = " - 0xCBC4 - SET 0 H";		break;
+			case 0XCBC5:					Dm = " - 0xCBC5 - SET 0 L";		break;
+			case 0XCBC6:					Dm = " - 0xCBC6 - SET 0 (HL)";	break;
+			case 0XCBC7:					Dm = " - 0xCBC7 - SET 0 a";		break;
+			case 0XCBC8:					Dm = " - 0xCBC8 - SET 1 B";		break;
+			case 0XCBC9:					Dm = " - 0xCBC9 - SET 1 C";		break;
+			case 0XCBCA:					Dm = " - 0xCBCA - SET 1 D";		break;
+			case 0XCBCB:					Dm = " - 0xCBCB - SET 1 E";		break;
+			case 0XCBCC:					Dm = " - 0xCBCC - SET 1 H";		break;
+			case 0XCBCD:					Dm = " - 0xCBCD - SET 1 L";		break;
+			case 0XCBCE:					Dm = " - 0xCBCE - SET 1 (HL)";	break;
+			case 0XCBCF:					Dm = " - 0xCBCF - SET 1 A";		break;
+			case 0XCBD0:					Dm = " - 0xCBD0 - SET 2 B";		break;
+			case 0XCBD1:					Dm = " - 0xCBD1 - SET 2 C";		break;
+			case 0XCBD2:					Dm = " - 0xCBD2 - SET 2 D";		break;
+			case 0XCBD3:					Dm = " - 0xCBD3 - SET 2 E";		break;
+			case 0XCBD4:					Dm = " - 0xCBD4 - SET 2 H";		break;
+			case 0XCBD5:					Dm = " - 0xCBD5 - SET 2 L";		break;
+			case 0XCBD6:					Dm = " - 0xCBD6 - SET 2 (HL)";	break;
+			case 0XCBD7:					Dm = " - 0xCBD7 - SET 2 A";		break;
+			case 0XCBD8:					Dm = " - 0xCBD8 - SET 3 B";		break;
+			case 0XCBD9:					Dm = " - 0xCBD9 - SET 3 C";		break;
+			case 0XCBDA:					Dm = " - 0xCBDA - SET 3 D";		break;
+			case 0XCBDB:	Dm = " - 0xCBD8 - SET 3 E";		break;
+			case 0XCBDC:	Dm = " - 0xCBDC - SET 3 H";		break;
+			case 0XCBDD:	Dm = " - 0xCBDD - SET 3 L";		break;
+			case 0XCBDE:	Dm = " - 0xCBDE - SET 3 (HL)";	break;
+			case 0XCBDF:	Dm = " - 0xCBDF - SET 3 A";		break;
+			case 0XCBE0:	Dm = " - 0xCBE0 - SET 4 B";		break;
+			case 0XCBE1:	Dm = " - 0xCBE1 - SET 4 C";		break;
+			case 0XCBE2:	Dm = " - 0xCBE2 - SET 4 D";		break;
+			case 0XCBE3:	Dm = " - 0xCBE3 - SET 4 E";		break;
+			case 0XCBE4:	Dm = " - 0xCBE4 - SET 4 H";		break;
+			case 0XCBE5:	Dm = " - 0xCBE5 - SET 4 L";		break;
+			case 0XCBE6:	Dm = " - 0xCBE6 - SET 4 (HL)";	break;
+			case 0XCBE7:	Dm = " - 0xCBE7 - SET 4 A";		break;
+			case 0XCBE8:	Dm = " - 0xCBE8 - SET 5 B";		break;
+			case 0XCBE9:	Dm = " - 0xCBE9 - SET 5 C";		break;
+			case 0XCBEA:	Dm = " - 0xCBEA - SET 5 D";		break;
+			case 0XCBEB:	Dm = " - 0xCBEB - SET 5 E";		break;
+			case 0XCBEC:	Dm = " - 0xCBEC - SET 5 H";		break;
+			case 0XCBED:	Dm = " - 0xCBED - SET 5 L";		break;
+			case 0XCBEE:	Dm = " - 0xCBEE - SET 5 (HL)";	break;
+			case 0XCBEF:	Dm = " - 0xCBEF - SET 5 A";		break;
+			case 0XCBF0:	Dm = " - 0xCBF0 - SET 6 B";		break;
+			case 0XCBF1:	Dm = " - 0xCBF1 - SET 6 C";		break;
+			case 0XCBF2:	Dm = " - 0xCBF2 - SET 6 D";		break;
+			case 0XCBF3:	Dm = " - 0xCBF3 - SET 6 E";		break;
+			case 0XCBF4:	Dm = " - 0xCBF4 - SET 6 H";		break;
+			case 0XCBF5:	Dm = " - 0xCBF5 - SET 6 L";		break;
+			case 0XCBF6:	Dm = " - 0xCBF6 - SET 6 (HL)";	break;
+			case 0XCBF7:	Dm = " - 0xCBF7 - SET 6 A";		break;
+			case 0XCBF8:	Dm = " - 0xCBF8 - SET 7 B";		break;
+			case 0XCBF9:	Dm = " - 0xCBF9 - SET 7 C";		break;
+			case 0XCBFA:	Dm = " - 0xCBFA - SET 7 D";		break;
+			case 0XCBFB:	Dm = " - 0xCBFB - SET 7 E";		break;
+			case 0XCBFC:	Dm = " - 0xCBFC - SET 7 H";		break;
+			case 0XCBFD:	Dm = " - 0xCBFD - SET 7 L";		break;
+			case 0XCBFE:	Dm = " - 0xCBFE - SET 7 (HL)";	break;
+			case 0XCBFF:	Dm = " - 0xCBFF - SET 7 A";		break;
+			}
+			break;
+		}
 
 		case 0XCC:	Dm = " - 0xCC - CALL Z $aabb";	break;
 		case 0XCD:	Dm = " - 0xCD - CALL $aabb";	break;
@@ -1893,8 +1920,9 @@ void BoxDeb() {
 	Debug.str(std::string());
 	Debug << "AF: " << std::hex << std::setw(4) << std::setfill('0') << int(Raf) << "    " << "BC: " << std::hex << std::setw(4) << std::setfill('0') << int(Rbc) << "\n"
 		<< "DE: " << std::hex << std::setw(4) << std::setfill('0') << int(Rde) << "    " << "HL: " << std::hex << std::setw(4) << std::setfill('0') << int(Rhl) << "\n"
-		<< "PC: " << std::hex << std::setw(4) << std::setfill('0') << int(pc) << "    " << "EI" << " " << "\n"
-		<< "IF: " << "  " << "DI: " << "\n"
+		<< "PC: " << std::hex << std::setw(4) << std::setfill('0') << int(pc) << "    " << "EI" << EInt << " " << "\n"
+		<< "IF: " << std::hex << std::setw(4) << std::setfill('0') << (int)IF <<  "  " << "DI: " << DInt << "\n"
+		<< "SP: " << std::hex << std::setw(4) << std::setfill('0') << (int)sp << "\n"
 			<< "Next engager opcode: " << std::hex << std::setw(4) << std::setfill('0') << opcode << "\n"
 			<< Dm.c_str();
 	std::string mergedDebug;
