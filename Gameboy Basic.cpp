@@ -1,7 +1,7 @@
 // Gameboy Basic.cpp : Defines the entry point for the console application.
 //
 
-#include "stdafx.h" // Windows only
+//#include "stdafx.h" // Windows only
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -10,8 +10,8 @@
 #include <bitset>
 #include <string>
 #include <sstream>
-#include <SDL.h> // android Only
-//#include <SDL2.h>
+//#include <SDL.h> // android Only
+#include <SDL2/SDL.h>
 #include <random>
 
 //Modules
@@ -33,6 +33,7 @@ int min;
 int max;
 
 std::string ROM = "tetris.gb";
+std::string BIOS ="DMG_ROM.bin";
 
 unsigned char  memoryT[0xFFFF];
 unsigned char memoryA[0xFFFF];
@@ -1373,7 +1374,7 @@ void RegRecombiner(std::string Dtarget) {
 		$aabb = (memoryA[pc + 2] << 8) | (memoryA[pc + 1]);
 
 		
-
+BoxDeb();
 		//_8bitInM = memoryA[_8bitIn];
 
 		// aa bb = 16bit integer
@@ -1429,7 +1430,7 @@ void RegRecombiner(std::string Dtarget) {
 		case 0X2E:LDR8$xx(Rl, (int)$xx, "L");	Dm = " - 0x2E - LD L $xx";		break;
 		case 0X2F:						Dm = " - 0x2F - CPL";			break;
 		case 0X30:						Dm = " - 0x30 - JR NC $xx";		break;
-		case 0X31:						Dm = " - 0x31 - LD SP $aabb";	break;
+		case 0X31:LOADR16$aabb(sp, $aabb,"SP");				Dm = " - 0x31 - LD SP $aabb";	break;
 		case 0X32:LOADDhlMR8(Ra, "(HL)", "A");	Dm = " - 0x32 - LDD (HLD) A";	break;
 		case 0X33:INC16R(sp, "SP");		Dm = " - 0x33 - INC SP";		break;
 		case 0X34:						Dm = " - 0x34 - INC (HL)";		break;
@@ -1950,9 +1951,39 @@ void BoxDeb() {
 		Rf = x.to_ulong();
 		//std::cout << "Rf Bitseteado: " << std::hex << (int)Rf << "\n";
 
-		
 		*/
-	} // Modulo aprendizaje
+		} // Modulo aprendizaje
+		
+		
+		void Boot() {
+		Ra = 0x0;
+		Rb = 0x0;
+		Rc = 0x00;
+		Rd = 0x0;
+		Re = 0x0;
+		Rh = 0x0;
+		Rl = 0x0;
+		Rf = 0x0;
+		pc = 0;
+		sp = 0;
+		Rm = 0;
+		Rt = 0;
+		//opLen = 1;
+
+		Raf = 0x0;
+		Rbc = 0x0;
+		Rde = 0x0;
+		Rhl = 0x0;
+		//gb::NOP();
+	}
+	
+	void LoadBios() {
+		std::ifstream fin(BIOS, std::ios::binary);
+		if (!fin)	{	//std::cout << "File not found " << std::endl;	
+		}
+		for (int i = 0; i < 0x8000; i++)	{	fin.get(letter);	memoryA[i] = letter;	}
+	}; // fin LoadBios
+	
 	void LoadFile()
 	{
 		std::ifstream fin(ROM, std::ios::binary);
@@ -1989,8 +2020,11 @@ int main(int argc, char *argv[])
 	///////////////////////////////////////////////////////////////////////////////////////
 
 	gb gameboy;
-	gameboy.Reset();
-	gameboy.LoadFile();
+	//gameboy.Reset();
+	//gameboy.LoadFile();
+	
+	gameboy.LoadBios();
+	gameboy.Boot();
 
 	///////////////////////////////////////////////////////////////////////////////////////
 	//- Main execution loop
