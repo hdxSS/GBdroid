@@ -1,7 +1,7 @@
 // Gameboy Basic.cpp : Defines the entry point for the console application.
 //
 
-#include "stdafx.h" // Windows only
+//#include "stdafx.h" // Windows only
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -10,8 +10,8 @@
 #include <bitset>
 #include <string>
 #include <sstream>
-#include <SDL.h> //for windows
-//#include <SDL2/SDL.h> //for android
+//#include <SDL.h> //for windows
+#include <SDL2/SDL.h> //for android
 #include <random>
 
 //Modules
@@ -583,34 +583,22 @@ void RegRecombiner(std::string Dtarget) {
 			break;
 		}
 	}
-	/* BIT8R(unsigned char bitnum, std::string flagAf, unsigned char &_8r) {
-
-		
-
+	 void BIT8R(  unsigned char _8r,  int bitnum, std::string r8char) {
 			////-- Instruction preset
-			opLen = 2;
-			////std::cout << "8bit int inm " << (int)_$xx << "\n";
-			FLGH(2, 0, 1, 3, NULL, NULL, NULL);
-			funcText << "BIT " << bitnum;
+			opLen = 1;
+			std::bitset<8> regBit(_8r);
+			if  (regBit.test(7) == 0 ) {
+				FLGH(1, 0, 1, 3, NULL, NULL, NULL);
+}
+else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
+			
+			funcText <<  "BIT:" << bitnum << r8char;
 			functType = funcText.str();
 			opDeb();
-			std::bitset<8> flagChecker(Rf);
-			unsigned char byteNum;
-			unsigned char testCase;
-			if (flagAf == "Z"){ byteNum = 7; Rf = 1; }
-			else if (flagAf == "N"){ byteNum = 6; testCase = 1; }
-			3321
-
-				4
-			else if (flagAf == "H"){ byteNum = 5; testCase = 1; }
-			else if (flagAf == "C"){ byteNum = 4; testCase = 1; }
-
 			pc += opLen;
 			////-- Instruction preset	
-
-	
 	}
-	*/
+	
 	void CALLpcF$aabb(int flagcc, unsigned short _16BA) {
 
 		if (flagcc == 1)
@@ -1725,7 +1713,7 @@ BoxDeb();
 			case 0XCB79:					Dm = " - 0xCB79 - BIT 7 C";		break;
 			case 0XCB7A:					Dm = " - 0xCB7A - BIT 7 D";		break;
 			case 0XCB7B:					Dm = " - 0xCB7B - BIT 7 E";		break;
-			case 0XCB7C:					Dm = " - 0xCB7C - BIT 7 H";		break;
+			case 0XCB7C: BIT8R(Rh, 7, "RH");	Dm = " - 0xCB7C - BIT 7 H";		break;
 			case 0XCB7D:					Dm = " - 0xCB7D - BIT 7 (HL)";	break;
 			case 0XCB7F:					Dm = " - 0xCB7F - BIT 7 A";		break;
 			case 0XCB80:					Dm = " - 0xCB80 - RES 0 B";		break;
