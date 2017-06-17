@@ -43,6 +43,7 @@ long opcode;
 unsigned char opLen;
 std::string functType;
 unsigned short $aabb;
+unsigned short memCatch;
 bool nullRender = true;
 std::string Dm;
 std::string Dreg;
@@ -76,10 +77,14 @@ public:
 	unsigned char mathTC2 = 0;
 	unsigned char mathTS1 = 0;
 	unsigned char mathTS2 = 0;
+	
+	std::string prevM;
+	std::string actualM;
 
 	unsigned short IF;
 	bool DInt = false;
 	bool EInt = true;
+	bool memCatchFlag = false;
 
 	unsigned char TIMA, TMA, TAC, NR10, NR11, NR12, NR14, NR21, NR22, NR24, NR30, NR31, NR32, NR33, NR41, NR42, NR43, NR50, NR51, NR52, LCDC, SCY, SCX, LYC, BGP, OBP0, OBP1, WY, WX ;
 
@@ -252,6 +257,10 @@ public:
 //- Im using the MMU as a BP for when the CPU is mature enough to start accesing VRAM 
 //- This will be a Major milestone in the project
 ///////////////////////////////////////////////////////////////////////////////////////
+void MMUexp() {
+	
+}
+
 	void MMU() {	
 		if (pc < 0x4000) {
 			//std::cout << "MMU ROM bank0" << "\n";
@@ -585,7 +594,7 @@ void RegRecombiner(std::string Dtarget) {
 	}
 	 void BIT8R(  unsigned char _8r,  int bitnum, std::string r8char) {
 			////-- Instruction preset
-			opLen = 1;
+			opLen = 2;
 			std::bitset<8> regBit(_8r);
 			if  (regBit.test(7) == 0 ) {
 				FLGH(1, 0, 1, 3, NULL, NULL, NULL);
@@ -757,7 +766,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		opLen = 2;
 		////std::cout << "8bit int inm " << (int)_$xx << "\n";
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
-		funcText << "JR + $xx IF FlagBit = TRUE  ->";
+		funcText << "JR + " << std::hex << std::setw(4) << std::setfill('0') << (int)_$xx << " IF FlagBit = TRUE  ->";
 		functType = funcText.str();
 		opDeb();
 		std::bitset<8> flagChecker(Rf);
@@ -881,6 +890,8 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		functType = funcText.str();
 		opDeb();
 		if (Dtarget == "HL") { Rh = $aa; Rl = $bb; }
+		memCatch =$_aabb;
+		memCatchFlag = true;
 		pc += opLen;
 		////-- Instruction preset
 	}
@@ -1902,21 +1913,45 @@ BoxDeb();
 
 #pragma endregion
 
+void compareDm()
+{
+	
+}
+
 void BoxDeb() {  
 //if every missing opcode use this i can capture the debug m3ssage with ease. BOXdeb debugger is the not mapped case error
 	std::stringstream Debug;
 	Debug.str(std::string());
-	Debug << "AF: " << std::hex << std::setw(4) << std::setfill('0') << int(Raf) << "    " << "BC: " << std::hex << std::setw(4) << std::setfill('0') << int(Rbc) << "\n"
-		<< "DE: " << std::hex << std::setw(4) << std::setfill('0') << int(Rde) << "    " << "HL: " << std::hex << std::setw(4) << std::setfill('0') << int(Rhl) << "\n"
+	std::bitset<8> debugFlag(Rf);
+	std::stringstream MemAccess;
+	
+	if ($aabb > 0X4000)
+	{
+		if (memCatchFlag == true)
+		{
+		MemAccess << "   $aabb not ROM -> " << std::hex << (int)memCatch;
+		memCatchFlag = false;
+		}
+	}
+
+	
+	Debug << "C.Op:  "<< functType << "\n " << "AF:  "<< std::hex << std::setw(4) << std::setfill('0') << int(Raf) << "    " << "BC: " << std::hex << std::setw(4) << std::setfill('0') << int(Rbc) << "\n" << "DE: " << std::hex << std::setw(4) << std::setfill('0') << int(Rde) << "    " << "HL: " << std::hex << std::setw(4) << std::setfill('0') << int(Rhl) << "\n"
 		<< "PC: " << std::hex << std::setw(4) << std::setfill('0') << int(pc) << "    " << "EI" << EInt << " " << "\n"
 		<< "IF: " << std::hex << std::setw(4) << std::setfill('0') << (int)IF <<  "  " << "DI: " << DInt << "\n"
 		<< "SP: " << std::hex << std::setw(4) << std::setfill('0') << (int)sp << "\n"
+		   << "Z["<<debugFlag.test(7) <<"] N[" << debugFlag.test(6) <<"] H[" << debugFlag.test(5) <<"] C[" << debugFlag.test(4) << "]\n"
 			<< "Next engager opcode: " << std::hex << std::setw(4) << std::setfill('0') << opcode << "\n"
 			<< Dm.c_str();
 	std::string mergedDebug;
-	mergedDebug = Debug.str();
+	mergedDebug = Debug.str() + MemAccess.str();
+
+
 
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M", mergedDebug.c_str(), NULL);
+	
+	
+	
+	
 }
 
 	void Reset() {
