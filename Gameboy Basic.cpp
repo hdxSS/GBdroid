@@ -1,7 +1,7 @@
 // Gameboy Basic.cpp : Defines the entry point for the console application.
 //
 
-//#include "stdafx.h" // Windows only
+#include "stdafx.h" // Windows only
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -10,8 +10,8 @@
 #include <bitset>
 #include <string>
 #include <sstream>
-//#include <SDL.h> //for windows
-#include <SDL2/SDL.h> //for android
+#include <SDL.h> //for windows
+//#include <SDL2/SDL.h> //for android
 #include <random>
 
 //Modules
@@ -52,6 +52,11 @@ std::string Starget;
 std::string Dtarget;
 
 std::stringstream funcText;
+
+std::string pastDms[10];
+std::string currentDms[10];
+bool captureDm = true;
+int opCounter;
 
 ///////////
 
@@ -1915,7 +1920,13 @@ BoxDeb();
 
 void compareDm()
 {
-	
+	for (opCounter = 0; opCounter <= 5; opCounter++) {
+		if (captureDm) { pastDms[opCounter] = Dm;  }
+		else if (captureDm == false) { currentDms[opCounter] = Dm; }
+	}
+	opCounter = 0;
+	captureDm = false;
+
 }
 
 void BoxDeb() {  
@@ -2083,12 +2094,23 @@ int main(int argc, char *argv[])
 	///////////////////////////////////////////////////////////////////////////////////////
 	while (1)	{
 		
+		for (opCounter = 0; opCounter <= 5; opCounter++) {
+		
 	//	gameboy.gfxHandler();
 		gameboy.RegComb();
 		gameboy.opDecoder();
 		
-		
+		if (captureDm) { pastDms[opCounter] = Dm; }
+		else if (captureDm == false) { currentDms[opCounter] = Dm; }
+		}
+		opCounter = 0;
+		captureDm = false;
 
+		for (int i = 0; i <= 5; i++)
+		{
+			if (pastDms[i] == currentDms[i]) { std::cout << "LOOP!!!!"; }
+		}
+		
 		
 	//	std::cin.get();
 }
