@@ -57,6 +57,10 @@ std::string pastDms[10];
 std::string currentDms[10];
 bool captureDm = true;
 int opCounter;
+long loopInstances;
+bool matchFound = true;
+bool loopDetected;
+int numberMatchs;
 
 ///////////
 
@@ -959,7 +963,11 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		funcText << "LOADD " << "(HL) ," << Starget;
 		functType = funcText.str();
 		opDeb();
-		if (Dtarget == "(HL)") { Rl--; }
+		if (Dtarget == "(HL)") {
+			if (Rl == 0) { Rh--; }
+			else if (Rl > -1) { Rl--; }
+		}
+			
 		pc += opLen;
 		////-- Instruction preset
 
@@ -1250,7 +1258,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		opLen = 1;
 		FLGH(2, 0, 0, 0, Ra, _r8, 6);
 		Ra ^= _r8;
-		funcText << "XOR " << Dtarget << ", " << Starget;
+		funcText << "XOR " << std::hex << std::setw(4) << std::setfill('0') << Ra << ", " << std::hex << std::setw(4) << std::setfill('0') << _r8;
 		functType = funcText.str();
 		opDeb();
 		pc += opLen;
@@ -1398,7 +1406,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		$aabb = (memoryA[pc + 2] << 8) | (memoryA[pc + 1]);
 
 		
-BoxDeb();
+		
 		//_8bitInM = memoryA[_8bitIn];
 
 		// aa bb = 16bit integer
@@ -1910,7 +1918,8 @@ BoxDeb();
 		default:
 			//std::cout << "ERROR CASE NOT FOUND " << "opcode" << std::hex << std::setw(2) << std::setfill('0') << int(opcode) << "\n";
 			break;	
-		}		
+		}
+		BoxDeb();
 		//std::cout << "Next opcode" << " | " << "Engager: " << std::hex << std::setw(4) << std::setfill('0') << opcode << "-" << Dm << "\n";
 		////std::cout << "$aabb: " << std::hex << (int)$aabb << "\n"; // To Dissasemble
 		
@@ -1936,32 +1945,34 @@ void BoxDeb() {
 	std::bitset<8> debugFlag(Rf);
 	std::stringstream MemAccess;
 	
-	if ($aabb > 0X4000)
-	{
-		if (memCatchFlag == true)
+	if (loopDetected == true) {
+
+		if ($aabb > 0X4000)
 		{
-		MemAccess << "   $aabb not ROM -> " << std::hex << (int)memCatch;
-		memCatchFlag = false;
+			if (memCatchFlag == true)
+			{
+				MemAccess << "   $aabb not ROM -> " << std::hex << (int)memCatch;
+				memCatchFlag = false;
+			}
 		}
-	}
 
-	
-	Debug << "C.Op:  "<< functType << "\n " << "AF:  "<< std::hex << std::setw(4) << std::setfill('0') << int(Raf) << "    " << "BC: " << std::hex << std::setw(4) << std::setfill('0') << int(Rbc) << "\n" << "DE: " << std::hex << std::setw(4) << std::setfill('0') << int(Rde) << "    " << "HL: " << std::hex << std::setw(4) << std::setfill('0') << int(Rhl) << "\n"
-		<< "PC: " << std::hex << std::setw(4) << std::setfill('0') << int(pc) << "    " << "EI" << EInt << " " << "\n"
-		<< "IF: " << std::hex << std::setw(4) << std::setfill('0') << (int)IF <<  "  " << "DI: " << DInt << "\n"
-		<< "SP: " << std::hex << std::setw(4) << std::setfill('0') << (int)sp << "\n"
-		   << "Z["<<debugFlag.test(7) <<"] N[" << debugFlag.test(6) <<"] H[" << debugFlag.test(5) <<"] C[" << debugFlag.test(4) << "]\n"
-			<< "Next engager opcode: " << std::hex << std::setw(4) << std::setfill('0') << opcode << "\n"
+
+		Debug << "Executing...:  " << functType << "\n " << "AF:  " << std::hex << std::setw(4) << std::setfill('0') << int(Raf) << "    " << "BC: " << std::hex << std::setw(4) << std::setfill('0') << int(Rbc) << "\n" << "DE: " << std::hex << std::setw(4) << std::setfill('0') << int(Rde) << "    " << "HL: " << std::hex << std::setw(4) << std::setfill('0') << int(Rhl) << "\n"
+			<< "PC: " << std::hex << std::setw(4) << std::setfill('0') << int(pc) << "    " << "EI" << EInt << " " << "\n"
+			<< "IF: " << std::hex << std::setw(4) << std::setfill('0') << (int)IF << "  " << "DI: " << DInt << "\n"
+			<< "SP: " << std::hex << std::setw(4) << std::setfill('0') << (int)sp << "\n"
+			<< "Z[" << debugFlag.test(7) << "] N[" << debugFlag.test(6) << "] H[" << debugFlag.test(5) << "] C[" << debugFlag.test(4) << "]\n"
+			<< "Current Engager: " << std::hex << std::setw(4) << std::setfill('0') << opcode << "\n"
 			<< Dm.c_str();
-	std::string mergedDebug;
-	mergedDebug = Debug.str() + MemAccess.str();
+		std::string mergedDebug;
+		mergedDebug = Debug.str() + MemAccess.str();
 
 
 
-	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M", mergedDebug.c_str(), NULL);
-	
-	
-	
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M", mergedDebug.c_str(), NULL);
+
+
+	}
 	
 }
 
@@ -2108,10 +2119,26 @@ int main(int argc, char *argv[])
 
 		for (int i = 0; i <= 5; i++)
 		{
-			if (pastDms[i] == currentDms[i]) { std::cout << "LOOP!!!!"; }
+			
+			if (pastDms[i] == currentDms[i]) {
+				numberMatchs = 0;
+				loopInstances++;
+				std::cout << currentDms[i] << "\n";
+				matchFound = true;	
+				if (matchFound) { numberMatchs++; matchFound = false; }
+			}
+			
+			if (numberMatchs > 1)
+			{
+				loopInstances++;
+				std::cout << "Detected loop of [" << numberMatchs << "] Instructions \n";
+				
+			}
+			
 		}
+		std::cout << "- 5 Instructions Evaluated - [" << loopInstances << "] Found\n";
 		
-		
+		if (loopInstances > 1000) { gameboy.BoxDeb(); loopDetected = true; }
 	//	std::cin.get();
 }
 	return 0;
