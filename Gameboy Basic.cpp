@@ -10,6 +10,7 @@
 #include <bitset>
 #include <string>
 #include <sstream>
+#include <SDL_ttf.h>
 #include <SDL.h> //for windows
 //#include <SDL2/SDL.h> //for android
 #include <random>
@@ -53,6 +54,7 @@ std::string Dtarget;
 
 std::stringstream funcText;
 
+/// DEBUG MESSAGE COMPARE VARIABLES
 std::string pastDms[10];
 std::string currentDms[10];
 bool captureDm = true;
@@ -61,8 +63,13 @@ long loopInstances;
 bool matchFound = true;
 bool loopDetected;
 int numberMatchs;
+/// DEBUG MESSAGE COMPARE VARIABLES
 
-///////////
+//SDL_TTF Handles
+bool fontLoaded = false;
+
+//VRAM PEEKER
+char Vram[0x2000];
 
 unsigned short _16bitIn;
 unsigned long fullOpcode;
@@ -105,181 +112,305 @@ public:
 //- Graphics Related code 
 //- This section can be enabled or disabled, but is meant for research
 ///////////////////////////////////////////////////////////////////////////////////////		
+	SDL_Rect pixelVram[8192]; // la pantalla es de 256 x 256 pero 144 y 164 son visibles
 	
 	
+	void VRAMmanagerInit() {
+		for (int i = 0x8000; i >= 0xFFFE; i++)
+		{
+			std::cout << i << "\n";
+			memoryA[i] = 1;
+			//Vram[i] = 1;
+		}
+	}
+	void VRAMmanager() {
+		int VramCounter = 0;
+		for (int i = 0xA000; i >= 0x8000; i--)
+		{
+			memoryA[i] = Vram[VramCounter];
+			VramCounter++;
+		}
+	}
+
+	void VRAMpeek() {
+		
+		//digamos que tengo 0x500 posisiones de me
+
+			unsigned int rowN;
+			unsigned int colN;
+			int yCont = 0;
+			for (int j = 0; j <= 91; j++)
+			{
+				for (int i = 0; i <= 91; i++)
+				{
+
+					pixelVram[i].w = 2;
+					pixelVram[i].h = 2;
+					pixelVram[i].x = (2 * i) + (i * 2);
+					pixelVram[i].y = (2 * j) + (j * 2);
+
+
+					if (memoryA[i - 0x8000] == 0)
+					{
+						SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+					}
+					else { SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); }
+					
+					SDL_RenderFillRect(renderer, &pixelVram[i]);
+					//SDL_Delay(100);
+					
+					
+				} //fin i
+				
+
+			}  //fin j
+			SDL_RenderPresent(renderer);
+			/*
+					pixel[20][i].h = 5;
+					pixel[20][i].w = 5;
+					pixel[20][i].x = 140 + (i * 5);
+					pixel[20][i].y = 200 + (j * 5);
+		
+					SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+					SDL_RenderFillRect(renderer, &pixel[j][i]);
+
+				SDL_RenderPresent(renderer);
+				*/
+
+	} // End VRAMpeek
 	
+	unsigned long gpuClock =0;
+	unsigned int modeClock =0;
+	int gpuMode =0 ;
 	SDL_Rect pixel[144][164]; // la pantalla es de 256 x 256 pero 144 y 164 son visibles
 	void gfxHandler()
 	{
-	unsigned int rowN;
-	unsigned int colN;
-	unsigned long gpuClock;
-	unsigned int modeClock;
-	gpuClock += opclock;
-	rowN = 0;
-	//cpu clock and times accesing Vram and OAM
-	//scanline access OAM - gpuMode 2 - 80 cycles
-	//scanline access VRAM - gpuMode 3 - 172 cyc
-	//horizontal blank - gpuMode 0 - 204 cycles
-	//one line scan and blank - 456 cycles
-	//vertical blank - gpuamode 1 - 4560 10lines
-	//full frame 70224
-	//	144 * 456 + (14 * 4560)?? - 204
-	int gpuMode;
+		unsigned int rowN;
+		unsigned int colN;
+		
+		gpuClock += opclock;
+		rowN = 0;
+		//cpu clock and times accesing Vram and OAM
+		//scanline access OAM - gpuMode 2 - 80 cycles
+		//scanline access VRAM - gpuMode 3 - 172 cyc
+		//horizontal blank - gpuMode 0 - 204 cycles
+		//one line scan and blank - 456 cycles
+		//vertical blank - gpuamode 1 - 4560 10lines
+		//full frame 70224
+		//	144 * 456 + (14 * 4560)?? - 204
+		
 
-	switch (gpuMode) {
-	case 2: //access OAM for scanline read mode
-	if (gpuClock == 80) {
-	gpuClock = 0;
-	gpuMode = 3;
-	//semi proceso 1/2
-	}
-	break;
+		switch (gpuMode) {
+		case 2: //access OAM for scanline read mode
+			if (gpuClock == 80) {
+				gpuClock = 0;
+				gpuMode = 3;
+				//semi proceso 1/2
+			}
+			break;
 
-	case 3: //access VRAM for scanline read mode
-	if (gpuClock == 172) {
-	gpuClock = 0;
-	gpuMode = 0;
-	//fin semi proceso 2/2
-	}
-	break;
+		case 3: //access VRAM for scanline read mode
+			if (gpuClock == 172) {
+				gpuClock = 0;
+				gpuMode = 0;
+				//fin semi proceso 2/2
+			}
+			break;
 
-	case 0: // horizontal blanking
-	if (gpuClock == 204) {
-	//--scanea para regresar al punyo de partida
-	//pasa la info al framebuffer
+		case 0: // horizontal blanking
+			if (gpuClock == 204) {
+				//--scanea para regresar al punyo de partida
+				//pasa la info al framebuffer
 
-	gpuClock = 0;
-	rowN++;
-	if (rowN == 145) {
-	gpuMode = 1;
-	rowN = 0;
-	}
-	else
-	gpuMode = 2;
+				gpuClock = 0;
+				rowN++;
+				if (rowN == 145) {
+					gpuMode = 1;
+					rowN = 0;
+				}
+				else
+					gpuMode = 2;
 
-	}
-	break;
+			}
+			break;
 
-	case 1: //vertical blanking
-	if (gpuMode == 4560) {
-	//grab all lines from fb and place them on the screen
-	cpuClock = 0;
-	gpuClock = 0;
-	gpuMode = 2;
-	//ready for another frame
+		case 1: //vertical blanking
+			if (gpuMode == 4560) {
+				//grab all lines from fb and place them on the screen
+				cpuClock = 0;
+				gpuClock = 0;
+				gpuMode = 2;
+				//ready for another frame
 
-	}
-	break;
-
-
-	}
+			}
+			break;
 
 
-	//framebuffer shennanigans
-	//mem 8000-87FF TS1 0-127
-	//mem 8800-8FFF TS1 128-255 TS0 -1 a -127
-	//mem 9000-97FF TS0 0-127
-	//mem 9800-9BFF TM0
-	//mem 9C00-9FFF TM1
-
-	//tile system 8x8 dibujos de 64pixeles
-	//tile map 32x32 fondos de 256 scrolleables
-	//8x16 dice gbcuman
-
-	//unique tiles in mem 256
-	//total tiles 384
-
-	//paletas controlado por el background pallete GPU register
+		}
 
 
-	// valor       color
-	//0                255,255,255
-	//1                192,192,192
-	//2                96,96,96
-	//3                 0,0,0
+		//framebuffer shennanigans
+		//mem 8000-87FF TS1 0-127
+		//mem 8800-8FFF TS1 128-255 TS0 -1 a -127
+		//mem 9000-97FF TS0 0-127
+		//mem 9800-9BFF TM0
+		//mem 9C00-9FFF TM1
 
-	//	7 6 | 5 4 | 3 2 | 1 0
-	//     3      2    1    0
+		//tile system 8x8 dibujos de 64pixeles
+		//tile map 32x32 fondos de 256 scrolleables
+		//8x16 dice gbcuman
 
-	//acceso a paleta, orden y preferencia
+		//unique tiles in mem 256
+		//total tiles 384
 
-
-	for (int z = 0; z<10; z++)
-	{
-	for (int j = 0; j<145; j++)
-	{
-	for (int i = 0; i<165; i++) {
-	pixel[j][i].h = 5;
-	pixel[j][i].w = 5;
-	pixel[j][i].x = 140 + (i * 5);
-	pixel[j][i].y = 200 + (j * 5);
+		//paletas controlado por el background pallete GPU register
 
 
-	//randomGen(0,255);
-	int cr, cg, cb;
-	//way of selecting RED
-	if ((rand() % 100) == 0){
-	cr = 96;
-	cg = 96;
-	cb = 96;
-	}
-		//		 //way of selecting GREEN
-	//		 else if ((rand() % 100 == 1)){
-	//		 	cr=0;
-	//		 	cg=255;
-	//		 	cb=0;
-	//		 }
-	//way of selecting BLUE
-	else if ((rand() % 100 == 2)) {
-	cr = 0;
-	cg = 0;
-	cb = 0;
-	}
-	//way of selecting Black
-	else if ((rand() % 100 == 4)) {
-	cr = 192;
-	cg = 192;
-	cb = 192;
-	}
-	//way of selecting white
-	else if ((rand() % 100 == 5)) {
-	cr = 255;
-	cg = 255;
-	cb = 255;
-	}
+		// valor       color
+		//0                255,255,255
+		//1                192,192,192
+		//2                96,96,96
+		//3                 0,0,0
 
-	SDL_SetRenderDrawColor(renderer, cr, cg, cb, 255);
-	SDL_RenderFillRect(renderer, &pixel[j][i]);
-	//SDL_RenderPresent(renderer);
-	//SDL_Delay(5);
+		//	7 6 | 5 4 | 3 2 | 1 0
+		//     3      2    1    0
 
-	}
+		//acceso a paleta, orden y preferencia
 
-	}
-	SDL_RenderPresent(renderer);
-	}//Video support
+
+		//for (int z = 0; z<10; z++)	{
+		for (int j = 0; j<145; j++)
+		{
+			for (int i = 0; i<165; i++) {
+				pixel[j][i].h = 5;
+				pixel[j][i].w = 5;
+				pixel[j][i].x = 140 + (i * 5);
+				pixel[j][i].y = 200 + (j * 5);
+
+
+				//randomGen(0,255);
+				int cr, cg, cb;
+
+				/*
+				//way of selecting RED
+				if ((rand() % 100) == 0){
+				cr = 96;
+				cg = 96;
+				cb = 96;
+				}
+				//		 //way of selecting GREEN
+				//		 else if ((rand() % 100 == 1)){
+				//		 	cr=0;
+				//		 	cg=255;
+				//		 	cb=0;
+				//		 }
+				//way of selecting BLUE
+				else if ((rand() % 100 == 2)) {
+				cr = 0;
+				cg = 0;
+				cb = 0;
+				}
+				//way of selecting Black
+				else if ((rand() % 100 == 4)) {
+				cr = 192;
+				cg = 192;
+				cb = 192;
+				}
+				//way of selecting white
+				else if ((rand() % 100 == 5)) {
+				cr = 255;
+				cg = 255;
+				cb = 255;
+				}
+				*/
+
+				SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+				SDL_RenderFillRect(renderer, &pixel[j][i]);
+				//SDL_RenderPresent(renderer);
+				//SDL_Delay(5);
+
+			}
+
+		}
+		SDL_RenderPresent(renderer);
+		//}//Video support
 	}//gfxHandler
+
+	// reemplazar desde afuera de GFX handler
 	
 
 ///////////////////////////////////////////////////////////////////////////////////////
 //- Im using the MMU as a BP for when the CPU is mature enough to start accesing VRAM 
 //- This will be a Major milestone in the project
 ///////////////////////////////////////////////////////////////////////////////////////
-void MMUexp() {
-	
-}
+	void MMUexp(unsigned short toTarget, unsigned short fromSource, std::string sourceReg, int WriteType) {
 
-	void MMU() {	
+		switch (WriteType)
+		{
+		case 1: // Read 8 bit from memory (I need a source[Mem] and a Target[Reg])
+			if (fromSource < 0x4000) { std::cout << "Reading from ROM bank0" << "\n"; }
+			else if (fromSource >= 0x4000 && fromSource < 0x8000) { std::cout << "Reading MMU ROM bank1" << "\n"; }
+			else if (fromSource >= 0x8000 && fromSource < 0xA000) { std::cout << "Reading MMU GFX" << "\n"; }
+			else if (fromSource >= 0xA000 && fromSource < 0xC000) { std::cout << "Reading MMU EXT RAM bank" << "\n"; }
+			else if (fromSource >= 0xC000 && fromSource < 0xE000) { std::cout << "Reading MMU WORKING RAM" << "\n"; }
+			else if (fromSource >= 0xE000 && fromSource < 0xFE00) { std::cout << "Reading MMU WORKING RAM SHADOW" << "\n"; }
+			else if (fromSource >= 0xFE00 && fromSource < 0xFF00) { std::cout << "Reading MMU GFX SPRITES" << "\n"; }
+			else if (fromSource >= 0xFF00 && fromSource < 0xFF80) { std::cout << "Reading MMU INPUT" << "\n"; }
+			else if (fromSource >= 0xFF80 && fromSource < 0xFFFF) { std::cout << "Reading MMU ZERO PAGE RAM" << "\n"; }
+			break;
+		
+
+	case 2: // Write 8 bit to memory (I need a source[Reg] and a Target[Mem])
+		if (toTarget < 0x4000) { std::cout << "Writing from ROM bank0" << "\n"; }
+		else if (toTarget >= 0x4000 && toTarget < 0x8000) { std::cout << "Writing MMU ROM bank1" << "\n"; }
+		else if (toTarget >= 0x8000 && toTarget < 0xA000) { std::cout << "Writing MMU GFX" << "\n"; }
+		else if (toTarget >= 0xA000 && toTarget < 0xC000) { std::cout << "Writing MMU EXT RAM bank" << "\n"; }
+		else if (toTarget >= 0xC000 && toTarget < 0xE000) { std::cout << "Writing MMU WORKING RAM" << "\n"; }
+		else if (toTarget >= 0xE000 && toTarget < 0xFE00) { std::cout << "Writing MMU WORKING RAM SHADOW" << "\n"; }
+		else if (toTarget >= 0xFE00 && toTarget < 0xFF00) { std::cout << "Writing MMU GFX SPRITES" << "\n"; }
+		else if (toTarget >= 0xFF00 && toTarget < 0xFF80) { std::cout << "Writing MMU INPUT" << "\n"; }
+		else if (toTarget >= 0xFF80 && toTarget < 0xFFFF) { std::cout << "Writing MMU ZERO PAGE RAM" << "\n"; }
+		break;
+
+	case 3: // Read 16 bit from memory (I need a source[Mem] and a Target[Reg]
+		if (fromSource < 0x4000) { std::cout << "Reading from ROM bank0" << "\n"; }
+		else if (fromSource >= 0x4000 && fromSource < 0x8000) { std::cout << "Reading MMU ROM bank1" << "\n"; }
+		else if (fromSource >= 0x8000 && fromSource < 0xA000) { std::cout << "Reading MMU GFX" << "\n"; }
+		else if (fromSource >= 0xA000 && fromSource < 0xC000) { std::cout << "Reading MMU EXT RAM bank" << "\n"; }
+		else if (fromSource >= 0xC000 && fromSource < 0xE000) { std::cout << "Reading MMU WORKING RAM" << "\n"; }
+		else if (fromSource >= 0xE000 && fromSource < 0xFE00) { std::cout << "Reading MMU WORKING RAM SHADOW" << "\n"; }
+		else if (fromSource >= 0xFE00 && fromSource < 0xFF00) { std::cout << "Reading MMU GFX SPRITES" << "\n"; }
+		else if (fromSource >= 0xFF00 && fromSource < 0xFF80) { std::cout << "Reading MMU INPUT" << "\n"; }
+		else if (fromSource >= 0xFF80 && fromSource < 0xFFFF) { std::cout << "Reading MMU ZERO PAGE RAM" << "\n"; }
+		break;
+
+	case 4: // Write 16 bit to memory (I need a source[Reg] and a Target[Mem]
+		if (toTarget < 0x4000) { std::cout << "Writing from ROM bank0" << "\n"; }
+		else if (toTarget >= 0x4000 && toTarget < 0x8000) { std::cout << "Writing MMU ROM bank1" << "\n"; }
+		else if (toTarget >= 0x8000 && toTarget < 0xA000) { std::cout << "Writing MMU GFX" << "\n";
+		Vram[toTarget - 0x8000] = fromSource;
+		std::cout << "Writing " << sourceReg << std::hex << (int)fromSource << "] to Mem region [0x" << std::hex << (int)toTarget << "]\n";
+		}
+		else if (toTarget >= 0xA000 && toTarget < 0xC000) { std::cout << "Writing MMU EXT RAM bank" << "\n"; }
+		else if (toTarget >= 0xC000 && toTarget < 0xE000) { std::cout << "Writing MMU WORKING RAM" << "\n"; }
+		else if (toTarget >= 0xE000 && toTarget < 0xFE00) { std::cout << "Writing MMU WORKING RAM SHADOW" << "\n"; }
+		else if (toTarget >= 0xFE00 && toTarget < 0xFF00) { std::cout << "Writing MMU GFX SPRITES" << "\n"; }
+		else if (toTarget >= 0xFF00 && toTarget < 0xFF80) { std::cout << "Writing MMU INPUT" << "\n"; }
+		else if (toTarget >= 0xFF80 && toTarget < 0xFFFF) { std::cout << "Writing MMU ZERO PAGE RAM" << "\n"; }
+		break;
+		break;
+	}
+	
+	} // MMU EXP 
+
+	void MMU() {
+		//THIS WONT WORK. the program counter does not  "GO" Into a memory address
+		//Registers write and access memory from their own functions
+	
+		//How could i capure a certain memory section?
+		//For gfx i could say... if GFX range is != 0 that would mean there is something written in one of the mems
 		if (pc < 0x4000) {
 			//std::cout << "MMU ROM bank0" << "\n";
-			if (pc == 0x2817)
-			{
-	//			//std::cout << "//////////////////////////////////////////////////////////////////////" << "\n";
-			//	//std::cout << "Drawing Starting\n";
-			//	//std::cout << "//////////////////////////////////////////////////////////////////////" << "\n";
-		//		std::cin.get();
-			}
 		}
 		else if (pc >= 0x4000 && pc < 0x8000) { //std::cout << "MMU ROM bank1" << "\n"; 
 		}
@@ -874,13 +1005,16 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		functType = "LOAD A $aabb ";
 		//FLGH(3, 3, 3, 3);
 	}
-	void LOADRA16RM(unsigned short &_16r) {
+	void LOADRA16RM(unsigned short _16r, std::string Starget) {
+		////-- Instruction preset
+		opLen = 2;
 		Ra = memoryA[_16r];
-		//update timers
-		opclock = 1;
-		//update flags
-		functType = "LOAD A (16R) ";
-		//FLGH(3, 3, 3, 3);
+		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
+		funcText << "LOAD A, (" << Starget << ") |" << std::hex << std::setw(4) << std::setfill('0') << (int)memoryA[_16r] << "|";
+		functType = funcText.str();
+		opDeb();
+		pc = opLen;
+		////-- Instruction preset
 	}
 	void LOADRHLSPOFF(unsigned char _8boff) {
 		//FLGH(0, 0, 2, 2);
@@ -895,10 +1029,14 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		opLen = 3;
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 		_16r = $_aabb;
+		MMUexp($_aabb, NULL,Dtarget, 3);
 		funcText << "LOAD " << Dtarget << ", "  << std::hex << std::setw(4) << std::setfill('0') << (int)$_aabb;
 		functType = funcText.str();
 		opDeb();
 		if (Dtarget == "HL") { Rh = $aa; Rl = $bb; }
+		else if (Dtarget == "AF") { Ra = $aa; Rf = $bb; }
+		else if (Dtarget == "BC") { Rb = $aa; Rc = $bb; }
+		else if (Dtarget == "DE") { Rd = $aa; Re = $bb; }
 		memCatch =$_aabb;
 		memCatchFlag = true;
 		pc += opLen;
@@ -960,11 +1098,12 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		opLen = 1;
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 		memoryA[Rhl] = _R8;
+		MMUexp(Rhl,_R8,"[Ra = ", 4);
 		funcText << "LOADD " << "(HL) ," << Starget;
 		functType = funcText.str();
 		opDeb();
 		if (Dtarget == "(HL)") {
-			if (Rl == 0) { Rh--; }
+			if (Rl == 0) { Rh--; Rl = 0xFF; }
 			else if (Rl > -1) { Rl--; }
 		}
 			
@@ -983,14 +1122,17 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		pc += opLen;
 		////-- Instruction preset
 	}
-	void LOADAHOFF(unsigned char off) { //LDH
-
-		Ra = memoryA[0xff00 + off];
-		//update timers
-		opclock = 2;
-		//update flags
-		functType = "LOAD A OFF ";
-		//FLGH(3, 3, 3, 3);
+	void LOADOFFR8A(unsigned char _R8, std::string Starget) { //LOAD A into R8 + 0xff00
+		//It would be wise to know which part of memory is trying to access
+		memoryA[0xff00 + _R8] = Ra;
+		////-- Instruction preset
+		opLen = 2;
+		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
+		funcText << "LOAD ( 0xff00 + " << Starget << "|" << std::hex << (int)_R8 << "| ) ,A";
+		functType = funcText.str();
+		opDeb();
+		pc += opLen;
+		////-- Instruction preset
 	}
 	void LDIhlMRA() {
 		memoryA[Rhl] = Ra;
@@ -1410,8 +1552,8 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		//_8bitInM = memoryA[_8bitIn];
 
 		// aa bb = 16bit integer
-		//Opcode is also refered as ENGAGER a 16bit Entity capable of capuring from 00 to FFFF
-
+		//Opcode is also refered ( BY ME :D ) as ENGAGER a 16bit Entity capable of capuring from 00 to FFFF
+		//By masking it like this I only capture the lower Byte tho
 		switch (opcode & 0x00FF) {
 		case 0X00:	NOP();				Dm = " - 0x00 - NOP";			break;
 		case 0X01:						Dm = " - 0x01 - LD BC $aabb";	break;
@@ -1430,7 +1572,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		case 0X0E:LDR8$xx(Rc, (int)$xx, "C"); Dm = " - 0x0E - LD C $xx";		break;
 		case 0X0F:						Dm = " - 0x0F - RRCA";			break;
 		case 0X10:						Dm = " - 0x10 - STOP";			break;
-		case 0X11:						Dm = " - 0x11 - LD DE $aabb";	break;
+		case 0X11:LOADR16$aabb(Rde, $aabb, "DE");  Dm = " - 0x11 - LD DE $aabb";	break;
 		case 0X12:						Dm = " - 0x12 - LD (DE) A";		break;
 		case 0X13:INC16R(Rde, "DE");	Dm = " - 0x13 - INC DE";		break;
 		case 0X14:INC8R(Rd, "D");		Dm = " - 0x14 - INC D";			break;
@@ -1439,7 +1581,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		case 0X17:						Dm = " - 0x17 - RLA";			break;
 		case 0X18:						Dm = " - 0x18 - JR $xx";		break;
 		case 0X19:						Dm = " - 0x19 - ADD HL DE";		break;
-		case 0X1A:						Dm = " - 0x1A - LD A (DE)";		break;
+		case 0X1A:LOADRA16RM(Rde, "DE");Dm = " - 0x1A - LD A (DE)";		break;
 		case 0X1B:						Dm = " - 0x1B - DEC DE";		break;
 		case 0X1C:INC8R(Re, "E");		Dm = " - 0x1C - INC E";			break;
 		case 0X1D:DEC8R(Re, "E");		Dm = " - 0x1D - DEC E";			break;
@@ -1475,7 +1617,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		case 0X3B:						Dm = " - 0x3B - DEC SP";		break;
 		case 0X3C:INC8R(Ra, "A");		Dm = " - 0x3C - INC A";			break;
 		case 0X3D:DEC8R(Ra, "A");		Dm = " - 0x3D - DEC A";			break;
-		case 0X3E:LDR8$xx(Ra, (int)$xx, "A");	Dm = " - 0x3E - LD A $xx";		break;
+		case 0X3E:LDR8$xx(Ra, $xx, "A");	Dm = " - 0x3E - LD A $xx";		break;
 		case 0X3F:						Dm = " - 0x3F - CCF";			break;
 		case 0X40:LOADR8R8(Rb, Rb, "B", "B");	Dm = " - 0x40 - LD B B";		break;
 		case 0X41:LOADR8R8(Rb, Rc, "B", "C");	Dm = " - 0x41 - LD B C";		break;
@@ -1617,6 +1759,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		case 0XCA:						Dm = " - 0xCA - JP Z $aabb";	break;
 		case 0xCB: {
 			//std::cout << "OPCODE: " << std::hex << std::setw(6) << std::setfill('0') << (int)fullOpcode << "\n";
+			// Full opcode a 16bit unfiltered entity. Captures the whole 2 bytes for CB cases
 			switch (fullOpcode)
 			{
 			case 0XCB00:					Dm = " - 0xCB00 - RLC B";		break;
@@ -1891,7 +2034,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		case 0XDF:	Dm = " - 0xDF - RST $18";		break;
 		case 0XE0: LOADHAOFF($xx, Ra, "Ra");	 Dm = " - 0xE0 - LDH ($xx) A"; break;
 		case 0XE1:						Dm = " - 0xE1 - POP HL"; BoxDeb();		break;
-		case 0XE2:						Dm = " - 0xE2 - LD (C) A"; BoxDeb();		break;
+		case 0XE2: LOADOFFR8A(Rc, "C");	Dm = " - 0xE2 - LD (C) A"; BoxDeb();		break;
 		case 0XE5:						Dm = " - 0xE5 - PUSH HL"; BoxDeb();		break;
 		case 0XE6:						Dm = " - 0xE6 - AND $xx"; BoxDeb();		break;
 		case 0XE7:						Dm = " - 0xE7 - RST $20"; BoxDeb();		break;
@@ -2075,13 +2218,22 @@ int main(int argc, char *argv[])
 	
 	if (!nullRender)
 	{
-		//TTF_Init();
+		TTF_Init();
+		if (!fontLoaded)
+		{ 
+		TTF_Font * font;
+		font = TTF_OpenFont("arial.ttf", 40);
+		fontLoaded = true;
+		if (font == NULL) { std::cout << "FONT NOT LOADED\n"; std::cin.get(); }
+		else { std::cout << "SDL_TTF READY TO ROLL\n"; std::cin.get(); }
+		}
+		
 		SDL_Window *window = NULL;
 		// SDL_Window* debugger = NULL;
 
 		window = SDL_CreateWindow
 			("GBdroid", SDL_WINDOWPOS_UNDEFINED,
-			SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_SHOWN);
+			SDL_WINDOWPOS_UNDEFINED, 800, 600, SDL_WINDOW_SHOWN);
 
 		renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
 
@@ -2096,20 +2248,31 @@ int main(int argc, char *argv[])
 	//gameboy.Reset();
 	//gameboy.LoadFile();
 	
+	
+	//-- Creating VRAM peeker all Functionality Disabled ///////////////////// 
 	gameboy.LoadBios();
 	gameboy.Boot();
-
+	gameboy.VRAMmanagerInit();
+	
 	///////////////////////////////////////////////////////////////////////////////////////
 	//- Main execution loop
-	//- Currently Pausing after each Opcode
+	//- Currently Catching Loops Instances
 	///////////////////////////////////////////////////////////////////////////////////////
 	while (1)	{
+
+		////VRAM PEEK
+		//gameboy.VRAMmanagerInit();
+		//gameboy.VRAMmanager();
+		gameboy.VRAMpeek();
+		//gameboy.gfxHandler();
+		/// VRAM PEEK
 		
 		for (opCounter = 0; opCounter <= 5; opCounter++) {
 		
-	//	gameboy.gfxHandler();
+		
 		gameboy.RegComb();
 		gameboy.opDecoder();
+		
 		
 		if (captureDm) { pastDms[opCounter] = Dm; }
 		else if (captureDm == false) { currentDms[opCounter] = Dm; }
@@ -2137,9 +2300,14 @@ int main(int argc, char *argv[])
 			
 		}
 		std::cout << "- 5 Instructions Evaluated - [" << loopInstances << "] Found\n";
-		
-		if (loopInstances > 1000) { gameboy.BoxDeb(); loopDetected = true; }
+		//Break Point QUICK ACCESS - 
+		//First you put a huge number here like 20000
+		//the program will most likely show the number of matchs in the loop getting stuck way before the counter finishes
+		//if i match the loop counter to this number. I can quickly jump into the last instruction that was read before going into a loop //most likely unimplemented
+		if (loopInstances > 11000) { gameboy.BoxDeb(); loopDetected = true; }
+		// TO RESTORE FUNCTIONALITY AFTER VRAM PEEK
 	//	std::cin.get();
+		//-- Creating VRAM peeker all Functionality Disabled /////////////////////
 }
 	return 0;
 }
