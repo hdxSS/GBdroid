@@ -1,7 +1,7 @@
 // Gameboy Basic.cpp : Defines the entry point for the console application.
 //
 
-#include "stdafx.h" // Windows only
+//#include "stdafx.h" // Windows only
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -11,8 +11,8 @@
 #include <string>
 #include <sstream>
 #include <SDL_ttf.h>
-#include <SDL.h> //for windows
-//#include <SDL2/SDL.h> //for android
+//#include <SDL.h> //for windows
+#include <SDL2/SDL.h> //for android
 #include <random>
 
 //Modules
@@ -53,6 +53,8 @@ std::string Starget;
 std::string Dtarget;
 
 std::stringstream funcText;
+std::stringstream memValue;
+std::string instamem;
 
 /// DEBUG MESSAGE COMPARE VARIABLES
 std::string pastDms[10];
@@ -116,7 +118,7 @@ public:
 	
 	
 	void VRAMmanagerInit() {
-		for (int i = 0x8000; i >= 0xFFFE; i++)
+		for (int i = 0; i >= 0x9FFE; i++)
 		{
 			std::cout << i << "\n";
 			memoryA[i] = 1;
@@ -148,9 +150,11 @@ public:
 					pixelVram[i].h = 2;
 					pixelVram[i].x = (2 * i) + (i * 2);
 					pixelVram[i].y = (2 * j) + (j * 2);
+					
+					
+SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
-
-					if (memoryA[i - 0x8000] == 0)
+					if (memoryA[Rhl] == 0 )
 					{
 						SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 					}
@@ -164,7 +168,7 @@ public:
 				
 
 			}  //fin j
-			SDL_RenderPresent(renderer);
+			//SDL_RenderPresent(renderer);
 			/*
 					pixel[20][i].h = 5;
 					pixel[20][i].w = 5;
@@ -2177,8 +2181,8 @@ void BoxDeb() {
 		Rc = 0x00;
 		Rd = 0x0;
 		Re = 0x0;
-		Rh = 0x0;
-		Rl = 0x0;
+		Rh = 0x9f;
+		Rl = 0xf5;
 		Rf = 0x0;
 		pc = 0;
 		sp = 0;
@@ -2189,7 +2193,7 @@ void BoxDeb() {
 		Raf = 0x0;
 		Rbc = 0x0;
 		Rde = 0x0;
-		Rhl = 0x0;
+		Rhl = 0x9ff5;
 		//gb::NOP();
 	}
 	
@@ -2250,10 +2254,14 @@ int main(int argc, char *argv[])
 	
 	
 	//-- Creating VRAM peeker all Functionality Disabled ///////////////////// 
-	gameboy.LoadBios();
+//	gameboy.LoadBios();
 	gameboy.Boot();
 	gameboy.VRAMmanagerInit();
 	
+	memValue << "mem: " <<  std::hex << (int)memoryA[gameboy.Rhl];
+		instamem = memValue.str();
+		
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Vram Peek", instamem.c_str(), NULL);
 	///////////////////////////////////////////////////////////////////////////////////////
 	//- Main execution loop
 	//- Currently Catching Loops Instances
@@ -2266,12 +2274,18 @@ int main(int argc, char *argv[])
 		gameboy.VRAMpeek();
 		//gameboy.gfxHandler();
 		/// VRAM PEEK
+		memValue.str(std::string());
+		
+		
+		
+		//memoryA[0x9F96] = 1;
 		
 		for (opCounter = 0; opCounter <= 5; opCounter++) {
 		
 		
 		gameboy.RegComb();
 		gameboy.opDecoder();
+		SDL_RenderPresent(renderer);
 		
 		
 		if (captureDm) { pastDms[opCounter] = Dm; }
@@ -2304,7 +2318,7 @@ int main(int argc, char *argv[])
 		//First you put a huge number here like 20000
 		//the program will most likely show the number of matchs in the loop getting stuck way before the counter finishes
 		//if i match the loop counter to this number. I can quickly jump into the last instruction that was read before going into a loop //most likely unimplemented
-		if (loopInstances > 11000) { gameboy.BoxDeb(); loopDetected = true; }
+		if (loopInstances > 10) { gameboy.BoxDeb(); loopDetected = true; }
 		// TO RESTORE FUNCTIONALITY AFTER VRAM PEEK
 	//	std::cin.get();
 		//-- Creating VRAM peeker all Functionality Disabled /////////////////////
