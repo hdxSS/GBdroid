@@ -72,6 +72,14 @@ bool fontLoaded = false;
 
 //VRAM PEEKER
 char Vram[0x2000];
+int vramCounter = 0;
+char vramGfx[8281];
+SDL_Rect pixelVram[8192];
+SDL_Rect r;
+int size = 5;
+int numCol = 0;
+int numRow = 0;
+
 
 unsigned short _16bitIn;
 unsigned long fullOpcode;
@@ -125,14 +133,40 @@ public:
 			//Vram[i] = 1;
 		}
 	}
-	void VRAMmanager() {
-		int VramCounter = 0;
-		for (int i = 0xA000; i >= 0x8000; i--)
-		{
-			memoryA[i] = Vram[VramCounter];
-			VramCounter++;
+	
+	void Vram2() {
+		
+		r.h = size;
+		r.w = size;
+			
+		for (int i =0; i<8282; i++) {
+			
+			 r.x = numCol * (size + 1);
+			r.y = numRow * (size + 1);
+			
+			
+			if ( numCol % 91  == 0 && numCol != 0) {
+			numRow ++;
+			numCol =0;
 		}
-	}
+		else {numCol++;}
+		
+		if (vramGfx[i] == 1) {
+			
+			SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+		}
+		else if  (vramGfx[i] == 0) {
+			SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+		}
+			
+			SDL_RenderFillRect(renderer, &r);
+			
+			SDL_RenderPresent(renderer);
+		}
+		
+	} //fin Vram2
+	
+		
 
 	void VRAMpeek() {
 		
@@ -152,9 +186,9 @@ public:
 					pixelVram[i].y = (2 * j) + (j * 2);
 					
 					
-SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+//SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
-					if (memoryA[Rhl] == 0 )
+					if (memoryA[vramCounter] == 0 )
 					{
 						SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 					}
@@ -354,7 +388,8 @@ SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 		case 1: // Read 8 bit from memory (I need a source[Mem] and a Target[Reg])
 			if (fromSource < 0x4000) { std::cout << "Reading from ROM bank0" << "\n"; }
 			else if (fromSource >= 0x4000 && fromSource < 0x8000) { std::cout << "Reading MMU ROM bank1" << "\n"; }
-			else if (fromSource >= 0x8000 && fromSource < 0xA000) { std::cout << "Reading MMU GFX" << "\n"; }
+			else if (fromSource >= 0x8000 && fromSource < 0xA000) { std::cout << "Reading MMU GFX" << "\n"; 
+			vramCounter++;}
 			else if (fromSource >= 0xA000 && fromSource < 0xC000) { std::cout << "Reading MMU EXT RAM bank" << "\n"; }
 			else if (fromSource >= 0xC000 && fromSource < 0xE000) { std::cout << "Reading MMU WORKING RAM" << "\n"; }
 			else if (fromSource >= 0xE000 && fromSource < 0xFE00) { std::cout << "Reading MMU WORKING RAM SHADOW" << "\n"; }
@@ -2254,9 +2289,9 @@ int main(int argc, char *argv[])
 	
 	
 	//-- Creating VRAM peeker all Functionality Disabled ///////////////////// 
-//	gameboy.LoadBios();
-	gameboy.Boot();
-	gameboy.VRAMmanagerInit();
+	//gameboy.LoadBios();
+	//gameboy.Boot();
+	//gameboy.VRAMmanagerInit();
 	
 	memValue << "mem: " <<  std::hex << (int)memoryA[gameboy.Rhl];
 		instamem = memValue.str();
@@ -2271,11 +2306,10 @@ int main(int argc, char *argv[])
 		////VRAM PEEK
 		//gameboy.VRAMmanagerInit();
 		//gameboy.VRAMmanager();
-		gameboy.VRAMpeek();
 		//gameboy.gfxHandler();
 		/// VRAM PEEK
 		memValue.str(std::string());
-		
+		gameboy.Vram2();
 		
 		
 		//memoryA[0x9F96] = 1;
@@ -2283,9 +2317,10 @@ int main(int argc, char *argv[])
 		for (opCounter = 0; opCounter <= 5; opCounter++) {
 		
 		
-		gameboy.RegComb();
-		gameboy.opDecoder();
-		SDL_RenderPresent(renderer);
+		//gameboy.RegComb();
+		//gameboy.opDecoder();
+	//	gameboy.VRAMpeek();
+		//SDL_RenderPresent(renderer);
 		
 		
 		if (captureDm) { pastDms[opCounter] = Dm; }
