@@ -76,7 +76,7 @@ int vramCounter = 0;
 char vramGfx[8281];
 SDL_Rect pixelVram[8192];
 SDL_Rect r;
-int size = 5;
+int size = 1;
 int numCol = 0;
 int numRow = 0;
 
@@ -126,10 +126,10 @@ public:
 	
 	
 	void VRAMmanagerInit() {
-		for (int i = 0; i >= 0x9FFE; i++)
+		for (int i = 0; i >= 8282; i++)
 		{
 			std::cout << i << "\n";
-			memoryA[i] = 1;
+			vramGfx[i] = 1;
 			//Vram[i] = 1;
 		}
 	}
@@ -145,12 +145,16 @@ public:
 			r.y = numRow * (size + 1);
 			
 			
-			if ( numCol % 91  == 0 && numCol != 0) {
+			if ( numCol % 91  == 0 && numCol != 0 ) {
 			numRow ++;
 			numCol =0;
 		}
-		else {numCol++;}
+		else if (numRow == 91) { break;; }
 		
+		else
+		{
+		numCol++;
+		}
 		if (vramGfx[i] == 1) {
 			
 			SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
@@ -160,9 +164,11 @@ public:
 		}
 			
 			SDL_RenderFillRect(renderer, &r);
+			//SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Vram Peek", "91", NULL);
 			
-			SDL_RenderPresent(renderer);
+			
 		}
+		SDL_RenderPresent(renderer);
 		
 	} //fin Vram2
 	
@@ -389,7 +395,15 @@ public:
 			if (fromSource < 0x4000) { std::cout << "Reading from ROM bank0" << "\n"; }
 			else if (fromSource >= 0x4000 && fromSource < 0x8000) { std::cout << "Reading MMU ROM bank1" << "\n"; }
 			else if (fromSource >= 0x8000 && fromSource < 0xA000) { std::cout << "Reading MMU GFX" << "\n"; 
-			vramCounter++;}
+			
+			for (int i = 32768; i<=40960; i++) {
+	
+vramGfx[fromSource-32768] = memoryA[fromSource];
+
+}
+			}
+			
+			
 			else if (fromSource >= 0xA000 && fromSource < 0xC000) { std::cout << "Reading MMU EXT RAM bank" << "\n"; }
 			else if (fromSource >= 0xC000 && fromSource < 0xE000) { std::cout << "Reading MMU WORKING RAM" << "\n"; }
 			else if (fromSource >= 0xE000 && fromSource < 0xFE00) { std::cout << "Reading MMU WORKING RAM SHADOW" << "\n"; }
@@ -2285,12 +2299,12 @@ int main(int argc, char *argv[])
 
 	gb gameboy;
 	//gameboy.Reset();
-	//gameboy.LoadFile();
+	gameboy.LoadFile();
 	
 	
 	//-- Creating VRAM peeker all Functionality Disabled ///////////////////// 
-	//gameboy.LoadBios();
-	//gameboy.Boot();
+	gameboy.LoadBios();
+	gameboy.Boot();
 	//gameboy.VRAMmanagerInit();
 	
 	memValue << "mem: " <<  std::hex << (int)memoryA[gameboy.Rhl];
@@ -2309,7 +2323,7 @@ int main(int argc, char *argv[])
 		//gameboy.gfxHandler();
 		/// VRAM PEEK
 		memValue.str(std::string());
-		gameboy.Vram2();
+		
 		
 		
 		//memoryA[0x9F96] = 1;
@@ -2317,9 +2331,10 @@ int main(int argc, char *argv[])
 		for (opCounter = 0; opCounter <= 5; opCounter++) {
 		
 		
-		//gameboy.RegComb();
-		//gameboy.opDecoder();
+		gameboy.RegComb();
+		gameboy.opDecoder();
 	//	gameboy.VRAMpeek();
+	gameboy.Vram2();
 		//SDL_RenderPresent(renderer);
 		
 		
@@ -2353,7 +2368,7 @@ int main(int argc, char *argv[])
 		//First you put a huge number here like 20000
 		//the program will most likely show the number of matchs in the loop getting stuck way before the counter finishes
 		//if i match the loop counter to this number. I can quickly jump into the last instruction that was read before going into a loop //most likely unimplemented
-		if (loopInstances > 10) { gameboy.BoxDeb(); loopDetected = true; }
+		if (loopInstances > 1) { gameboy.BoxDeb(); loopDetected = true; }
 		// TO RESTORE FUNCTIONALITY AFTER VRAM PEEK
 	//	std::cin.get();
 		//-- Creating VRAM peeker all Functionality Disabled /////////////////////
