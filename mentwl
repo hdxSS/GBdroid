@@ -1,0 +1,10 @@
+Si tuviese una memoria global de 2000 unidades
+Y una gfx de 100 y mi area de interes fuera 500-600
+
+Diria 
+
+For (int i =500; i<=600; i++) {
+	
+Gfx[i-500] = memoria[i];
+
+}
