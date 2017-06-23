@@ -2374,7 +2374,7 @@ int main(int argc, char *argv[])
 		//First you put a huge number here like 20000
 		//the program will most likely show the number of matchs in the loop getting stuck way before the counter finishes
 		//if i match the loop counter to this number. I can quickly jump into the last instruction that was read before going into a loop //most likely unimplemented
-		if (loopInstances == 0) { loopDetected = true; SDL_RenderPresent(renderer); }
+		if (loopInstances > 0) { loopDetected = true; SDL_RenderPresent(renderer); }
 		// TO RESTORE FUNCTIONALITY AFTER VRAM PEEK
 	//	std::cin.get();
 		//-- Creating VRAM peeker all Functionality Disabled /////////////////////
