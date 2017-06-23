@@ -1,7 +1,7 @@
 // Gameboy Basic.cpp : Defines the entry point for the console application.
 //
 
-//#include "stdafx.h" // Windows only
+#include "stdafx.h" // Windows only
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -11,8 +11,8 @@
 #include <string>
 #include <sstream>
 #include <SDL_ttf.h>
-//#include <SDL.h> //for windows
-#include <SDL2/SDL.h> //for android
+#include <SDL.h> //for windows
+//#include <SDL2/SDL.h> //for android
 #include <random>
 
 //Modules
@@ -76,7 +76,7 @@ int vramCounter = 0;
 char vramGfx[8281];
 SDL_Rect pixelVram[8192];
 SDL_Rect r;
-int size = 1;
+int size = 5;
 int numCol = 0;
 int numRow = 0;
 
@@ -126,7 +126,7 @@ public:
 	
 	
 	void VRAMmanagerInit() {
-		for (int i = 0; i >= 8282; i++)
+		for (int i = 0; i <= 8281; i++)
 		{
 			std::cout << i << "\n";
 			vramGfx[i] = 1;
@@ -135,41 +135,48 @@ public:
 	}
 	
 	void Vram2() {
-		
+		numCol = 0;
+		numRow = 0;
+
 		r.h = size;
 		r.w = size;
 			
-		for (int i =0; i<8282; i++) {
+		for (int i = 0; i <8192; i++) {
 			
 			 r.x = numCol * (size + 1);
 			r.y = numRow * (size + 1);
 			
 			
 			if ( numCol % 91  == 0 && numCol != 0 ) {
+
 			numRow ++;
-			numCol =0;
+			numCol = 0;
 		}
-		else if (numRow == 91) { break;; }
 		
+
 		else
 		{
 		numCol++;
 		}
-		if (vramGfx[i] == 1) {
+		if ((int)vramGfx[i] == 0x1) {
 			
 			SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+			//std::cout << "Detected 1" << "\n";
 		}
-		else if  (vramGfx[i] == 0) {
+		else if ((int)vramGfx[i] == 0x0) {
+			//std::cout << "Detected 0 in " << std::dec << i << " of coordinates:  " << std::dec << (int)numCol << "," << std::dec << (int)numRow << "\n";
 			SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 		}
 			
 			SDL_RenderFillRect(renderer, &r);
+			
+			//std::cout << " i: " << i;
 			//SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Vram Peek", "91", NULL);
 			
 			
 		}
-		SDL_RenderPresent(renderer);
 		
+		//SDL_RenderPresent(renderer);
 	} //fin Vram2
 	
 		
@@ -396,14 +403,7 @@ public:
 			else if (fromSource >= 0x4000 && fromSource < 0x8000) { std::cout << "Reading MMU ROM bank1" << "\n"; }
 			else if (fromSource >= 0x8000 && fromSource < 0xA000) { std::cout << "Reading MMU GFX" << "\n"; 
 			
-			for (int i = 32768; i<=40960; i++) {
-	
-vramGfx[fromSource-32768] = memoryA[fromSource];
-
-}
-			}
-			
-			
+			}		
 			else if (fromSource >= 0xA000 && fromSource < 0xC000) { std::cout << "Reading MMU EXT RAM bank" << "\n"; }
 			else if (fromSource >= 0xC000 && fromSource < 0xE000) { std::cout << "Reading MMU WORKING RAM" << "\n"; }
 			else if (fromSource >= 0xE000 && fromSource < 0xFE00) { std::cout << "Reading MMU WORKING RAM SHADOW" << "\n"; }
@@ -441,8 +441,10 @@ vramGfx[fromSource-32768] = memoryA[fromSource];
 		if (toTarget < 0x4000) { std::cout << "Writing from ROM bank0" << "\n"; }
 		else if (toTarget >= 0x4000 && toTarget < 0x8000) { std::cout << "Writing MMU ROM bank1" << "\n"; }
 		else if (toTarget >= 0x8000 && toTarget < 0xA000) { std::cout << "Writing MMU GFX" << "\n";
-		Vram[toTarget - 0x8000] = fromSource;
-		std::cout << "Writing " << sourceReg << std::hex << (int)fromSource << "] to Mem region [0x" << std::hex << (int)toTarget << "]\n";
+		
+		vramGfx[toTarget - 0x8000] = fromSource;
+		//std::cout << "Writing " << sourceReg << std::hex << (int)fromSource << "] to Mem region [0x" << std::hex << (int)toTarget << "]\n";
+		//std::cout << "Parsing mem to VramGfx Pos = " << std::dec << int(toTarget - 0x8000) << "\n";
 		}
 		else if (toTarget >= 0xA000 && toTarget < 0xC000) { std::cout << "Writing MMU EXT RAM bank" << "\n"; }
 		else if (toTarget >= 0xC000 && toTarget < 0xE000) { std::cout << "Writing MMU WORKING RAM" << "\n"; }
@@ -1150,10 +1152,12 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		////-- Instruction preset
 		opLen = 1;
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
+		//std::cout << "MEMORY RHL: " << std::dec << (int)vramGfx[8191] << "\n";
 		memoryA[Rhl] = _R8;
-		MMUexp(Rhl,_R8,"[Ra = ", 4);
+		MMUexp(Rhl,_R8,Starget, 4);
 		funcText << "LOADD " << "(HL) ," << Starget;
 		functType = funcText.str();
+		//std::cout << "MEMORY RHL DESP: " << std::dec << (int)vramGfx[(8191)] << "\n";
 		opDeb();
 		if (Dtarget == "(HL)") {
 			if (Rl == 0) { Rh--; Rl = 0xFF; }
@@ -2141,7 +2145,7 @@ void BoxDeb() {
 	std::bitset<8> debugFlag(Rf);
 	std::stringstream MemAccess;
 	
-	if (loopDetected == true) {
+	if (loopDetected = true) {
 
 		if ($aabb > 0X4000)
 		{
@@ -2305,7 +2309,7 @@ int main(int argc, char *argv[])
 	//-- Creating VRAM peeker all Functionality Disabled ///////////////////// 
 	gameboy.LoadBios();
 	gameboy.Boot();
-	//gameboy.VRAMmanagerInit();
+	gameboy.VRAMmanagerInit();
 	
 	memValue << "mem: " <<  std::hex << (int)memoryA[gameboy.Rhl];
 		instamem = memValue.str();
@@ -2332,10 +2336,12 @@ int main(int argc, char *argv[])
 		
 		
 		gameboy.RegComb();
+		gameboy.BoxDeb();
 		gameboy.opDecoder();
+		
 	//	gameboy.VRAMpeek();
 	gameboy.Vram2();
-		//SDL_RenderPresent(renderer);
+		//
 		
 		
 		if (captureDm) { pastDms[opCounter] = Dm; }
@@ -2368,10 +2374,12 @@ int main(int argc, char *argv[])
 		//First you put a huge number here like 20000
 		//the program will most likely show the number of matchs in the loop getting stuck way before the counter finishes
 		//if i match the loop counter to this number. I can quickly jump into the last instruction that was read before going into a loop //most likely unimplemented
-		if (loopInstances > 1) { gameboy.BoxDeb(); loopDetected = true; }
+		if (loopInstances == 0) { loopDetected = true; SDL_RenderPresent(renderer); }
 		// TO RESTORE FUNCTIONALITY AFTER VRAM PEEK
 	//	std::cin.get();
 		//-- Creating VRAM peeker all Functionality Disabled /////////////////////
+		
+		
 }
 	return 0;
 }
