@@ -598,9 +598,35 @@ public:
 		case 0xFF44: std::cout << "- trying to write LY \n"; break;
 		case 0xFF45: std::cout << "- trying to write LYC \n"; break;
 		case 0xFF46: std::cout << "- trying to write DMA \n"; break;
-		case 0xFF47: std::cout << "- trying to write Window Pallete Data \n"; break;
-		case 0xFF48: std::cout << "- trying to write Object Pallete 0 Data \n"; break;
-		case 0xFF49: std::cout << "- trying to write Object Pallete 1 Data \n"; break;
+		case 0xFF47: std::cout << "- trying to write Window / BG Pallete Data \n";
+	   FF47_BGP = memoryA[0xFF00 + Rc];
+	   std::bitset<8> FF47bits( FF47_BGP);//Window palette DATA converted to bits
+	   If (FF47bits.test(0) == 0 && FF47bits.test(1) == 0 ) {
+	   	// neutral white 255 255 255
+	   	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+	   }
+	   else if  (FF47bits.test(2) == 0 && FF47bits.test(3) == 0 ) {
+	   	//lightest gray 192 192 192
+	   	SDL_SetRenderDrawColor(renderer, 192, 192, 192, 255);
+	   }
+	   else if (FF47bits.test(4) == 0 && FF47bits.test(5) == 0 ) {
+	   	//darkest gray 96 96 96
+	   	SDL_SetRenderDrawColor(renderer, 96, 96, 96, 255);
+	   }
+	   else if (FF47bits.test(6) == 0 && FF47bits.test(7) == 0 ) {
+	   	//neutral black 0 0 0
+	   	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	   }
+	
+		 break;
+		case 0xFF48: std::cout << "- trying to write Object Pallete 0 Data \n";
+		std::bitset<8> FF48bits(FF48_OBP0); //Object Pallete 0 Data
+		
+		
+		  break;
+		case 0xFF49: std::cout << "- trying to write Object Pallete 1 Data \n";
+	std::bitset<8> FF49bits(FF49_OBP1); //Object pallete 1 Data
+		  break;
 		case 0xFF4A: std::cout << "- trying to write Windows Pos Y \n"; break;
 		case 0xFF4B: std::cout << "- trying to write Windows Pos X \n"; break;
 		}
