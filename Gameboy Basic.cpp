@@ -1,7 +1,7 @@
 // Gameboy Basic.cpp : Defines the entry point for the console application.
 // ob
 
-//#include "stdafx.h" // Windows only
+#include "stdafx.h" // Windows only
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -11,8 +11,8 @@
 #include <string>
 #include <sstream>
 #include <SDL_ttf.h>
-//#include <SDL.h> //for windows
-#include <SDL2/SDL.h> //for android
+#include <SDL.h> //for windows
+//#include <SDL2/SDL.h> //for android
 #include <random>
 
 //Modules
@@ -95,9 +95,59 @@ unsigned char TempRf;
 class gb
 {
 public:
+//CPU Registers
 	unsigned short Raf, Rbc, Rde, Rhl;
 	unsigned char Ra, Rf, Rb, Rc, Rd, Re, Rl, Rh;
 	unsigned short pc, sp;
+	unsigned char stack[0xFFFF];
+
+//I-O Registers
+	unsigned char FF00_P1; //Key input R/W bit 0-5
+	unsigned char FF01_SB; //Serial transfer R/W -8 Bit
+	unsigned char FF02_SC; //SIO control R/W bits 7 and 0
+	unsigned char FF04_DIV;//DIV R/W
+	unsigned char FF05_TIMA; //TIMA Counter R/W
+	unsigned char FF06_TMA; //Timer Modulo R/W
+	unsigned char FF07_TAC; //Timer Control R/W
+	unsigned char FF0F_IF; // Interrupt Flag R/W
+	//Interrupts
+	// V-Blank, LCDC Status, Timer Overflow, Serial Transfer, Hi-Lo P10-P13
+	unsigned char FF10_NR10; //Sound Mode 1 Register R/W
+	unsigned char FF11_NR11; //NR11
+	unsigned char FF12_NR12;
+	unsigned char FF13_NR13;
+	unsigned char FF14_NR14;
+	unsigned char FF16_NR21;
+	unsigned char FF17_NR22;
+	unsigned char FF18_NR23;
+	unsigned char FF19_NR24;
+	unsigned char FF1A_NR30;
+	unsigned char FF1B_NR31;
+	unsigned char FF1C_NR32;
+	unsigned char FF1D_NR33;
+	unsigned char FF1E_NR34;
+	unsigned char FF20_NR41;
+	unsigned char FF21_NR42;
+	unsigned char FF22_NR43;
+	unsigned char FF23_NR44;
+	unsigned char FF24_NR50;
+	unsigned char FF25_NR51;
+	unsigned char FF26_NR52;
+	unsigned char FF30_WPR, FF31_WPR, FF32_WPR, FF33_WPR, FF34_WPR, FF35_WPR, FF36_WPR, FF37_WPR, FF38_WPR, FF39_WPR, FF3A_WPR, FF3B_WPR, FF3C_WPR, FF3D_WPR, FF3E_WPR, FF3F_WPR;
+	unsigned char FF40_LCDC; // LCDC
+	unsigned char FF41_STAT; // STAT
+	unsigned char FF42_SCY; //SCY
+	unsigned char FF43_SCX; //SCX
+	unsigned char FF44_LY; //Vertical line for coordinate Y
+	unsigned char FF45_LYC; //Compare LY
+	unsigned char FF46_DMA; //DMA transfer
+	unsigned char FF47_BGP; //Window palette DATA
+	unsigned char FF48_OBP0; //Object Pallete 0 Data
+	unsigned char FF49_OBP1; //Object pallete 1 Data
+	unsigned char FF4A_WY; //Windows Y position
+	unsigned char FF4B_WX; //Windows X position
+	unsigned char FFFF_IE; //Interrupt Enable
+
 	unsigned char opclock = 0;
 	unsigned long cpuClock = 0;
 	unsigned char mathTC1 = 0;
@@ -395,64 +445,202 @@ public:
 //- Im using the MMU as a BP for when the CPU is mature enough to start accesing VRAM 
 //- This will be a Major milestone in the project
 ///////////////////////////////////////////////////////////////////////////////////////
-	void MMUexp(unsigned short toTarget, unsigned short fromSource, std::string sourceReg, int WriteType) {
+	void MMUexp(unsigned short toTarget, unsigned short fromSource, std::string sourceReg, int MMUopType) {
 
-		switch (WriteType)
+		switch (MMUopType)
 		{
 		case 1: // Read 8 bit from memory (I need a source[Mem] and a Target[Reg])
-			if (fromSource < 0x4000) { std::cout << "Reading from ROM bank0" << "\n"; }
-			else if (fromSource >= 0x4000 && fromSource < 0x8000) { std::cout << "Reading MMU ROM bank1" << "\n"; }
-			else if (fromSource >= 0x8000 && fromSource < 0xA000) { std::cout << "Reading MMU GFX" << "\n"; 
+			if (fromSource < 0x4000) { std::cout << " Reading 8bit from ROM bank0" << "\n"; }
+			else if (fromSource >= 0x4000 && fromSource < 0x8000) { std::cout << " Reading 8bit from ROM bank1" << "\n"; }
+			else if (fromSource >= 0x8000 && fromSource < 0xA000) { std::cout << " Reading 8bit from GFX" << "\n"; }		
+			else if (fromSource >= 0xA000 && fromSource < 0xC000) { std::cout << " Reading 8bit from EXT RAM bank" << "\n"; }
+			else if (fromSource >= 0xC000 && fromSource < 0xE000) { std::cout << " Reading 8bit from WORKING RAM" << "\n"; }
+			else if (fromSource >= 0xE000 && fromSource < 0xFE00) { std::cout << " Reading 8bit from WORKING RAM SHADOW" << "\n"; }
+			else if (fromSource >= 0xFE00 && fromSource < 0xFF00) { std::cout << " Reading 8bit from GFX SPRITES" << "\n"; }
+			else if (fromSource >= 0xFF00 && fromSource < 0xFF80) { std::cout << " Reading 8bit from INPUT" << "\n"; 
 			
-			}		
-			else if (fromSource >= 0xA000 && fromSource < 0xC000) { std::cout << "Reading MMU EXT RAM bank" << "\n"; }
-			else if (fromSource >= 0xC000 && fromSource < 0xE000) { std::cout << "Reading MMU WORKING RAM" << "\n"; }
-			else if (fromSource >= 0xE000 && fromSource < 0xFE00) { std::cout << "Reading MMU WORKING RAM SHADOW" << "\n"; }
-			else if (fromSource >= 0xFE00 && fromSource < 0xFF00) { std::cout << "Reading MMU GFX SPRITES" << "\n"; }
-			else if (fromSource >= 0xFF00 && fromSource < 0xFF80) { std::cout << "Reading MMU INPUT" << "\n"; }
-			else if (fromSource >= 0xFF80 && fromSource < 0xFFFF) { std::cout << "Reading MMU ZERO PAGE RAM" << "\n"; }
+			switch (fromSource & 0xFFFF)
+			{
+			case 0xFF00: std::cout << "- trying to read input \n"; break;
+			case 0xFF01: std::cout << "- trying to read Serial transfer state \n"; break;
+			case 0xFF03: std::cout << "- trying to read SIO control state \n"; break;
+			case 0xFF04: std::cout << "- trying to read Divider \n"; break;
+			case 0xFF05: std::cout << "- trying to read Tima Counter \n"; break;
+			case 0xFF06: std::cout << "- trying to read TMA \n"; break;
+			case 0xFF07: std::cout << "- trying to read TAC \n"; break;
+			case 0xFF0F: std::cout << "- trying to read Interrupt Flag \n"; break;
+			case 0xFF10: std::cout << "- trying to read Sound Mode 1 \n"; break;
+			case 0xFF11: std::cout << "- trying to read NR11 \n"; break;
+			case 0xFF12: std::cout << "- trying to read NR12 \n"; break;
+			case 0xFF13: std::cout << "- trying to read NR13 \n"; break;
+			case 0xFF14: std::cout << "- trying to read NR14 \n"; break;
+			case 0xFF16: std::cout << "- trying to read NR21 \n"; break;
+			case 0xFF17: std::cout << "- trying to read NR22 \n"; break;
+			case 0xFF18: std::cout << "- trying to read NR23 \n"; break;
+			case 0xFF19: std::cout << "- trying to read NR24 \n"; break;
+			case 0xFF1A: std::cout << "- trying to read NR30 \n"; break;
+			case 0xFF1B: std::cout << "- trying to read NR31 \n"; break;
+			case 0xFF1C: std::cout << "- trying to read NR32 \n"; break;
+			case 0xFF1D: std::cout << "- trying to read NR33 \n"; break;
+			case 0xFF1E: std::cout << "- trying to read NR34 \n"; break;
+			case 0xFF20: std::cout << "- trying to read NR41 \n"; break;
+			case 0xFF21: std::cout << "- trying to read NR42 \n"; break;
+			case 0xFF22: std::cout << "- trying to read NR43 \n"; break;
+			case 0xFF23: std::cout << "- trying to read NR44 \n"; break;
+			case 0xFF24: std::cout << "- trying to read NR50 \n"; break;
+			case 0xFF25: std::cout << "- trying to read NR51 \n"; break;
+			case 0xFF26: std::cout << "- trying to read NR52 \n"; break;
+			case 0xFF30: std::cout << "- trying to read WPR0 \n"; break;
+			case 0xFF31: std::cout << "- trying to read WPR1 \n"; break;
+			case 0xFF32: std::cout << "- trying to read WPR2 \n"; break;
+			case 0xFF33: std::cout << "- trying to read WPR3 \n"; break;
+			case 0xFF34: std::cout << "- trying to read WPR4 \n"; break;
+			case 0xFF35: std::cout << "- trying to read WPR5 \n"; break;
+			case 0xFF36: std::cout << "- trying to read WPR6 \n"; break;
+			case 0xFF37: std::cout << "- trying to read WPR7 \n"; break;
+			case 0xFF38: std::cout << "- trying to read WPR8 \n"; break;
+			case 0xFF39: std::cout << "- trying to read WPR9 \n"; break;
+			case 0xFF3A: std::cout << "- trying to read WPRA \n"; break;
+			case 0xFF3B: std::cout << "- trying to read WPRB \n"; break;
+			case 0xFF3C: std::cout << "- trying to read WPRC \n"; break;
+			case 0xFF3D: std::cout << "- trying to read WPRD \n"; break;
+			case 0xFF3E: std::cout << "- trying to read WPRE \n"; break;
+			case 0xFF3F: std::cout << "- trying to read WPRF \n"; break;
+			case 0xFF40: std::cout << "- trying to read LCDC \n"; break;
+			case 0xFF41: std::cout << "- trying to read STAT \n"; break;
+			case 0xFF42: std::cout << "- trying to read SCY \n"; break;
+			case 0xFF43: std::cout << "- trying to read SCX \n"; break;
+			case 0xFF44: std::cout << "- trying to read LY \n"; break;
+			case 0xFF45: std::cout << "- trying to read LYC \n"; break;
+			case 0xFF46: std::cout << "- trying to read DMA \n"; break;
+			case 0xFF47: std::cout << "- trying to read Window Pallete Data \n"; break;
+			case 0xFF48: std::cout << "- trying to read Object Pallete 0 Data \n"; break;
+			case 0xFF49: std::cout << "- trying to read Object Pallete 1 Data \n"; break;
+			case 0xFF4A: std::cout << "- trying to read Windows Pos Y \n"; break;
+			case 0xFF4B: std::cout << "- trying to read Windows Pos X \n"; break;
+
+			
+			}
+
+			}
+			else if (fromSource >= 0xFF80 && fromSource < 0xFFFF) { std::cout << " Reading 8bit from ZERO PAGE RAM" << "\n";
+			switch (fromSource & 0xFFFF) {
+			case 0xFFFF: std::cout << "- trying to read Interrupt Enable State \n"; break;
+			}
+			
+			}
 			break;
 		
 
 	case 2: // Write 8 bit to memory (I need a source[Reg] and a Target[Mem])
-		if (toTarget < 0x4000) { std::cout << "Writing from ROM bank0" << "\n"; }
-		else if (toTarget >= 0x4000 && toTarget < 0x8000) { std::cout << "Writing MMU ROM bank1" << "\n"; }
-		else if (toTarget >= 0x8000 && toTarget < 0xA000) { std::cout << "Writing MMU GFX" << "\n"; }
-		else if (toTarget >= 0xA000 && toTarget < 0xC000) { std::cout << "Writing MMU EXT RAM bank" << "\n"; }
-		else if (toTarget >= 0xC000 && toTarget < 0xE000) { std::cout << "Writing MMU WORKING RAM" << "\n"; }
-		else if (toTarget >= 0xE000 && toTarget < 0xFE00) { std::cout << "Writing MMU WORKING RAM SHADOW" << "\n"; }
-		else if (toTarget >= 0xFE00 && toTarget < 0xFF00) { std::cout << "Writing MMU GFX SPRITES" << "\n"; }
-		else if (toTarget >= 0xFF00 && toTarget < 0xFF80) { std::cout << "Writing MMU INPUT" << "\n"; }
-		else if (toTarget >= 0xFF80 && toTarget < 0xFFFF) { std::cout << "Writing MMU ZERO PAGE RAM" << "\n"; }
+		if (toTarget < 0x4000) { std::cout << " Writing 8bit from ROM bank0" << "\n"; }
+		else if (toTarget >= 0x4000 && toTarget < 0x8000) { std::cout << " Writing 8bit to ROM bank1" << "\n"; }
+		else if (toTarget >= 0x8000 && toTarget < 0xA000) { //std::cout << " Writing 8bit to GFX" << "\n"; 
+		vramGfx[toTarget - 0x8000] = fromSource;
+		}
+		else if (toTarget >= 0xA000 && toTarget < 0xC000) { std::cout << " Writing 8bit to EXT RAM bank" << "\n"; }
+		else if (toTarget >= 0xC000 && toTarget < 0xE000) { std::cout << " Writing 8bit to WORKING RAM" << "\n"; }
+		else if (toTarget >= 0xE000 && toTarget < 0xFE00) { std::cout << " Writing 8bit to WORKING RAM SHADOW" << "\n"; }
+		else if (toTarget >= 0xFE00 && toTarget < 0xFF00) { std::cout << " Writing 8bit to GFX SPRITES" << "\n"; }
+		else if (toTarget >= 0xFF00 && toTarget < 0xFF80) { std::cout << " Writing 8bit to INPUT" << "\n"; 
+		
+		switch (toTarget & 0xFFFF)
+		{
+		case 0xFF00: std::cout << "- trying to write input \n"; break;
+		case 0xFF01: std::cout << "- trying to write Serial transfer state \n"; break;
+		case 0xFF03: std::cout << "- trying to write SIO control state \n"; break;
+		case 0xFF04: std::cout << "- trying to write Divider \n"; break;
+		case 0xFF05: std::cout << "- trying to write Tima Counter \n"; break;
+		case 0xFF06: std::cout << "- trying to write TMA \n"; break;
+		case 0xFF07: std::cout << "- trying to write TAC \n"; break;
+		case 0xFF0F: std::cout << "- trying to write Interrupt Flag \n"; break;
+		case 0xFF10: std::cout << "- trying to write Sound Mode 1 \n"; break;
+		case 0xFF11: std::cout << "- trying to write NR11 \n"; break;
+		case 0xFF12: std::cout << "- trying to write NR12 \n"; break;
+		case 0xFF13: std::cout << "- trying to write NR13 \n"; break;
+		case 0xFF14: std::cout << "- trying to write NR14 \n"; break;
+		case 0xFF16: std::cout << "- trying to write NR21 \n"; break;
+		case 0xFF17: std::cout << "- trying to write NR22 \n"; break;
+		case 0xFF18: std::cout << "- trying to write NR23 \n"; break;
+		case 0xFF19: std::cout << "- trying to write NR24 \n"; break;
+		case 0xFF1A: std::cout << "- trying to write NR30 \n"; break;
+		case 0xFF1B: std::cout << "- trying to write NR31 \n"; break;
+		case 0xFF1C: std::cout << "- trying to write NR32 \n"; break;
+		case 0xFF1D: std::cout << "- trying to write NR33 \n"; break;
+		case 0xFF1E: std::cout << "- trying to write NR34 \n"; break;
+		case 0xFF20: std::cout << "- trying to write NR41 \n"; break;
+		case 0xFF21: std::cout << "- trying to write NR42 \n"; break;
+		case 0xFF22: std::cout << "- trying to write NR43 \n"; break;
+		case 0xFF23: std::cout << "- trying to write NR44 \n"; break;
+		case 0xFF24: std::cout << "- trying to write NR50 \n"; break;
+		case 0xFF25: std::cout << "- trying to write NR51 \n"; break;
+		case 0xFF26: std::cout << "- trying to write NR52 \n"; break;
+		case 0xFF30: std::cout << "- trying to write WPR0 \n"; break;
+		case 0xFF31: std::cout << "- trying to write WPR1 \n"; break;
+		case 0xFF32: std::cout << "- trying to write WPR2 \n"; break;
+		case 0xFF33: std::cout << "- trying to write WPR3 \n"; break;
+		case 0xFF34: std::cout << "- trying to write WPR4 \n"; break;
+		case 0xFF35: std::cout << "- trying to write WPR5 \n"; break;
+		case 0xFF36: std::cout << "- trying to write WPR6 \n"; break;
+		case 0xFF37: std::cout << "- trying to write WPR7 \n"; break;
+		case 0xFF38: std::cout << "- trying to write WPR8 \n"; break;
+		case 0xFF39: std::cout << "- trying to write WPR9 \n"; break;
+		case 0xFF3A: std::cout << "- trying to write WPRA \n"; break;
+		case 0xFF3B: std::cout << "- trying to write WPRB \n"; break;
+		case 0xFF3C: std::cout << "- trying to write WPRC \n"; break;
+		case 0xFF3D: std::cout << "- trying to write WPRD \n"; break;
+		case 0xFF3E: std::cout << "- trying to write WPRE \n"; break;
+		case 0xFF3F: std::cout << "- trying to write WPRF \n"; break;
+		case 0xFF40: std::cout << "- trying to write LCDC \n"; break;
+		case 0xFF41: std::cout << "- trying to write STAT \n"; break;
+		case 0xFF42: std::cout << "- trying to write SCY \n"; break;
+		case 0xFF43: std::cout << "- trying to write SCX \n"; break;
+		case 0xFF44: std::cout << "- trying to write LY \n"; break;
+		case 0xFF45: std::cout << "- trying to write LYC \n"; break;
+		case 0xFF46: std::cout << "- trying to write DMA \n"; break;
+		case 0xFF47: std::cout << "- trying to write Window Pallete Data \n"; break;
+		case 0xFF48: std::cout << "- trying to write Object Pallete 0 Data \n"; break;
+		case 0xFF49: std::cout << "- trying to write Object Pallete 1 Data \n"; break;
+		case 0xFF4A: std::cout << "- trying to write Windows Pos Y \n"; break;
+		case 0xFF4B: std::cout << "- trying to write Windows Pos X \n"; break;
+		}
+
+		}
+		else if (toTarget >= 0xFF80 && toTarget < 0xFFFF) { std::cout << " Writing 8bit to ZERO PAGE RAM" << "\n";
+		
+		switch (toTarget & 0xFFFF) {
+		case 0xFFFF: std::cout << "- trying to write Interrupt Enable State \n"; break;
+		}
+		}
 		break;
 
 	case 3: // Read 16 bit from memory (I need a source[Mem] and a Target[Reg]
-		if (fromSource < 0x4000) { std::cout << "Reading from ROM bank0" << "\n"; }
-		else if (fromSource >= 0x4000 && fromSource < 0x8000) { std::cout << "Reading MMU ROM bank1" << "\n"; }
-		else if (fromSource >= 0x8000 && fromSource < 0xA000) { std::cout << "Reading MMU GFX" << "\n"; }
-		else if (fromSource >= 0xA000 && fromSource < 0xC000) { std::cout << "Reading MMU EXT RAM bank" << "\n"; }
-		else if (fromSource >= 0xC000 && fromSource < 0xE000) { std::cout << "Reading MMU WORKING RAM" << "\n"; }
-		else if (fromSource >= 0xE000 && fromSource < 0xFE00) { std::cout << "Reading MMU WORKING RAM SHADOW" << "\n"; }
-		else if (fromSource >= 0xFE00 && fromSource < 0xFF00) { std::cout << "Reading MMU GFX SPRITES" << "\n"; }
-		else if (fromSource >= 0xFF00 && fromSource < 0xFF80) { std::cout << "Reading MMU INPUT" << "\n"; }
-		else if (fromSource >= 0xFF80 && fromSource < 0xFFFF) { std::cout << "Reading MMU ZERO PAGE RAM" << "\n"; }
+		if (fromSource < 0x4000) { std::cout << " Reading 16bit from ROM bank0" << "\n"; }
+		else if (fromSource >= 0x4000 && fromSource < 0x8000) { std::cout << " Reading 16bit from ROM bank1" << "\n"; }
+		else if (fromSource >= 0x8000 && fromSource < 0xA000) { std::cout << " Reading 16bit from GFX" << "\n"; }
+		else if (fromSource >= 0xA000 && fromSource < 0xC000) { std::cout << " Reading 16bit from EXT RAM bank" << "\n"; }
+		else if (fromSource >= 0xC000 && fromSource < 0xE000) { std::cout << " Reading 16bit from WORKING RAM" << "\n"; }
+		else if (fromSource >= 0xE000 && fromSource < 0xFE00) { std::cout << " Reading 16bit from WORKING RAM SHADOW" << "\n"; }
+		else if (fromSource >= 0xFE00 && fromSource < 0xFF00) { std::cout << " Reading 16bit from GFX SPRITES" << "\n"; }
+		else if (fromSource >= 0xFF00 && fromSource < 0xFF80) { std::cout << " Reading 16bit from INPUT" << "\n"; }
+		else if (fromSource >= 0xFF80 && fromSource < 0xFFFF) { std::cout << " Reading 16bit from ZERO PAGE RAM" << "\n";
+		
+		}
 		break;
 
 	case 4: // Write 16 bit to memory (I need a source[Reg] and a Target[Mem]
-		if (toTarget < 0x4000) { std::cout << "Writing from ROM bank0" << "\n"; }
-		else if (toTarget >= 0x4000 && toTarget < 0x8000) { std::cout << "Writing MMU ROM bank1" << "\n"; }
-		else if (toTarget >= 0x8000 && toTarget < 0xA000) { std::cout << "Writing MMU GFX" << "\n";
-		
-		vramGfx[toTarget - 0x8000] = fromSource;
+		if (toTarget < 0x4000) { std::cout << " Writing 16bit to ROM bank0" << "\n"; }
+		else if (toTarget >= 0x4000 && toTarget < 0x8000) { std::cout << " Writing 16bit to ROM bank1" << "\n"; }
+		else if (toTarget >= 0x8000 && toTarget < 0xA000) { std::cout << " Writing 16bit to GFX" << "\n";
 		//std::cout << "Writing " << sourceReg << std::hex << (int)fromSource << "] to Mem region [0x" << std::hex << (int)toTarget << "]\n";
 		//std::cout << "Parsing mem to VramGfx Pos = " << std::dec << int(toTarget - 0x8000) << "\n";
 		}
-		else if (toTarget >= 0xA000 && toTarget < 0xC000) { std::cout << "Writing MMU EXT RAM bank" << "\n"; }
-		else if (toTarget >= 0xC000 && toTarget < 0xE000) { std::cout << "Writing MMU WORKING RAM" << "\n"; }
-		else if (toTarget >= 0xE000 && toTarget < 0xFE00) { std::cout << "Writing MMU WORKING RAM SHADOW" << "\n"; }
-		else if (toTarget >= 0xFE00 && toTarget < 0xFF00) { std::cout << "Writing MMU GFX SPRITES" << "\n"; }
-		else if (toTarget >= 0xFF00 && toTarget < 0xFF80) { std::cout << "Writing MMU INPUT" << "\n"; }
-		else if (toTarget >= 0xFF80 && toTarget < 0xFFFF) { std::cout << "Writing MMU ZERO PAGE RAM" << "\n"; }
+		else if (toTarget >= 0xA000 && toTarget < 0xC000) { std::cout << " Writing 16bit to EXT RAM bank" << "\n"; }
+		else if (toTarget >= 0xC000 && toTarget < 0xE000) { std::cout << " Writing 16bit to WORKING RAM" << "\n"; }
+		else if (toTarget >= 0xE000 && toTarget < 0xFE00) { std::cout << " Writing 16bit to WORKING RAM SHADOW" << "\n"; }
+		else if (toTarget >= 0xFE00 && toTarget < 0xFF00) { std::cout << " Writing 16bit to GFX SPRITES" << "\n"; }
+		else if (toTarget >= 0xFF00 && toTarget < 0xFF80) { std::cout << " Writing 16bit to INPUT" << "\n"; }
+		else if (toTarget >= 0xFF80 && toTarget < 0xFFFF) { std::cout << " Writing 16bit to ZERO PAGE RAM" << "\n"; }
 		break;
 		break;
 	}
@@ -639,7 +827,128 @@ void RegRecombiner(std::string Dtarget) {
 	*/ //Hidden Instruction Preset //
 	//Instruction Preset
 
-	void ADC8RhlM(unsigned short &$any, std::string Dtarget, std::string Starget) { // n + carry flag to A
+//------------------------------
+//8-Bit Loads
+//------------------------------
+
+//- Load 8 bit data into register r -- 
+// R1 = A,B,C,D,E,H,L
+// n = 8bit inmediate value
+// 06,0E,16,1E,26,2E
+//-------------------------------
+
+void LDR8_n(unsigned char &_R, unsigned char _n, std::string str_R, std::string str_n) {
+	////-- Instruction preset
+	opLen = 2;
+	FLGH(3, 3, 3, 3, NULL, NULL, NULL);
+	funcText << "LOAD |" << str_R << ",|n|," << std::hex << std::setw(4) << std::setfill('0') << _n << "|\n";
+	functType = funcText.str();
+	BoxDeb();
+	_R = _n;
+	pc += opLen;
+	////-- Instruction preset
+}
+
+//- LD r1 into r2
+// r1 = A,B,C,D,E,H,L
+// r2 = A,B,C,D,E,H,L
+// 7F,78,79,7A,7B,7C,7D,40,41,42,43,44,45,48,49,4A,4B,4C,4D,50,51
+// 52,53,54,55,58,59,5A,5B,5C,5D,60,61,62,63,64,65,68,69,6A,6B,6C
+// 6D
+//-------------------------------
+void LDR8_R8(unsigned char &_R, unsigned char _R1, std::string str_R, std::string str_R1) {
+	////-- Instruction preset
+	opLen = 2;
+	FLGH(3, 3, 3, 3, NULL, NULL, NULL);
+	funcText << "LOAD |" << str_R << ",|R8|," << std::hex << std::setw(4) << std::setfill('0') << _R1 << "|\n";
+	functType = funcText.str();
+	BoxDeb();
+	_R = _R1;
+	pc += opLen;
+	////-- Instruction preset
+}
+
+//- Load contents of memory HL(8 bits) into register r -- 
+// (HL) = $HL
+//  r = A,B,C,D,E,H,L
+// 7E,46,4E,56,5E,66,6E
+//-------------------------------
+void LDR8_$HL(unsigned char &_R, unsigned char _$HL, std::string str_R, std::string str_R1) {
+	////-- Instruction preset
+	opLen = 2;
+	FLGH(3, 3, 3, 3, NULL, NULL, NULL);
+	funcText << "LOAD |" << str_R << ",|(HL)|" << std::hex << std::setw(4) << std::setfill('0') << _$HL << "|\n";
+	functType = funcText.str();
+	BoxDeb();
+	_R = memoryA[Rhl];
+	pc += opLen;
+	////-- Instruction preset
+}
+//- Stores the contents of register r in memory specified by register pair HL  
+//  (HL) = $HL
+//  r = A,B,C,D,E,H,L
+// 70,71,72,73,74,75
+//-------------------------------
+void LD$HL_R(unsigned char &_$HL, unsigned char _R, std::string str_$HL, std::string str_R) {
+	////-- Instruction preset
+	opLen = 2;
+	FLGH(3, 3, 3, 3, NULL, NULL, NULL);
+	funcText << "LOAD (HL),|" << std::hex << std::setw(4) << std::setfill('0') << _R << "|\n";
+	functType = funcText.str();
+	BoxDeb();
+	memoryA[Rhl] = _R;
+	pc += opLen;
+	////-- Instruction preset
+}
+//- stores n(8 bit inmediate) into memory specified by register pair HL -- 
+// (HL) = $HL
+//  n = 8bit inmediate
+// 36
+void LD$HL_n(unsigned char &_$HL, unsigned char _n, std::string str_$HL, std::string str_n) {
+	////-- Instruction preset
+	opLen = 2;
+	FLGH(3, 3, 3, 3, NULL, NULL, NULL);
+	funcText << "LOAD (HL)" << ",n|" << std::hex << std::setw(4) << std::setfill('0') << _n << "|\n";
+	functType = funcText.str();
+	BoxDeb();
+	memoryA[Rhl] = _n;
+	pc += opLen;
+	////-- Instruction preset
+}
+// Loads the contents of the memory specified by register pair RR into Reg A -- 
+// (BC) (DE) = memoryA[RR]
+// Register A = Ra
+// 0A,1A,7E,FA
+void LD$RR_n(unsigned char &_$RR, unsigned char _n, std::string str_$HL, std::string str_n) {
+	////-- Instruction preset
+	opLen = 2;
+	FLGH(3, 3, 3, 3, NULL, NULL, NULL);
+	funcText << "LOAD (HL)" << ",n|" << std::hex << std::setw(4) << std::setfill('0') << _n << "|\n";
+	functType = funcText.str();
+	BoxDeb();
+	memoryA[_$RR] = _n;
+	pc += opLen;
+	////-- Instruction preset
+}
+// Loads into Reg A the contents of the internal RAM port Register
+// or mode register at the address range 0xFF00-0xFFFF
+// (C) = memoryA[0xFF00 + memoryA[C]]
+// Register A = Ra
+// E2
+void LDA_$C(unsigned char &_$R, unsigned char _$C, std::string str_R, std::string str_$C) {
+	////-- Instruction preset
+	opLen = 2;
+	FLGH(3, 3, 3, 3, NULL, NULL, NULL);
+	funcText << "LOAD A" << ",0xFF00 +C|" << std::hex << std::setw(4) << std::setfill('0') << _$C << "|\n";
+	functType = funcText.str();
+	BoxDeb();
+	_$R = memoryA[0xFF00 + _$C];
+	pc += opLen;
+}
+
+//---End New Opcode Layout
+
+void ADC8RhlM(unsigned short &$any, std::string Dtarget, std::string Starget) { // n + carry flag to A
 		////-- Instruction preset
 		opLen = 1;
 		FLGH(2, 0, 2, 2, $any, Ra, 1 );
@@ -788,13 +1097,19 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		opclock = 3;
 		functType = "CALL pc IF F  $aabb ";
 	}
-	void CALLpc16BA(unsigned short _16BA) {
-		pc = _16BA;
-		// mal la dif entre jump y call
-		//skip
-		opclock = 3;
-		functType = "CALL pc $aabb ";
-		//FLGH(3, 3, 3, 3);
+	void CALL16BA(unsigned short _$aabb) {
+	
+		////-- Instruction preset
+		opLen = 3;
+		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
+		funcText << "CALL " << _$aabb;
+		functType = funcText.str();
+		BoxDeb();
+		stack[sp] = pc + 3;
+		sp--;
+		pc = _$aabb;
+		////-- Instruction preset
+
 	}
 	void CARRYFLAG() {
 		//FLGH(3, 0, 0, 2);
@@ -1037,13 +1352,14 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 	}
 	void LOADRA16RM(unsigned short _16r, std::string Starget) {
 		////-- Instruction preset
-		opLen = 2;
-		Ra = memoryA[_16r];
+		opLen = 1;		
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 		funcText << "LOAD A, (" << Starget << ") |" << std::hex << std::setw(4) << std::setfill('0') << (int)memoryA[_16r] << "|";
 		functType = funcText.str();
 		BoxDeb();
-		pc = opLen;
+		Ra = memoryA[_16r];
+		MMUexp(NULL, _16r, "Ra", 3);
+		pc += opLen;
 		////-- Instruction preset
 	}
 	void LOADRHLSPOFF(unsigned char _8boff) {
@@ -1058,11 +1374,11 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		////-- Instruction preset
 		opLen = 3;
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
-		MMUexp($_aabb, NULL,Dtarget, 3);
 		funcText << "LOAD " << Dtarget << ", "  << std::hex << std::setw(4) << std::setfill('0') << (int)$_aabb;
 		functType = funcText.str();
 		BoxDeb();
 		_16r = $_aabb;
+		MMUexp($_aabb, NULL, Dtarget, 3);
 		if (Dtarget == "HL") { Rh = $aa; Rl = $bb; }
 		else if (Dtarget == "AF") { Ra = $aa; Rf = $bb; }
 		else if (Dtarget == "BC") { Rb = $aa; Rc = $bb; }
@@ -1089,10 +1405,11 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		////-- Instruction preset
 		opLen = 2;
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
-		_8r = _$xx;
-		funcText << "LOAD " << Dtarget << ", " << std::hex << std::setw(4) << std::setfill('0') << (int)_$xx;
+		funcText << "LOAD |" << Dtarget << "|, $XX|" << std::hex << std::setw(4) << std::setfill('0') << _$xx << "|\n";
 		functType = funcText.str();
 		BoxDeb();
+		_8r = _$xx;
+		MMUexp(Ra, _$xx, "XX", 1);
 		pc += opLen;
 		////-- Instruction preset
 	}
@@ -1133,14 +1450,14 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		funcText << "LOADD " << "(HL) ," << Starget;
 		functType = funcText.str();
 		//std::cout << "MEMORY RHL DESP: " << std::dec << (int)vramGfx[(8191)] << "\n";
+	
 		BoxDeb();
-		memoryA[Rhl] = _R8;
-		MMUexp(Rhl,_R8,Starget, 4);
 		if (Dtarget == "(HL)") {
 			if (Rl == 0) { Rh--; Rl = 0xFF; }
 			else if (Rl > -1) { Rl--; }
 		}
-			
+		memoryA[Rhl] = _R8;
+		MMUexp(Rhl, _R8, Starget, 2);
 		pc += opLen;
 		////-- Instruction preset
 
@@ -1149,22 +1466,24 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		////-- Instruction preset
 		opLen = 2;
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
-		memoryA[0xff00 + $_xx] = Ra;
-		funcText << "LDH " << std::hex << (int)$_xx << ", " << Starget;
+		funcText << "LD " << std::hex << (int)$_xx << ", " << Starget;
 		functType = funcText.str();
 		BoxDeb();
+		memoryA[0xff00 | $_xx] = R8;
+		MMUexp((0xff00 | $_xx), R8 , Starget, 2);
 		pc += opLen;
 		////-- Instruction preset
 	}
 	void LOADOFFR8A(unsigned char _R8, std::string Starget) { //LOAD A into R8 + 0xff00
 		//It would be wise to know which part of memory is trying to access
-		memoryA[0xff00 + _R8] = Ra;
 		////-- Instruction preset
-		opLen = 2;
+		opLen = 1;
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
-		funcText << "LOAD ( 0xff00 + " << Starget << "|" << std::hex << (int)_R8 << "| ) ,A";
+		funcText << "LOAD ( 0xff00 + " << Starget << ")|(" << std::hex << (int)_R8 << "| ) ,A";
 		functType = funcText.str();
 		BoxDeb();
+		memoryA[0xff00 | _R8] = Ra;
+		MMUexp(0xff00 | _R8, Ra, "Ra", 2);
 		pc += opLen;
 		////-- Instruction preset
 	}
@@ -1222,12 +1541,18 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		functType = "POP 16R ";
 	//	FLGH(3, 3, 3, 3);
 	}
-	void PUSH() {
-		memoryA[pc] = sp;
-		sp++;
-		opclock = 1;
-		functType = "PUSH ";
-	//	FLGH(3, 3, 3, 3);
+	void PUSH( unsigned short _R16, std::string Starget) {
+		////-- Instruction preset
+		opLen = 1;
+		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
+		funcText << "PUSH " << Starget;
+		functType = funcText.str();
+		BoxDeb();
+		if (Starget == "BC") { stack[sp] = Rb; sp--; stack[sp] = Rc; sp--; }
+		else if (Starget == "DE") { stack[sp] = Rd; sp--; stack[sp] = Re; sp--; }
+		else if (Starget == "HL") { stack[sp] = Rh; sp--; stack[sp] = Rl; sp--; }
+		pc += opLen;
+		////-- Instruction preset
 	}
 	void RESBhlM(unsigned char _bit) {
 		//bit de memoryA[Rhl] a cero
@@ -1262,7 +1587,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		opclock = 2;
 		functType = "RL (H)";
 	}
-	void RLR8(unsigned char &_8r, unsigned char &_8r2) {
+	void RLR8(unsigned char _8R) {
 	//	FLGH(2, 0, 0, 2);
 		opclock = 2;
 		functType = "RL 8R ";
@@ -1734,7 +2059,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		case 0XC2:						Dm = " - 0xC2 - JP NZ $aabb";	break;
 		case 0XC3:	JP$aabb($aabb);		Dm = " - 0xC3 - JUMP $aabb";	break;
 		case 0XC4:						Dm = " - 0xC4 - CALL NZ $aabb";	break;
-		case 0XC5:						Dm = " - 0xC5 - PUSH BC";		break;
+		case 0XC5:PUSH(Rbc, "BC");	Dm = " - 0xC5 - PUSH BC";		break;
 		case 0XC6:						Dm = " - 0xC6 - ADD A $xx";		break;
 		case 0XC7:						Dm = " - 0xC7 - RST $ 0";		break;
 		case 0XC8:						Dm = " - 0xC8 - RET Z";			break;
@@ -1762,7 +2087,8 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 			case 0XCB0E:					Dm = " - 0xCB0E - RRC (HL)";	break;
 			case 0XCB0F:					Dm = " - 0xCB0F - RRC A";		break;
 			case 0XCB10:					Dm = " - 0xCB10 - RL B";		break;
-			case 0XCB11:					Dm = " - 0xCB11 - RL C";		break;
+			case 0XCB11:	//PROX OPCODE			
+				Dm = " - 0xCB11 - RL C";		break;
 			case 0XCB12:					Dm = " - 0xCB12 - RL D";		break;
 			case 0XCB13:					Dm = " - 0xCB13 - RL E";		break;
 			case 0XCB14:					Dm = " - 0xCB14 - RL H";		break;
@@ -1999,7 +2325,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		}
 
 		case 0XCC:	Dm = " - 0xCC - CALL Z $aabb";	break;
-		case 0XCD:	Dm = " - 0xCD - CALL $aabb";	break;
+		case 0XCD:CALL16BA($aabb );	Dm = " - 0xCD - CALL $aabb";	break;
 		case 0XCE:	Dm = " - 0xCE - ADC A $xx";		break;
 		case 0XCF:	Dm = " - 0xCF - RST $8";		break;
 		case 0XD0:	Dm = " - 0xD0 - RET NC";		break;
@@ -2076,18 +2402,9 @@ void BoxDeb() {
 	std::bitset<8> debugFlag(Rf);
 	std::stringstream MemAccess;
 	
-	if (loopDetected = true) {
+	if (loopDetected == true) {
 
-		if ($aabb > 0X4000)
-		{
-			if (memCatchFlag == true)
-			{
-				MemAccess << "   $aabb not ROM -> " << std::hex << (int)memCatch;
-				memCatchFlag = false;
-			}
-		}
-
-
+		
 		Debug << "Executing...:  " << functType << "\n " << "AF:  " << std::hex << std::setw(4) << std::setfill('0') << int(Raf) << "    " << "BC: " << std::hex << std::setw(4) << std::setfill('0') << int(Rbc) << "\n" << "DE: " << std::hex << std::setw(4) << std::setfill('0') << int(Rde) << "    " << "HL: " << std::hex << std::setw(4) << std::setfill('0') << int(Rhl) << "\n"
 			<< "PC: " << std::hex << std::setw(4) << std::setfill('0') << int(pc) << "    " << "EI" << EInt << " " << "\n"
 			<< "IF: " << std::hex << std::setw(4) << std::setfill('0') << (int)IF << "  " << "DI: " << DInt << "\n"
@@ -2097,10 +2414,15 @@ void BoxDeb() {
 			<< Dm.c_str();
 		std::string mergedDebug;
 		mergedDebug = Debug.str() + MemAccess.str();
+		
+		
+		std::cout << "//////////////////////////\n"
+				  << mergedDebug <<
+				  std::cin.get();
+				     "/////////////////////////\n";
 
 
-
-		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M", mergedDebug.c_str(), NULL);
+		//SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M", mergedDebug.c_str(), NULL);
 
 
 	}
@@ -2246,18 +2568,18 @@ int main(int argc, char *argv[])
 	//- Main execution loop
 	//- Currently Catching Loops Instances
 	///////////////////////////////////////////////////////////////////////////////////////
-	if (loopDebugger == true) {
+	if (loopDebugger == false) {
 	while (1)	{
 		
 		for (opCounter = 0; opCounter <= 5; opCounter++) {
 		
 		
 		gameboy.RegComb();
-		gameboy.BoxDeb();
 		gameboy.opDecoder();
 		
 	//	gameboy.VRAMpeek();
-	gameboy.Vram2();
+	//gameboy.Vram2();
+	//SDL_RenderPresent(renderer);
 		//
 		
 		
@@ -2273,27 +2595,33 @@ int main(int argc, char *argv[])
 			if (pastDms[i] == currentDms[i]) {
 				numberMatchs = 0;
 				loopInstances++;
-				std::cout << currentDms[i] << "\n";
+				//std::cout << currentDms[i] << "\n";
 				matchFound = true;	
+
 				if (matchFound) { numberMatchs++; matchFound = false; }
 			}
 			
 			if (numberMatchs > 1)
 			{
 				loopInstances++;
-				std::cout << "Detected loop of [" << numberMatchs << "] Instructions \n";
-				
+				//std::cout << "Detected loop of [" << numberMatchs << "] Instructions \n";
+				//std::cout << "- 5 Instructions Evaluated - [" << loopInstances << "] Found\n";
+			}
+			else if (numberMatchs <2) { //Single opcode repeating
+				gameboy.BoxDeb();
+				//std::cin.get();
 			}
 			
+			
 		}
-		std::cout << "- 5 Instructions Evaluated - [" << loopInstances << "] Found\n";
+		
 		//Break Point QUICK ACCESS - 
 		//First you put a huge number here like 20000
 		//the program will most likely show the number of matchs in the loop getting stuck way before the counter finishes
 		//if i match the loop counter to this number. I can quickly jump into the last instruction that was read before going into a loop //most likely unimplemented
-		if (loopInstances > 0) { loopDetected = true; SDL_RenderPresent(renderer); }
+		if (loopInstances > 12282) { loopDetected = true;  }
 		// TO RESTORE FUNCTIONALITY AFTER VRAM PEEK
-	//	std::cin.get();
+		numberMatchs = 0;
 		//-- Creating VRAM peeker all Functionality Disabled /////////////////////
 		} //Fin whilr
 		
@@ -2308,6 +2636,7 @@ else {
 	//gameboy.BoxDeb();
 	gameboy.Vram2();
 	SDL_RenderPresent(renderer);
+
 	
 	} // fin While 2
 
