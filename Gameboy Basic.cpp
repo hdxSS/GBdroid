@@ -1,7 +1,7 @@
 // Gameboy Basic.cpp : Defines the entry point for the console application.
 // ob
 
-#include "stdafx.h" // Windows only
+//#include "stdafx.h" // Windows only
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -11,9 +11,10 @@
 #include <string>
 #include <sstream>
 #include <SDL_ttf.h>
-#include <SDL.h> //for windows
-//#include <SDL2/SDL.h> //for android
+//#include <SDL.h> //for windows
+#include <SDL2/SDL.h> //for android
 #include <random>
+#include <buttonHandler.h>
 
 //Modules
 //MMUEx - Started Structure - VramMapping works
@@ -28,7 +29,7 @@
 
 //SDL support
 
-SDL_Renderer* renderer = NULL;
+//SDL_Renderer* renderer = NULL;
 
 int min;
 int max;
@@ -65,6 +66,7 @@ long loopInstances;
 bool matchFound = true;
 bool loopDetected;
 bool loopDebugger = false;
+bool debugMode = true;
 int numberMatchs;
 /// DEBUG MESSAGE COMPARE VARIABLES
 
@@ -90,7 +92,34 @@ signed int $xx;
 unsigned char _8bitIn3;
 
 unsigned char TempRf;
-/////////////
+///////////// - SDL debugger
+
+// Position integers
+
+int textX;
+int textY;
+int texW = 2;
+int texH = 2;
+
+// SDL Textures
+
+SDL_Texture *texture[16];
+SDL_Texture *blitTexture;
+
+// SDL Surfaces
+
+SDL_Surface *blitSurface;
+SDL_Surface *surface[16];
+SDL_Surface *clearRect;
+
+SDL_Rect posTextreg1;
+std::string line = "Debug line 1";
+
+
+TTF_Font *font1;
+	
+
+////////////
 
 class gb
 {
@@ -157,6 +186,9 @@ public:
 	
 	std::string prevM;
 	std::string actualM;
+	
+std::string debugSDL;
+std::string mergedDebug;
 
 	unsigned short IF;
 	bool DInt = false;
@@ -165,6 +197,51 @@ public:
 
 	unsigned char TIMA, TMA, TAC, NR10, NR11, NR12, NR14, NR21, NR22, NR24, NR30, NR31, NR32, NR33, NR41, NR42, NR43, NR50, NR51, NR52, LCDC, SCY, SCX, LYC, BGP, OBP0, OBP1, WY, WX ;
 
+
+void TextBlit(std::string debugLine)
+	{
+if ( debugMode == true )
+{
+		// tContainer = std::string("Prueba") + std::string(" Text on demand
+		// ");
+
+if (fontLoaded)
+{
+		font1 = TTF_OpenFont("arial.ttf", 40);
+		fontLoaded = false;
+		if (font1 == NULL)
+		{
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "Font not found", NULL);
+		}
+}
+
+		SDL_Color color1 = { 255, 0, 0 };
+
+		// surface donde se cargara el texto(string)
+
+		blitSurface = TTF_RenderText_Solid(font1, debugLine.c_str(), color1);
+
+
+		// textura convertida desde el surface
+		blitTexture = SDL_CreateTextureFromSurface(renderer, blitSurface);
+		SDL_CreateTextureFromSurface(renderer, blitSurface);
+		// Hacer calzar la textura mostrada dentro de un rango
+		SDL_QueryTexture(blitTexture, NULL, NULL, &texW, &texH);
+		// declarar un rect contenedor de la textura
+
+		posTextreg1.w = texW;
+		posTextreg1.h = texH;
+
+		// copiar al render la textura en la posicion
+		SDL_RenderCopy(renderer, blitTexture, NULL, &posTextreg1);
+		// listo para renderiza
+
+		SDL_FreeSurface(blitSurface);
+		SDL_DestroyTexture(blitTexture);
+	//	TTF_CloseFont(font1);
+
+	}
+	}
 
 
 	unsigned char Z,N,H,C;
@@ -598,34 +675,36 @@ public:
 		case 0xFF44: std::cout << "- trying to write LY \n"; break;
 		case 0xFF45: std::cout << "- trying to write LYC \n"; break;
 		case 0xFF46: std::cout << "- trying to write DMA \n"; break;
-		case 0xFF47: std::cout << "- trying to write Window / BG Pallete Data \n";
+		case 0xFF47: { std::cout << "- trying to write Window / BG Pallete Data \n";
 	   FF47_BGP = memoryA[0xFF00 + Rc];
 	   std::bitset<8> FF47bits( FF47_BGP);//Window palette DATA converted to bits
-	   If (FF47bits.test(0) == 0 && FF47bits.test(1) == 0 ) {
-	   	// neutral white 255 255 255
+	   if (FF47bits.test(0) == 0 && FF47bits.test(1) == 0 ) {
+	   	// neutral white 255 255 255 bits 0 0
 	   	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 	   }
-	   else if  (FF47bits.test(2) == 0 && FF47bits.test(3) == 0 ) {
-	   	//lightest gray 192 192 192
+	   else if  (FF47bits.test(2) == 1 && FF47bits.test(3) == 0 ) {
+	   	//lightest gray 192 192 192 bits  1 0
 	   	SDL_SetRenderDrawColor(renderer, 192, 192, 192, 255);
 	   }
-	   else if (FF47bits.test(4) == 0 && FF47bits.test(5) == 0 ) {
-	   	//darkest gray 96 96 96
+	   else if (FF47bits.test(4) == 0 && FF47bits.test(5) == 1) {
+	   	//darkest gray 96 96 96 bits 0 1
 	   	SDL_SetRenderDrawColor(renderer, 96, 96, 96, 255);
 	   }
-	   else if (FF47bits.test(6) == 0 && FF47bits.test(7) == 0 ) {
-	   	//neutral black 0 0 0
+	   else if (FF47bits.test(6) == 1 && FF47bits.test(7) == 1 ) {
+	   	//neutral black 0 0 0 bits 1 1
 	   	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	   }
-	
+		}
 		 break;
-		case 0xFF48: std::cout << "- trying to write Object Pallete 0 Data \n";
+		 
+	case 0xFF48: { std::cout << "- trying to write Object Pallete 0 Data\n";
 		std::bitset<8> FF48bits(FF48_OBP0); //Object Pallete 0 Data
+	}
+		break;
 		
-		
-		  break;
-		case 0xFF49: std::cout << "- trying to write Object Pallete 1 Data \n";
-	std::bitset<8> FF49bits(FF49_OBP1); //Object pallete 1 Data
+		case 0xFF49: { std::cout << "- trying to write Object Pallete 1 Data \n";
+	//std::bitset<8> FF49bits(FF49_OBP1); //Object pallete 1 Data
+		}
 		  break;
 		case 0xFF4A: std::cout << "- trying to write Windows Pos Y \n"; break;
 		case 0xFF4B: std::cout << "- trying to write Windows Pos X \n"; break;
@@ -672,6 +751,7 @@ public:
 	}
 	
 	} // MMU EXP 
+	
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -2424,11 +2504,14 @@ void compareDm()
 void BoxDeb() {  
 //if every missing opcode use this i can capture the debug m3ssage with ease. BOXdeb debugger is the not mapped case error
 	std::stringstream Debug;
-	Debug.str(std::string());
+	std::stringstream debugLine_1SS;
+	std::string debugLine_1;
+	
 	std::bitset<8> debugFlag(Rf);
 	std::stringstream MemAccess;
 	
-	if (loopDetected == true) {
+	
+	if (loopDetected = true) {
 
 		
 		Debug << "Executing...:  " << functType << "\n " << "AF:  " << std::hex << std::setw(4) << std::setfill('0') << int(Raf) << "    " << "BC: " << std::hex << std::setw(4) << std::setfill('0') << int(Rbc) << "\n" << "DE: " << std::hex << std::setw(4) << std::setfill('0') << int(Rde) << "    " << "HL: " << std::hex << std::setw(4) << std::setfill('0') << int(Rhl) << "\n"
@@ -2438,21 +2521,41 @@ void BoxDeb() {
 			<< "Z[" << debugFlag.test(7) << "] N[" << debugFlag.test(6) << "] H[" << debugFlag.test(5) << "] C[" << debugFlag.test(4) << "]\n"
 			<< "Current Engager: " << std::hex << std::setw(4) << std::setfill('0') << opcode << "\n"
 			<< Dm.c_str();
-		std::string mergedDebug;
+		
 		mergedDebug = Debug.str() + MemAccess.str();
 		
 		
 		std::cout << "//////////////////////////\n"
 				  << mergedDebug <<
-				  std::cin.get();
+				//  std::cin.get();
 				     "/////////////////////////\n";
-
-
-		//SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M", mergedDebug.c_str(), NULL);
+				     
+				     
+				     debugLine_1SS <<  "Executing...:  " << functType;
+				     debugLine_1 = debugLine_1SS.str();
+				     
+				     debugSDL = mergedDebug;
+				     TextBlit(debugLine_1);
+				     SDL_RenderPresent(renderer);
+				     SDL_Delay(1000);
+Debug.str(std::string());
+	debugLine_1SS.str(std::string());
+	
+//	SDL_FreeSurface(blitSurface);
+		SDL_DestroyTexture(blitTexture);
+		SDL_Rect clearRect;
+		
+		clearRect.x = 0;
+		clearRect.y = 0;
+		clearRect.w = 800 ;
+		clearRect.h = 50;
+		
+SDL_RenderFillRect(renderer, &clearRect);
+SDL_RenderPresent(renderer);
+		//SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M", debugLine_1.c_str(), NULL);
 
 
 	}
-	
 }
 
 	void Reset() {
@@ -2602,6 +2705,11 @@ int main(int argc, char *argv[])
 		
 		gameboy.RegComb();
 		gameboy.opDecoder();
+		
+		
+		//SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M", mergedDebug.c_str(), NULL);
+	
+	
 		
 	//	gameboy.VRAMpeek();
 	//gameboy.Vram2();
