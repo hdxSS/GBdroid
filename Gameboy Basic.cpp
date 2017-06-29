@@ -1,7 +1,7 @@
 // Gameboy Basic.cpp : Defines the entry point for the console application.
 // ob
 
-//#include "stdafx.h" // Windows only
+#include "stdafx.h" // Windows only
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -11,10 +11,10 @@
 #include <string>
 #include <sstream>
 #include <SDL_ttf.h>
-//#include <SDL.h> //for windows
-#include <SDL2/SDL.h> //for android
+#include <SDL.h> //for windows
+//#include <SDL2/SDL.h> //for android
 #include <random>
-#include <buttonHandler.h>
+#include "buttonHandler.h"
 
 //Modules
 //MMUEx - Started Structure - VramMapping works
@@ -79,7 +79,7 @@ int vramCounter = 0;
 char vramGfx[8281];
 SDL_Rect pixelVram[8192];
 SDL_Rect r;
-int size = 5;
+int size = 2;
 int numCol = 0;
 int numRow = 0;
 
@@ -98,7 +98,7 @@ unsigned char TempRf;
 
 int textX;
 int textY;
-int texW = 2;
+int texW = 1;
 int texH = 2;
 
 // SDL Textures
@@ -198,7 +198,7 @@ std::string mergedDebug;
 	unsigned char TIMA, TMA, TAC, NR10, NR11, NR12, NR14, NR21, NR22, NR24, NR30, NR31, NR32, NR33, NR41, NR42, NR43, NR50, NR51, NR52, LCDC, SCY, SCX, LYC, BGP, OBP0, OBP1, WY, WX ;
 
 
-void TextBlit(std::string debugLine)
+void TextBlit(std::string debugLine, int posX, int posY)
 	{
 if ( debugMode == true )
 {
@@ -207,7 +207,7 @@ if ( debugMode == true )
 
 if (fontLoaded)
 {
-		font1 = TTF_OpenFont("arial.ttf", 40);
+		font1 = TTF_OpenFont("arial.ttf", 15);
 		fontLoaded = false;
 		if (font1 == NULL)
 		{
@@ -215,7 +215,7 @@ if (fontLoaded)
 		}
 }
 
-		SDL_Color color1 = { 255, 0, 0 };
+		SDL_Color color1 = { 0, 255, 0 };
 
 		// surface donde se cargara el texto(string)
 
@@ -229,6 +229,8 @@ if (fontLoaded)
 		SDL_QueryTexture(blitTexture, NULL, NULL, &texW, &texH);
 		// declarar un rect contenedor de la textura
 
+		posTextreg1.x = posX;
+		posTextreg1.y = posY;
 		posTextreg1.w = texW;
 		posTextreg1.h = texH;
 
@@ -2506,6 +2508,21 @@ void BoxDeb() {
 	std::stringstream Debug;
 	std::stringstream debugLine_1SS;
 	std::string debugLine_1;
+
+	std::stringstream debugLine_2SS;
+	std::string debugLine_2;
+
+	std::stringstream debugLine_3SS;
+	std::string debugLine_3;
+
+	std::stringstream debugLine_4SS;
+	std::string debugLine_4;
+
+	std::stringstream debugLine_5SS;
+	std::string debugLine_5;
+
+	std::stringstream debugLine_6SS;
+	std::string debugLine_6;
 	
 	std::bitset<8> debugFlag(Rf);
 	std::stringstream MemAccess;
@@ -2532,26 +2549,46 @@ void BoxDeb() {
 				     
 				     
 				     debugLine_1SS <<  "Executing...:  " << functType;
+					 debugLine_3SS << "DE: " << std::hex << std::setw(4) << std::setfill('0') << int(Rde) << "    " << "HL: " << std::hex << std::setw(4) << std::setfill('0') << int(Rhl);
+					 debugLine_2SS << "AF:  " << std::hex << std::setw(4) << std::setfill('0') << int(Raf) << "    " << "BC: " << std::hex << std::setw(4) << std::setfill('0') << int(Rbc);
+					 debugLine_4SS << "PC: " << std::hex << std::setw(4) << std::setfill('0') << int(pc) << "    " << "EI" << EInt;
+					 debugLine_5SS << "IF: " << std::hex << std::setw(4) << std::setfill('0') << (int)IF << "  " << "DI: " << DInt;
+					 debugLine_6SS << "Z[" << debugFlag.test(7) << "] N[" << debugFlag.test(6) << "] H[" << debugFlag.test(5) << "] C[" << debugFlag.test(4);
 				     debugLine_1 = debugLine_1SS.str();
+					 debugLine_2 = debugLine_2SS.str();
+					 debugLine_3 = debugLine_3SS.str();
+					 debugLine_4 = debugLine_4SS.str();
+					 debugLine_5 = debugLine_5SS.str();
+					 debugLine_6 = debugLine_6SS.str();
+					 
 				     
 				     debugSDL = mergedDebug;
-				     TextBlit(debugLine_1);
+					 SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+				     TextBlit(debugLine_1, 0, 300);
+					 TextBlit(debugLine_2, 0, 320);
+					 TextBlit(debugLine_3, 0, 340);
+					 TextBlit(debugLine_4, 0, 360);
+					 TextBlit(debugLine_5, 0, 380);
+					 TextBlit(debugLine_6, 0, 400);
 				     SDL_RenderPresent(renderer);
-				     SDL_Delay(1000);
+				     SDL_Delay(100);
 Debug.str(std::string());
 	debugLine_1SS.str(std::string());
-	
+	debugLine_2SS.str(std::string());
+	debugLine_3SS.str(std::string());
+	debugLine_4SS.str(std::string());
+	debugLine_5SS.str(std::string());
 //	SDL_FreeSurface(blitSurface);
 		SDL_DestroyTexture(blitTexture);
 		SDL_Rect clearRect;
 		
 		clearRect.x = 0;
-		clearRect.y = 0;
+		clearRect.y = 300;
 		clearRect.w = 800 ;
-		clearRect.h = 50;
-		
+		clearRect.h = 500;
+		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 SDL_RenderFillRect(renderer, &clearRect);
-SDL_RenderPresent(renderer);
+
 		//SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M", debugLine_1.c_str(), NULL);
 
 
@@ -2661,7 +2698,7 @@ int main(int argc, char *argv[])
 		if (!fontLoaded)
 		{ 
 		TTF_Font * font;
-		font = TTF_OpenFont("arial.ttf", 40);
+		font = TTF_OpenFont("arial.ttf", 25);
 		fontLoaded = true;
 		if (font == NULL) { std::cout << "FONT NOT LOADED\n"; std::cin.get(); }
 		else { std::cout << "SDL_TTF READY TO ROLL\n"; std::cin.get(); }
@@ -2712,8 +2749,8 @@ int main(int argc, char *argv[])
 	
 		
 	//	gameboy.VRAMpeek();
-	//gameboy.Vram2();
-	//SDL_RenderPresent(renderer);
+	gameboy.Vram2();
+	SDL_RenderPresent(renderer);
 		//
 		
 		
