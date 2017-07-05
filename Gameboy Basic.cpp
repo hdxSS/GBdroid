@@ -1,7 +1,7 @@
 // Gameboy Basic.cpp : Defines the entry point for the console application.
 // ob
 
-#include "stdafx.h" // Windows only
+//#include "stdafx.h" // Windows only
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -11,8 +11,8 @@
 #include <string>
 #include <sstream>
 #include <SDL_ttf.h>
-#include <SDL.h> //for windows
-//#include <SDL2/SDL.h> //for android
+//#include <SDL.h> //for windows
+#include <SDL2/SDL.h> //for android
 #include <random>
 #include "buttonHandler.h"
 
@@ -67,6 +67,7 @@ bool matchFound = true;
 bool loopDetected;
 bool loopDebugger = false;
 bool debugMode = true;
+bool running = true;
 int numberMatchs;
 /// DEBUG MESSAGE COMPARE VARIABLES
 
@@ -79,7 +80,7 @@ int vramCounter = 0;
 char vramGfx[8281];
 SDL_Rect pixelVram[8192];
 SDL_Rect r;
-int size = 2;
+int size = 4;
 int numCol = 0;
 int numRow = 0;
 
@@ -184,6 +185,11 @@ public:
 	unsigned char mathTS1 = 0;
 	unsigned char mathTS2 = 0;
 	
+	bool whiteC = false;
+	bool lightGreyC = false;
+	bool darkGreyC = false;
+	bool blackC = false;
+	
 	std::string prevM;
 	std::string actualM;
 	
@@ -207,7 +213,7 @@ if ( debugMode == true )
 
 if (fontLoaded)
 {
-		font1 = TTF_OpenFont("arial.ttf", 15);
+		font1 = TTF_OpenFont("arial.ttf", 40);
 		fontLoaded = false;
 		if (font1 == NULL)
 		{
@@ -255,15 +261,6 @@ if (fontLoaded)
 	SDL_Rect pixelVram[8192]; // la pantalla es de 256 x 256 pero 144 y 164 son visibles
 	
 	
-	void VRAMmanagerInit() {
-		for (int i = 0; i <= 8281; i++)
-		{
-			std::cout << i << "\n";
-			vramGfx[i] = 1;
-			//Vram[i] = 1;
-		}
-	}
-	
 	void Vram2() {
 		numCol = 0;
 		numRow = 0;
@@ -288,15 +285,30 @@ if (fontLoaded)
 		{
 		numCol++;
 		}
-		if ((int)vramGfx[i] == 0x1) {
-			
+		
+		if ( blackC ) {
 			SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-			//std::cout << "Detected 1" << "\n";
+	   	
+			blackC = false;
 		}
-		else if ((int)vramGfx[i] == 0x0) {
-			//std::cout << "Detected 0 in " << std::dec << i << " of coordinates:  " << std::dec << (int)numCol << "," << std::dec << (int)numRow << "\n";
-			SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+		
+		else if (lightGreyC) {
+			SDL_SetRenderDrawColor(renderer, 192, 192, 192, 255);
+	   	
+			lightGreyC = false;
 		}
+		
+		else if (darkGreyC) {
+			SDL_SetRenderDrawColor(renderer, 96, 96, 96, 255);
+	   	
+			darkGreyC = false;
+		}
+		else if (whiteC) {
+			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+			whiteC = false;
+		}
+		else { SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); }
+		
 			
 			SDL_RenderFillRect(renderer, &r);
 			
@@ -513,7 +525,7 @@ if (fontLoaded)
 			}
 
 		}
-		SDL_RenderPresent(renderer);
+		//SDL_RenderPresent(renderer);
 		//}//Video support
 	}//gfxHandler
 
@@ -681,20 +693,23 @@ if (fontLoaded)
 	   FF47_BGP = memoryA[0xFF00 + Rc];
 	   std::bitset<8> FF47bits( FF47_BGP);//Window palette DATA converted to bits
 	   if (FF47bits.test(0) == 0 && FF47bits.test(1) == 0 ) {
+	   	whiteC = true;
 	   	// neutral white 255 255 255 bits 0 0
-	   	SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+	   	
 	   }
 	   else if  (FF47bits.test(2) == 1 && FF47bits.test(3) == 0 ) {
+	   	lightGreyC = true;
 	   	//lightest gray 192 192 192 bits  1 0
-	   	SDL_SetRenderDrawColor(renderer, 192, 192, 192, 255);
+	   	
 	   }
 	   else if (FF47bits.test(4) == 0 && FF47bits.test(5) == 1) {
 	   	//darkest gray 96 96 96 bits 0 1
-	   	SDL_SetRenderDrawColor(renderer, 96, 96, 96, 255);
+	   	darkGreyC = true;
+	   	
 	   }
 	   else if (FF47bits.test(6) == 1 && FF47bits.test(7) == 1 ) {
 	   	//neutral black 0 0 0 bits 1 1
-	   	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	   	blackC = true;
 	   }
 		}
 		 break;
@@ -928,7 +943,7 @@ void RegRecombiner(std::string Dtarget) {
 		Ra = ($any + TempRf);
 		funcText << "ADC " << Dtarget << ", " << Starget << "(" << std::hex << (int)$any << ")";
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		pc += opLen;
 		////-- Instruction preset
 
@@ -951,7 +966,7 @@ void LDR8_n(unsigned char &_R, unsigned char _n, std::string str_R, std::string 
 	FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 	funcText << "LOAD |" << str_R << ",|n|," << std::hex << std::setw(4) << std::setfill('0') << _n << "|\n";
 	functType = funcText.str();
-	BoxDeb();
+	BoxDeb(loopDetected);
 	_R = _n;
 	pc += opLen;
 	////-- Instruction preset
@@ -970,7 +985,7 @@ void LDR8_R8(unsigned char &_R, unsigned char _R1, std::string str_R, std::strin
 	FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 	funcText << "LOAD |" << str_R << ",|R8|," << std::hex << std::setw(4) << std::setfill('0') << _R1 << "|\n";
 	functType = funcText.str();
-	BoxDeb();
+	BoxDeb(loopDetected);
 	_R = _R1;
 	pc += opLen;
 	////-- Instruction preset
@@ -987,7 +1002,7 @@ void LDR8_$HL(unsigned char &_R, unsigned char _$HL, std::string str_R, std::str
 	FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 	funcText << "LOAD |" << str_R << ",|(HL)|" << std::hex << std::setw(4) << std::setfill('0') << _$HL << "|\n";
 	functType = funcText.str();
-	BoxDeb();
+	BoxDeb(loopDetected);
 	_R = memoryA[Rhl];
 	pc += opLen;
 	////-- Instruction preset
@@ -1003,7 +1018,7 @@ void LD$HL_R(unsigned char &_$HL, unsigned char _R, std::string str_$HL, std::st
 	FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 	funcText << "LOAD (HL),|" << std::hex << std::setw(4) << std::setfill('0') << _R << "|\n";
 	functType = funcText.str();
-	BoxDeb();
+	BoxDeb(loopDetected);
 	memoryA[Rhl] = _R;
 	pc += opLen;
 	////-- Instruction preset
@@ -1018,7 +1033,7 @@ void LD$HL_n(unsigned char &_$HL, unsigned char _n, std::string str_$HL, std::st
 	FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 	funcText << "LOAD (HL)" << ",n|" << std::hex << std::setw(4) << std::setfill('0') << _n << "|\n";
 	functType = funcText.str();
-	BoxDeb();
+	BoxDeb(loopDetected);
 	memoryA[Rhl] = _n;
 	pc += opLen;
 	////-- Instruction preset
@@ -1033,7 +1048,7 @@ void LD$RR_n(unsigned char &_$RR, unsigned char _n, std::string str_$HL, std::st
 	FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 	funcText << "LOAD (HL)" << ",n|" << std::hex << std::setw(4) << std::setfill('0') << _n << "|\n";
 	functType = funcText.str();
-	BoxDeb();
+	BoxDeb(loopDetected);
 	memoryA[_$RR] = _n;
 	pc += opLen;
 	////-- Instruction preset
@@ -1049,7 +1064,7 @@ void LDA_$C(unsigned char &_$R, unsigned char _$C, std::string str_R, std::strin
 	FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 	funcText << "LOAD A" << ",0xFF00 +C|" << std::hex << std::setw(4) << std::setfill('0') << _$C << "|\n";
 	functType = funcText.str();
-	BoxDeb();
+	BoxDeb(loopDetected);
 	_$R = memoryA[0xFF00 + _$C];
 	pc += opLen;
 }
@@ -1063,7 +1078,7 @@ void ADC8RhlM(unsigned short &$any, std::string Dtarget, std::string Starget) { 
 		Ra = ($any + TempRf);
 		funcText << "ADC " << Dtarget << ", " << Starget << "(" << std::hex << (int)$any << ")";
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		pc += opLen;
 		////-- Instruction preset
 	}
@@ -1075,7 +1090,7 @@ void ADC8RhlM(unsigned short &$any, std::string Dtarget, std::string Starget) { 
 		Ra = ($any + TempRf);
 		funcText << "ADC " << Dtarget << ", " << Starget << "(" << std::hex << (int)$any << ")";
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		pc += opLen;
 		////-- Instruction preset
 	}
@@ -1086,7 +1101,7 @@ void ADC8RhlM(unsigned short &$any, std::string Dtarget, std::string Starget) { 
 		Ra = ($any + TempRf);
 		funcText << "ADC " << Dtarget << ", " << Starget << "(" << std::hex << (int)$any << ")";
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		pc += opLen;
 		////-- Instruction preset
 	}
@@ -1098,7 +1113,7 @@ void ADC8RhlM(unsigned short &$any, std::string Dtarget, std::string Starget) { 
 		Ra += memoryA[Rhl];
 		funcText << "ADD " << Dtarget << ", " << Starget << "(" << std::hex << (int)memoryA[Rhl] << ")";
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		pc += opLen;
 		////-- Instruction preset
 
@@ -1118,7 +1133,7 @@ void ADC8RhlM(unsigned short &$any, std::string Dtarget, std::string Starget) { 
 		Ra += _8r;
 		funcText << "AND " << Dtarget << ", " << Starget;
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		pc += opLen;
 		////-- Instruction preset
 	}
@@ -1157,7 +1172,7 @@ void ADC8RhlM(unsigned short &$any, std::string Dtarget, std::string Starget) { 
 		Ra &= _8r;
 		funcText << "AND " << Dtarget << ", " << Starget;
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		pc += opLen;
 		////-- Instruction preset
 	}
@@ -1190,7 +1205,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 			
 			funcText <<  "BIT:" << bitnum << r8char;
 			functType = funcText.str();
-			BoxDeb();
+			BoxDeb(loopDetected);
 			pc += opLen;
 			////-- Instruction preset	
 	}
@@ -1212,7 +1227,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 		funcText << "CALL " << _$aabb;
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		stack[sp] = pc + 3;
 		sp--;
 		pc = _$aabb;
@@ -1273,7 +1288,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		_r8--;
 		funcText << "DEC " << Dtarget;
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		pc += opLen;
 		////-- Instruction preset
 	}
@@ -1322,7 +1337,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		_r8++;
 		funcText << "INC " << Dtarget;
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		pc += opLen;
 		////-- Instruction preset
 	}
@@ -1350,7 +1365,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 		funcText << "JUMP pc -> " << std::hex << std::setw(4) << std::setfill('0') << (int)_$aabb;
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		pc = _$aabb;
 		////-- Instruction preset
 	}
@@ -1361,7 +1376,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 		funcText << "JR + " << std::hex << std::setw(4) << std::setfill('0') << (int)_$xx << " IF FlagBit = TRUE  ->";
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		std::bitset<8> flagChecker(Rf);
 		unsigned char byteNum;
 		unsigned char testCase;
@@ -1464,7 +1479,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 		funcText << "LOAD A, (" << Starget << ") |" << std::hex << std::setw(4) << std::setfill('0') << (int)memoryA[_16r] << "|";
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		Ra = memoryA[_16r];
 		MMUexp(NULL, _16r, "Ra", 3);
 		pc += opLen;
@@ -1484,7 +1499,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 		funcText << "LOAD " << Dtarget << ", "  << std::hex << std::setw(4) << std::setfill('0') << (int)$_aabb;
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		_16r = $_aabb;
 		MMUexp($_aabb, NULL, Dtarget, 3);
 		if (Dtarget == "HL") { Rh = $aa; Rl = $bb; }
@@ -1515,7 +1530,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 		funcText << "LOAD |" << Dtarget << "|, $XX|" << std::hex << std::setw(4) << std::setfill('0') << _$xx << "|\n";
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		_8r = _$xx;
 		MMUexp(Ra, _$xx, "XX", 1);
 		pc += opLen;
@@ -1528,7 +1543,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		_8r = _8r2;
 		funcText << "LOAD " << Dtarget << ", " << Starget;
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		pc += opLen;
 		////-- Instruction preset
 	}
@@ -1559,7 +1574,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		functType = funcText.str();
 		//std::cout << "MEMORY RHL DESP: " << std::dec << (int)vramGfx[(8191)] << "\n";
 	
-		BoxDeb();
+		BoxDeb(loopDetected);
 		if (Dtarget == "(HL)") {
 			if (Rl == 0) { Rh--; Rl = 0xFF; }
 			else if (Rl > -1) { Rl--; }
@@ -1576,7 +1591,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 		funcText << "LD " << std::hex << (int)$_xx << ", " << Starget;
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		memoryA[0xff00 | $_xx] = R8;
 		MMUexp((0xff00 | $_xx), R8 , Starget, 2);
 		pc += opLen;
@@ -1589,7 +1604,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 		funcText << "LOAD ( 0xff00 + " << Starget << ")|(" << std::hex << (int)_R8 << "| ) ,A";
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		memoryA[0xff00 | _R8] = Ra;
 		MMUexp(0xff00 | _R8, Ra, "Ra", 2);
 		pc += opLen;
@@ -1638,7 +1653,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		Ra |= _r8;
 		funcText << "OR " << Dtarget << ", " << Starget;
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		pc += opLen;
 		////-- Instruction preset
 	}
@@ -1655,7 +1670,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 		funcText << "PUSH " << Starget;
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		if (Starget == "BC") { stack[sp] = Rb; sp--; stack[sp] = Rc; sp--; }
 		else if (Starget == "DE") { stack[sp] = Rd; sp--; stack[sp] = Re; sp--; }
 		else if (Starget == "HL") { stack[sp] = Rh; sp--; stack[sp] = Rl; sp--; }
@@ -1838,7 +1853,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		Ra -= _8r;
 		funcText << "SUB " << Dtarget << ", " << Starget;
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		pc += opLen;
 		////-- Instruction preset
 	}
@@ -1869,7 +1884,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		Ra ^= _r8;
 		funcText << "XOR R8";
 		functType = funcText.str();
-		BoxDeb();
+		BoxDeb(loopDetected);
 		pc += opLen;
 		////-- Instruction preset
 		
@@ -2450,39 +2465,39 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		case 0XDE:	Dm = " - 0xDE - SBC A $xx";		break;
 		case 0XDF:	Dm = " - 0xDF - RST $18";		break;
 		case 0XE0: LOADHAOFF($xx, Ra, "Ra");	 Dm = " - 0xE0 - LDH ($xx) A"; break;
-		case 0XE1:						Dm = " - 0xE1 - POP HL"; BoxDeb();		break;
+		case 0XE1:						Dm = " - 0xE1 - POP HL"; BoxDeb(loopDetected);		break;
 		case 0XE2: LOADOFFR8A(Rc, "C");	Dm = " - 0xE2 - LD (C) A"; 	break;
-		case 0XE5:						Dm = " - 0xE5 - PUSH HL"; BoxDeb();		break;
-		case 0XE6:						Dm = " - 0xE6 - AND $xx"; BoxDeb();		break;
-		case 0XE7:						Dm = " - 0xE7 - RST $20"; BoxDeb();		break;
-		case 0XE8:						Dm = " - 0xE8 - ADD SP xx";	BoxDeb();	break;
-		case 0XE9:						Dm = " - 0xE9 - JP (HL)";	BoxDeb();	break;
-		case 0XEA:						Dm = " - 0xEA - LD ($aabb) A"; BoxDeb();	break;
-		case 0XEE:						Dm = " - 0xEE - XOR $xx";	BoxDeb();	break;
-		case 0XEF:						Dm = " - 0xEF - RST $28";	BoxDeb();	break;
-		case 0XF0:						Dm = " - 0xF0 - LD A ($xx)"; BoxDeb();	break;
-		case 0XF1:						Dm = " - 0xF1 - POP AF";	BoxDeb();	break;
-		case 0XF2:						Dm = " - 0xF2 - LD A (C)";	BoxDeb();	break;
+		case 0XE5:						Dm = " - 0xE5 - PUSH HL"; BoxDeb(loopDetected);		break;
+		case 0XE6:						Dm = " - 0xE6 - AND $xx"; BoxDeb(loopDetected);		break;
+		case 0XE7:						Dm = " - 0xE7 - RST $20"; BoxDeb(loopDetected);		break;
+		case 0XE8:						Dm = " - 0xE8 - ADD SP xx";	BoxDeb(loopDetected);	break;
+		case 0XE9:						Dm = " - 0xE9 - JP (HL)";	BoxDeb(loopDetected);	break;
+		case 0XEA:						Dm = " - 0xEA - LD ($aabb) A"; BoxDeb(loopDetected);	break;
+		case 0XEE:						Dm = " - 0xEE - XOR $xx";	BoxDeb(loopDetected);	break;
+		case 0XEF:						Dm = " - 0xEF - RST $28";	BoxDeb(loopDetected);	break;
+		case 0XF0:						Dm = " - 0xF0 - LD A ($xx)"; BoxDeb(loopDetected);	break;
+		case 0XF1:						Dm = " - 0xF1 - POP AF";	BoxDeb(loopDetected);	break;
+		case 0XF2:						Dm = " - 0xF2 - LD A (C)";	BoxDeb(loopDetected);	break;
 		case 0XF3: DI();				Dm = " - 0xF3 - DI";					break;
 			//is F4 missing?
-		case 0XF5:						Dm = " - 0xF5 - PUSH AF";	BoxDeb();	break;
-		case 0XF6:						Dm = " - 0xF6 - xx OR $xx";	BoxDeb();	break;
-		case 0XF7:						Dm = " - 0xF7 - RST $30";	BoxDeb();	break;
-		case 0XF8:						Dm = " - 0xF8 - LD HL SP";	BoxDeb();	break;
-		case 0XF9:						Dm = " - 0xF9 - LD SP HL";	BoxDeb();	break;
-		case 0XFA:						Dm = " - 0xFA - LD A ($aabb)"; BoxDeb();	break;
-		case 0XFB:						Dm = " - 0xFB - EI";	BoxDeb();		break;
-		case 0XFE:						Dm = " - 0xFE - CP $xx";	BoxDeb();	break;
-		case 0XFF:						Dm = " - 0xFF - RST $38";	BoxDeb();	break;
+		case 0XF5:						Dm = " - 0xF5 - PUSH AF";	BoxDeb(loopDetected);	break;
+		case 0XF6:						Dm = " - 0xF6 - xx OR $xx";	BoxDeb(loopDetected);	break;
+		case 0XF7:						Dm = " - 0xF7 - RST $30";	BoxDeb(loopDetected);	break;
+		case 0XF8:						Dm = " - 0xF8 - LD HL SP";	BoxDeb(loopDetected);	break;
+		case 0XF9:						Dm = " - 0xF9 - LD SP HL";	BoxDeb(loopDetected);	break;
+		case 0XFA:						Dm = " - 0xFA - LD A ($aabb)"; BoxDeb(loopDetected);	break;
+		case 0XFB:						Dm = " - 0xFB - EI";	BoxDeb(loopDetected);		break;
+		case 0XFE:						Dm = " - 0xFE - CP $xx";	BoxDeb(loopDetected);	break;
+		case 0XFF:						Dm = " - 0xFF - RST $38";	BoxDeb(loopDetected);	break;
 
 		default:
 			//std::cout << "ERROR CASE NOT FOUND " << "opcode" << std::hex << std::setw(2) << std::setfill('0') << int(opcode) << "\n";
 			break;	
 		}
-		//BoxDeb();
+		//BoxDeb(loopDetected);
 		//std::cout << "Next opcode" << " | " << "Engager: " << std::hex << std::setw(4) << std::setfill('0') << opcode << "-" << Dm << "\n";
 		////std::cout << "$aabb: " << std::hex << (int)$aabb << "\n"; // To Dissasemble
-		//gb::BoxDeb();
+		//gb::BoxDeb(loopDetected);
 	} //end opDecoder
 
 #pragma endregion
@@ -2503,7 +2518,8 @@ void compareDm()
 	///////////////////////////////////////////////////////////////////////////////////////
 
 
-void BoxDeb() {  
+void BoxDeb(bool &loopDetector) {  
+if (loopDetector == true) {
 //if every missing opcode use this i can capture the debug m3ssage with ease. BOXdeb debugger is the not mapped case error
 	std::stringstream Debug;
 	std::stringstream debugLine_1SS;
@@ -2527,9 +2543,15 @@ void BoxDeb() {
 	std::bitset<8> debugFlag(Rf);
 	std::stringstream MemAccess;
 	
-	
-	if (loopDetected = true) {
 
+		SDL_Rect clearRect;
+		
+		clearRect.x = 0;
+		clearRect.y = 300;
+		clearRect.w = 1200 ;
+		clearRect.h = 500;
+		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderFillRect(renderer, &clearRect);
 		
 		Debug << "Executing...:  " << functType << "\n " << "AF:  " << std::hex << std::setw(4) << std::setfill('0') << int(Raf) << "    " << "BC: " << std::hex << std::setw(4) << std::setfill('0') << int(Rbc) << "\n" << "DE: " << std::hex << std::setw(4) << std::setfill('0') << int(Rde) << "    " << "HL: " << std::hex << std::setw(4) << std::setfill('0') << int(Rhl) << "\n"
 			<< "PC: " << std::hex << std::setw(4) << std::setfill('0') << int(pc) << "    " << "EI" << EInt << " " << "\n"
@@ -2564,14 +2586,18 @@ void BoxDeb() {
 				     
 				     debugSDL = mergedDebug;
 					 SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-				     TextBlit(debugLine_1, 0, 300);
-					 TextBlit(debugLine_2, 0, 320);
-					 TextBlit(debugLine_3, 0, 340);
-					 TextBlit(debugLine_4, 0, 360);
-					 TextBlit(debugLine_5, 0, 380);
-					 TextBlit(debugLine_6, 0, 400);
-				     SDL_RenderPresent(renderer);
-				     SDL_Delay(100);
+				     TextBlit(debugLine_1, 0, 460);
+					 TextBlit(debugLine_2, 0, 500);
+					 TextBlit(debugLine_3, 0, 540);
+					 TextBlit(debugLine_4, 0, 580);
+					 TextBlit(debugLine_5, 0, 620);
+					 TextBlit(debugLine_6, 0, 660);
+					 //SDL_RenderPresent(renderer);
+				     
+				     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M", debugLine_1.c_str(), NULL);
+		
+					 
+				     //SDL_Delay(100);
 Debug.str(std::string());
 	debugLine_1SS.str(std::string());
 	debugLine_2SS.str(std::string());
@@ -2580,19 +2606,13 @@ Debug.str(std::string());
 	debugLine_5SS.str(std::string());
 //	SDL_FreeSurface(blitSurface);
 		SDL_DestroyTexture(blitTexture);
-		SDL_Rect clearRect;
 		
-		clearRect.x = 0;
-		clearRect.y = 300;
-		clearRect.w = 800 ;
-		clearRect.h = 500;
-		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-SDL_RenderFillRect(renderer, &clearRect);
-
-		//SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M", debugLine_1.c_str(), NULL);
 
 
-	}
+		//
+
+} //end loopDetector
+	
 }
 
 	void Reset() {
@@ -2687,7 +2707,7 @@ SDL_RenderFillRect(renderer, &clearRect);
 }; //-- End class GB
 
 //-- Modulo Main
-int main(int argc, char *argv[])
+int main(int argc, char *argv[], bool loopDetected)
 {
 	//experimental SDL support
 	nullRender = false;
@@ -2719,8 +2739,11 @@ int main(int argc, char *argv[])
 	//- On Init - Set Base values to Regs, Load Rom from memory, Assign Memory to Mem Array
 	//- A little Choppy Atm - Room for improvement
 	///////////////////////////////////////////////////////////////////////////////////////
-
+    
+    bool animateF = false;
 	gb gameboy;
+	Buttons stepModule(400,600);
+	Buttons animate(800,600);
 	//gameboy.Reset();
 	gameboy.LoadFile();
 	
@@ -2728,7 +2751,6 @@ int main(int argc, char *argv[])
 	//-- Creating VRAM peeker all Functionality Disabled ///////////////////// 
 	gameboy.LoadBios();
 	gameboy.Boot();
-	gameboy.VRAMmanagerInit();
 	
 	///////////////////////////////////////////////////////////////////////////////////////
 	//- Main execution loop
@@ -2736,6 +2758,7 @@ int main(int argc, char *argv[])
 	///////////////////////////////////////////////////////////////////////////////////////
 	if (loopDebugger == false) {
 	while (1)	{
+		if ( running) {
 		
 		for (opCounter = 0; opCounter <= 5; opCounter++) {
 		
@@ -2743,14 +2766,17 @@ int main(int argc, char *argv[])
 		gameboy.RegComb();
 		gameboy.opDecoder();
 		
-		
 		//SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M", mergedDebug.c_str(), NULL);
 	
 	
 		
 	//	gameboy.VRAMpeek();
 	gameboy.Vram2();
+	//running = false;
 	SDL_RenderPresent(renderer);
+	
+	
+		
 		//
 		
 		
@@ -2776,10 +2802,10 @@ int main(int argc, char *argv[])
 			{
 				loopInstances++;
 				//std::cout << "Detected loop of [" << numberMatchs << "] Instructions \n";
-				//std::cout << "- 5 Instructions Evaluated - [" << loopInstances << "] Found\n";
+				//std::cout << "- 5 Instructions Evaluated - [ << loopInstances << "] Found\n";
 			}
 			else if (numberMatchs <2) { //Single opcode repeating
-				gameboy.BoxDeb();
+				//gameboy.BoxDeb(loopDetected);
 				//std::cin.get();
 			}
 			
@@ -2790,27 +2816,80 @@ int main(int argc, char *argv[])
 		//First you put a huge number here like 20000
 		//the program will most likely show the number of matchs in the loop getting stuck way before the counter finishes
 		//if i match the loop counter to this number. I can quickly jump into the last instruction that was read before going into a loop //most likely unimplemented
-		if (loopInstances > 12282) { loopDetected = true;  }
+		if (loopInstances > 12000) { loopDetected = true; 
+		gameboy.BoxDeb(loopDetected); }
 		// TO RESTORE FUNCTIONALITY AFTER VRAM PEEK
+		//gameboy.BoxDeb(loopDetected);
+		
+		//SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M","STOPPING", NULL);
 		numberMatchs = 0;
 		//-- Creating VRAM peeker all Functionality Disabled /////////////////////
-		} //Fin whilr
+		} //fin running
 		
-		
+	}//Fin whilr
 } // Fin opDebugger
+	
+	/*
 
 else {
 	
 	while (1) {
+		if (running)
+		{
 	gameboy.RegComb();
 	gameboy.opDecoder();
-	//gameboy.BoxDeb();
-	gameboy.Vram2();
-	SDL_RenderPresent(renderer);
+	//gameboy.BoxDeb(loopDetected);
+    gameboy.Vram2();
+  //  SDL_RenderPresent(renderer);
+	
+	if (!animateF) { running = true; }
+	//SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M","STOPPING", NULL);
+	//SDL_RenderPresent(renderer);
+		} //end running
+		while (SDL_PollEvent(&event))
+		{
+
+			switch (event.type)
+			{
+			case SDL_QUIT:
+				{
+
+				//	TTF_CloseFont(font);
+					//SDL_DestroyWindow(window);
+					// SDL_DestroyWindow(debugger);
+					SDL_Quit();
+				//	TTF_CloseFont(font);
+				}
+		
+				// done = true;
+				break;
+
+			case SDL_FINGERDOWN: {
+				stepModule.iddleButton();
+				animate.iddleButton();
+				
+				if (animate.isActive) {
+					//animateF = true;
+				}
+				
+				else if (stepModule.isActive) {
+					running = true;
+				}
+					break;
+				}
+					case SDL_FINGERUP:{
+						stepModule.activeButton();
+						//animate.activeButton();
+						stepModule.isIddle = true;
+						//animate.isIddle = true;
+					}
+			}
+		} //end SDL event
 
 	
 	} // fin While 2
 
 }
+*/
 	return 0;
 }
