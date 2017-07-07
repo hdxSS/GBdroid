@@ -61,14 +61,16 @@ std::string instamem;
 std::string pastDms[10];
 std::string currentDms[10];
 bool captureDm = true;
-int opCounter;
+long opCounter;
 long loopInstances;
 bool matchFound = true;
-bool loopDetected;
+
 bool loopDebugger = false;
 bool debugMode = true;
-bool running = true;
+static bool running = true;
+bool loopDetected = false;
 int numberMatchs;
+
 /// DEBUG MESSAGE COMPARE VARIABLES
 
 //SDL_TTF Handles
@@ -125,6 +127,8 @@ TTF_Font *font1;
 class gb
 {
 public:
+
+
 //CPU Registers
 	unsigned short Raf, Rbc, Rde, Rhl;
 	unsigned char Ra, Rf, Rb, Rc, Rd, Re, Rl, Rh;
@@ -690,6 +694,7 @@ if (fontLoaded)
 		case 0xFF45: std::cout << "- trying to write LYC \n"; break;
 		case 0xFF46: std::cout << "- trying to write DMA \n"; break;
 		case 0xFF47: { std::cout << "- trying to write Window / BG Pallete Data \n";
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M","Writing Pallete Data (BG)", NULL);
 	   FF47_BGP = memoryA[0xFF00 + Rc];
 	   std::bitset<8> FF47bits( FF47_BGP);//Window palette DATA converted to bits
 	   if (FF47bits.test(0) == 0 && FF47bits.test(1) == 0 ) {
@@ -715,11 +720,13 @@ if (fontLoaded)
 		 break;
 		 
 	case 0xFF48: { std::cout << "- trying to write Object Pallete 0 Data\n";
+	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "I/O","Writing Object 0 Pallet Data", NULL);
 		std::bitset<8> FF48bits(FF48_OBP0); //Object Pallete 0 Data
 	}
 		break;
 		
 		case 0xFF49: { std::cout << "- trying to write Object Pallete 1 Data \n";
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,"I/O", "Writing Object 1 Pallet Data", NULL);
 	//std::bitset<8> FF49bits(FF49_OBP1); //Object pallete 1 Data
 		}
 		  break;
@@ -1964,7 +1971,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 	//- This will be a Major milestone in the project (Current TASK)
 	///////////////////////////////////////////////////////////////////////////////////////
 
-	void opDecoder() {
+	void opDecoder(bool& loopDetected, long int& opCounter) {
 		
 		funcText.str(std::string());
 		_16bitIn = (memoryA[pc + 2] << 8) | memoryA[pc + 3];
@@ -2518,8 +2525,8 @@ void compareDm()
 	///////////////////////////////////////////////////////////////////////////////////////
 
 
-void BoxDeb(bool &loopDetector) {  
-if (loopDetector == true) {
+void BoxDeb( bool& loopDetected) {  
+if (opCounter > 24515){
 //if every missing opcode use this i can capture the debug m3ssage with ease. BOXdeb debugger is the not mapped case error
 	std::stringstream Debug;
 	std::stringstream debugLine_1SS;
@@ -2606,8 +2613,9 @@ Debug.str(std::string());
 	debugLine_5SS.str(std::string());
 //	SDL_FreeSurface(blitSurface);
 		SDL_DestroyTexture(blitTexture);
+		loopDetected = true;
 		
-
+		//SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M","STOPPING", NULL);
 
 		//
 
@@ -2707,7 +2715,7 @@ Debug.str(std::string());
 }; //-- End class GB
 
 //-- Modulo Main
-int main(int argc, char *argv[], bool loopDetected)
+int main(int argc, char *argv[])
 {
 	//experimental SDL support
 	nullRender = false;
@@ -2742,8 +2750,8 @@ int main(int argc, char *argv[], bool loopDetected)
     
     bool animateF = false;
 	gb gameboy;
-	Buttons stepModule(400,600);
-	Buttons animate(800,600);
+	//Buttons stepModule(400,600);
+	//Buttons animate(800,600);
 	//gameboy.Reset();
 	gameboy.LoadFile();
 	
@@ -2756,92 +2764,23 @@ int main(int argc, char *argv[], bool loopDetected)
 	//- Main execution loop
 	//- Currently Catching Loops Instances
 	///////////////////////////////////////////////////////////////////////////////////////
-	if (loopDebugger == false) {
-	while (1)	{
-		if ( running) {
-		
-		for (opCounter = 0; opCounter <= 5; opCounter++) {
-		
-		
-		gameboy.RegComb();
-		gameboy.opDecoder();
-		
-		//SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M", mergedDebug.c_str(), NULL);
-	
-	
-		
-	//	gameboy.VRAMpeek();
-	gameboy.Vram2();
-	//running = false;
-	SDL_RenderPresent(renderer);
-	
-	
-		
-		//
-		
-		
-		if (captureDm) { pastDms[opCounter] = Dm; }
-		else if (captureDm == false) { currentDms[opCounter] = Dm; }
-		}
-		opCounter = 0;
-		captureDm = false;
 
-		for (int i = 0; i <= 5; i++)
-		{
-			
-			if (pastDms[i] == currentDms[i]) {
-				numberMatchs = 0;
-				loopInstances++;
-				//std::cout << currentDms[i] << "\n";
-				matchFound = true;	
-
-				if (matchFound) { numberMatchs++; matchFound = false; }
-			}
-			
-			if (numberMatchs > 1)
-			{
-				loopInstances++;
-				//std::cout << "Detected loop of [" << numberMatchs << "] Instructions \n";
-				//std::cout << "- 5 Instructions Evaluated - [ << loopInstances << "] Found\n";
-			}
-			else if (numberMatchs <2) { //Single opcode repeating
-				//gameboy.BoxDeb(loopDetected);
-				//std::cin.get();
-			}
-			
-			
-		}
-		
-		//Break Point QUICK ACCESS - 
-		//First you put a huge number here like 20000
-		//the program will most likely show the number of matchs in the loop getting stuck way before the counter finishes
-		//if i match the loop counter to this number. I can quickly jump into the last instruction that was read before going into a loop //most likely unimplemented
-		if (loopInstances > 12000) { loopDetected = true; 
-		gameboy.BoxDeb(loopDetected); }
-		// TO RESTORE FUNCTIONALITY AFTER VRAM PEEK
-		//gameboy.BoxDeb(loopDetected);
-		
-		//SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M","STOPPING", NULL);
-		numberMatchs = 0;
-		//-- Creating VRAM peeker all Functionality Disabled /////////////////////
-		} //fin running
-		
-	}//Fin whilr
-} // Fin opDebugger
-	
-	/*
-
-else {
-	
 	while (1) {
 		if (running)
 		{
 	gameboy.RegComb();
-	gameboy.opDecoder();
-	//gameboy.BoxDeb(loopDetected);
-    gameboy.Vram2();
-  //  SDL_RenderPresent(renderer);
+	gameboy.opDecoder(loopDetected, opCounter);
+    
+	opCounter++;
+	if ( loopDetected == true) {
+	gameboy.Vram2();
+    SDL_RenderPresent(renderer);
+	}
+		}
+	}
+  
 	
+	/*
 	if (!animateF) { running = true; }
 	//SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M","STOPPING", NULL);
 	//SDL_RenderPresent(renderer);
@@ -2888,8 +2827,9 @@ else {
 
 	
 	} // fin While 2
-
-}
 */
+		
+		
+
 	return 0;
 }
