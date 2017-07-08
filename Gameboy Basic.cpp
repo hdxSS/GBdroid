@@ -2750,8 +2750,8 @@ int main(int argc, char *argv[])
     
     bool animateF = false;
 	gb gameboy;
-	//Buttons stepModule(400,600);
-	//Buttons animate(800,600);
+	Buttons stepModule(400,600);
+	Buttons animate(800,600);
 	//gameboy.Reset();
 	gameboy.LoadFile();
 	
@@ -2764,29 +2764,16 @@ int main(int argc, char *argv[])
 	//- Main execution loop
 	//- Currently Catching Loops Instances
 	///////////////////////////////////////////////////////////////////////////////////////
-
-	while (1) {
-		if (running)
-		{
+while (1) {
 	gameboy.RegComb();
 	gameboy.opDecoder(loopDetected, opCounter);
     
+    
+    
+    SDL_RenderPresent(renderer);
 	opCounter++;
 	if ( loopDetected == true) {
 	gameboy.Vram2();
-    SDL_RenderPresent(renderer);
-	}
-		}
-	}
-  
-	
-	/*
-	if (!animateF) { running = true; }
-	//SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M","STOPPING", NULL);
-	//SDL_RenderPresent(renderer);
-		} //end running
-		while (SDL_PollEvent(&event))
-		{
 
 			switch (event.type)
 			{
@@ -2819,11 +2806,25 @@ int main(int argc, char *argv[])
 					case SDL_FINGERUP:{
 						stepModule.activeButton();
 						//animate.activeButton();
-						stepModule.isIddle = true;
+						//stepModule.isIddle = true;
 						//animate.isIddle = true;
 					}
 			}
-		} //end SDL event
+		
+	
+	
+    
+    } //end LoopDetected = true
+    
+	} //if running
+		} //end of SDL event
+	
+  
+	
+	 
+	/*
+	if (!animateF) { running = true; }
+		
 
 	
 	} // fin While 2
