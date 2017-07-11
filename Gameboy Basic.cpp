@@ -1,7 +1,7 @@
 // Gameboy Basic.cpp : Defines the entry point for the console application.
 // ob
 
-//#include "stdafx.h" // Windows only
+#include "stdafx.h" // Windows only
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -11,8 +11,8 @@
 #include <string>
 #include <sstream>
 #include <SDL_ttf.h>
-//#include <SDL.h> //for windows
-#include <SDL2/SDL.h> //for android
+#include <SDL.h> //for windows
+//#include <SDL2/SDL.h> //for android
 #include <random>
 #include "buttonHandler.h"
 
@@ -1535,7 +1535,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		////-- Instruction preset
 		opLen = 2;
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
-		funcText << "LOAD |" << Dtarget << "|, $XX|" << std::hex << std::setw(4) << std::setfill('0') << _$xx << "|\n";
+		funcText << "LOAD |" << Dtarget << "|, $XX|" << std::hex << std::setw(4) << std::setfill('0') << (int)_$xx << "|\n";
 		functType = funcText.str();
 		BoxDeb(loopDetected);
 		_8r = _$xx;
@@ -2737,7 +2737,7 @@ int main(int argc, char *argv[])
 
 		window = SDL_CreateWindow
 			("GBdroid", SDL_WINDOWPOS_UNDEFINED,
-			SDL_WINDOWPOS_UNDEFINED, 800, 600, SDL_WINDOW_SHOWN);
+			SDL_WINDOWPOS_UNDEFINED,1080, 720, SDL_WINDOW_SHOWN);
 
 		renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
 
@@ -2765,70 +2765,19 @@ int main(int argc, char *argv[])
 	//- Currently Catching Loops Instances
 	///////////////////////////////////////////////////////////////////////////////////////
 while (1) {
+	opCounter++;
 	gameboy.RegComb();
 	gameboy.opDecoder(loopDetected, opCounter);
-    
-    
-    
-    SDL_RenderPresent(renderer);
-	opCounter++;
 	if ( loopDetected == true) {
 	gameboy.Vram2();
-
-			switch (event.type)
-			{
-			case SDL_QUIT:
-				{
-
-				//	TTF_CloseFont(font);
-					//SDL_DestroyWindow(window);
-					// SDL_DestroyWindow(debugger);
-					SDL_Quit();
-				//	TTF_CloseFont(font);
-				}
+	SDL_RenderPresent(renderer);
+	} //if loop detected
 		
-				// done = true;
-				break;
-
-			case SDL_FINGERDOWN: {
-				stepModule.iddleButton();
-				animate.iddleButton();
-				
-				if (animate.isActive) {
-					//animateF = true;
-				}
-				
-				else if (stepModule.isActive) {
-					running = true;
-				}
-					break;
-				}
-					case SDL_FINGERUP:{
-						stepModule.activeButton();
-						//animate.activeButton();
-						//stepModule.isIddle = true;
-						//animate.isIddle = true;
-					}
-			}
-		
-	
-	
-    
-    } //end LoopDetected = true
-    
-	} //if running
-		} //end of SDL event
 	
   
 	
-	 
-	/*
-	if (!animateF) { running = true; }
-		
+} // fin While 2
 
-	
-	} // fin While 2
-*/
 		
 		
 

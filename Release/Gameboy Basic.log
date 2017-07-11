@@ -1,22 +1,22 @@
-﻿Build started 6/29/2017 1:02:50 AM.
+﻿Build started 7/8/2017 7:07:56 PM.
      1>Project "C:\Users\Camilo\Documents\GitHub\GBdroid\Gameboy Basic.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /Zi /nologo /W3 /WX- /sdl /O2 /Oi /Oy- /GL /D WIN32 /D NDEBUG /D _CONSOLE /D _LIB /D _UNICODE /D UNICODE /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Yu"stdafx.h" /Fp"Release\Gameboy Basic.pch" /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt "Gameboy Basic.cpp"
          Gameboy Basic.cpp
-     1>Gameboy Basic.cpp(319): warning C4101: 'colN' : unreferenced local variable
-     1>Gameboy Basic.cpp(318): warning C4101: 'rowN' : unreferenced local variable
-     1>Gameboy Basic.cpp(370): warning C4101: 'colN' : unreferenced local variable
-     1>Gameboy Basic.cpp(473): warning C4101: 'cg' : unreferenced local variable
-     1>Gameboy Basic.cpp(473): warning C4101: 'cr' : unreferenced local variable
-     1>Gameboy Basic.cpp(473): warning C4101: 'cb' : unreferenced local variable
-     1>Gameboy Basic.cpp(618): warning C4244: '=' : conversion from 'unsigned short' to 'char', possible loss of data
-     1>Gameboy Basic.cpp(838): warning C4554: '&' : check operator precedence for possible error; use parentheses to clarify precedence
-     1>Gameboy Basic.cpp(844): warning C4554: '&' : check operator precedence for possible error; use parentheses to clarify precedence
-     1>Gameboy Basic.cpp(877): warning C4244: '=' : conversion from 'unsigned long' to 'unsigned char', possible loss of data
-     1>Gameboy Basic.cpp(881): warning C4244: '=' : conversion from 'unsigned long' to 'unsigned char', possible loss of data
-     1>Gameboy Basic.cpp(1374): warning C4805: '==' : unsafe mix of type 'bool' and type 'unsigned char' in operation
-     1>Gameboy Basic.cpp(1381): warning C4805: '!=' : unsafe mix of type 'bool' and type 'unsigned char' in operation
-     1>Gameboy Basic.cpp(1429): warning C4244: '=' : conversion from 'unsigned short' to 'unsigned char', possible loss of data
+     1>Gameboy Basic.cpp(335): warning C4101: 'colN' : unreferenced local variable
+     1>Gameboy Basic.cpp(334): warning C4101: 'rowN' : unreferenced local variable
+     1>Gameboy Basic.cpp(386): warning C4101: 'colN' : unreferenced local variable
+     1>Gameboy Basic.cpp(489): warning C4101: 'cg' : unreferenced local variable
+     1>Gameboy Basic.cpp(489): warning C4101: 'cr' : unreferenced local variable
+     1>Gameboy Basic.cpp(489): warning C4101: 'cb' : unreferenced local variable
+     1>Gameboy Basic.cpp(634): warning C4244: '=' : conversion from 'unsigned short' to 'char', possible loss of data
+     1>Gameboy Basic.cpp(860): warning C4554: '&' : check operator precedence for possible error; use parentheses to clarify precedence
+     1>Gameboy Basic.cpp(866): warning C4554: '&' : check operator precedence for possible error; use parentheses to clarify precedence
+     1>Gameboy Basic.cpp(899): warning C4244: '=' : conversion from 'unsigned long' to 'unsigned char', possible loss of data
+     1>Gameboy Basic.cpp(903): warning C4244: '=' : conversion from 'unsigned long' to 'unsigned char', possible loss of data
+     1>Gameboy Basic.cpp(1396): warning C4805: '==' : unsafe mix of type 'bool' and type 'unsigned char' in operation
+     1>Gameboy Basic.cpp(1403): warning C4805: '!=' : unsafe mix of type 'bool' and type 'unsigned char' in operation
+     1>Gameboy Basic.cpp(1451): warning C4244: '=' : conversion from 'unsigned short' to 'unsigned char', possible loss of data
        Link:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\Camilo\Documents\GitHub\GBdroid\Release\Gameboy Basic.exe" /INCREMENTAL:NO /NOLOGO SDL2.lib SDL2main.lib SDL2_ttf.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\Camilo\Documents\GitHub\GBdroid\Release\Gameboy Basic.pdb" /SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\Camilo\Documents\GitHub\GBdroid\Release\Gameboy Basic.lib" /MACHINE:X86 /SAFESEH "Release\Gameboy Basic.obj"
          Release\stdafx.obj
@@ -27,4 +27,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:04.45
+Time Elapsed 00:00:04.49
