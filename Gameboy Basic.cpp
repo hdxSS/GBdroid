@@ -1,7 +1,7 @@
 // Gameboy Basic.cpp : Defines the entry point for the console application.
 // ob
 
-#include "stdafx.h" // Windows only
+//#include "stdafx.h" // Windows only
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -11,8 +11,8 @@
 #include <string>
 #include <sstream>
 #include <SDL_ttf.h>
-#include <SDL.h> //for windows
-//#include <SDL2/SDL.h> //for android
+//#include <SDL.h> //for windows
+#include <SDL2/SDL.h> //for android
 #include <random>
 #include "buttonHandler.h"
 
@@ -120,6 +120,7 @@ std::string line = "Debug line 1";
 
 
 TTF_Font *font1;
+
 	
 
 ////////////
@@ -134,10 +135,60 @@ public:
 	unsigned char Ra, Rf, Rb, Rc, Rd, Re, Rl, Rh;
 	unsigned short pc, sp;
 	unsigned char stack[0xFFFF];
+	
+	//new cpu registers structure
+	
+	
+	struct reg {
+	struct  {
+		union {
+			struct {
+				unsigned char Rf;
+				unsigned char Ra;
+			};
+			unsigned short Raf;
+		};
+	};
+	
+	struct  {
+		union {
+			struct {
+				unsigned char Rc;
+				unsigned char Rb;
+			};
+			unsigned short Rbc;
+		};
+	};
+	
+	struct  {
+		union {
+			struct {
+				unsigned char Re;
+				unsigned char Rd;
+			};
+			unsigned short Rde;
+		};
+	};
+	
+	struct  {
+		union {
+			struct {
+				unsigned char Rl;
+				unsigned char Rh;
+			};
+			unsigned short Rhl;
+		};
+	};
+	
+};
+	
+	reg registers;
+	////
+	
 
 //I-O Registers
 	unsigned char FF00_P1; //Key input R/W bit 0-5
-	unsigned char FF01_SB; //Serial transfer R/W -8 Bit
+	unsigned char FF01_SB; //Serial transfer R/W -8 Bt
 	unsigned char FF02_SC; //SIO control R/W bits 7 and 0
 	unsigned char FF04_DIV;//DIV R/W
 	unsigned char FF05_TIMA; //TIMA Counter R/W
@@ -215,7 +266,7 @@ if ( debugMode == true )
 		// tContainer = std::string("Prueba") + std::string(" Text on demand
 		// ");
 
-if (fontLoaded)
+/*if (fontLoaded)
 {
 		font1 = TTF_OpenFont("arial.ttf", 40);
 		fontLoaded = false;
@@ -224,6 +275,7 @@ if (fontLoaded)
 			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "Font not found", NULL);
 		}
 }
+*/
 
 		SDL_Color color1 = { 0, 255, 0 };
 
@@ -797,7 +849,7 @@ if (fontLoaded)
 		TT1 = calcT1;	
 		TT2 = calcT2;
 
-		std::bitset<8> Rf_as_bit(Rf);
+		std::bitset<8> Rf_as_bit(registers.Rf);
 		switch (Z) {
 		case 0:	Rf_as_bit.reset(7); break;
 		case 1:	Rf_as_bit.set(7);	break;
@@ -900,7 +952,7 @@ if (fontLoaded)
 
 		//Display Box for Flags - Maybe Switch position
 		//std::cout << "Z[" << Rf_as_bit.test(7) << "] N[" << Rf_as_bit.test(6) << "] H[" << Rf_as_bit.test(5) << "] C[" << Rf_as_bit.test(4) << "]\n";
-		Rf = Rf_as_bit.to_ulong();
+		registers.Rf = Rf_as_bit.to_ulong();
 	}
 #pragma endregion
 #pragma region RegisterCombine
@@ -1010,7 +1062,7 @@ void LDR8_$HL(unsigned char &_R, unsigned char _$HL, std::string str_R, std::str
 	funcText << "LOAD |" << str_R << ",|(HL)|" << std::hex << std::setw(4) << std::setfill('0') << _$HL << "|\n";
 	functType = funcText.str();
 	BoxDeb(loopDetected);
-	_R = memoryA[Rhl];
+	_R = memoryA[registers.Rhl];
 	pc += opLen;
 	////-- Instruction preset
 }
@@ -1026,7 +1078,7 @@ void LD$HL_R(unsigned char &_$HL, unsigned char _R, std::string str_$HL, std::st
 	funcText << "LOAD (HL),|" << std::hex << std::setw(4) << std::setfill('0') << _R << "|\n";
 	functType = funcText.str();
 	BoxDeb(loopDetected);
-	memoryA[Rhl] = _R;
+	memoryA[registers.Rhl] = _R;
 	pc += opLen;
 	////-- Instruction preset
 }
@@ -1041,7 +1093,7 @@ void LD$HL_n(unsigned char &_$HL, unsigned char _n, std::string str_$HL, std::st
 	funcText << "LOAD (HL)" << ",n|" << std::hex << std::setw(4) << std::setfill('0') << _n << "|\n";
 	functType = funcText.str();
 	BoxDeb(loopDetected);
-	memoryA[Rhl] = _n;
+	memoryA[registers.Rhl] = _n;
 	pc += opLen;
 	////-- Instruction preset
 }
@@ -1081,8 +1133,8 @@ void LDA_$C(unsigned char &_$R, unsigned char _$C, std::string str_R, std::strin
 void ADC8RhlM(unsigned short &$any, std::string Dtarget, std::string Starget) { // n + carry flag to A
 		////-- Instruction preset
 		opLen = 1;
-		FLGH(2, 0, 2, 2, $any, Ra, 1 );
-		Ra = ($any + TempRf);
+		FLGH(2, 0, 2, 2, $any, registers.Ra, 1 );
+		registers.Ra = ($any + TempRf);
 		funcText << "ADC " << Dtarget << ", " << Starget << "(" << std::hex << (int)$any << ")";
 		functType = funcText.str();
 		BoxDeb(loopDetected);
@@ -1093,8 +1145,8 @@ void ADC8RhlM(unsigned short &$any, std::string Dtarget, std::string Starget) { 
 	void ADCA$xx(unsigned short $any, std::string Dtarget, std::string Starget)  {
 		////-- Instruction preset
 		opLen = 2;
-		FLGH(2, 0, 2, 2, $any, Ra, 1);
-		Ra = ($any + TempRf);
+		FLGH(2, 0, 2, 2, $any, registers.Ra, 1);
+		registers.Ra = ($any + TempRf);
 		funcText << "ADC " << Dtarget << ", " << Starget << "(" << std::hex << (int)$any << ")";
 		functType = funcText.str();
 		BoxDeb(loopDetected);
@@ -1104,8 +1156,8 @@ void ADC8RhlM(unsigned short &$any, std::string Dtarget, std::string Starget) { 
 	void ADCR8(unsigned short &$any, std::string Dtarget, std::string Starget) {
 		////-- Instruction preset
 		opLen = 1;
-		FLGH(2, 0, 2, 2, $any, Ra, 1);
-		Ra = ($any + TempRf);
+		FLGH(2, 0, 2, 2, $any, registers.Ra, 1);
+		registers.Ra = ($any + TempRf);
 		funcText << "ADC " << Dtarget << ", " << Starget << "(" << std::hex << (int)$any << ")";
 		functType = funcText.str();
 		BoxDeb(loopDetected);
@@ -1116,9 +1168,9 @@ void ADC8RhlM(unsigned short &$any, std::string Dtarget, std::string Starget) { 
 		
 		////-- Instruction preset
 		opLen = 1;
-		FLGH(2, 0, 2, 2, Ra, memoryA[Rhl], 1);
-		Ra += memoryA[Rhl];
-		funcText << "ADD " << Dtarget << ", " << Starget << "(" << std::hex << (int)memoryA[Rhl] << ")";
+		FLGH(2, 0, 2, 2, registers.Ra, memoryA[Rhl], 1);
+		registers.Ra += memoryA[Rhl];
+		funcText << "ADD " << Dtarget << ", " << Starget << "(" << std::hex << (int)memoryA[registers.Rhl] << ")";
 		functType = funcText.str();
 		BoxDeb(loopDetected);
 		pc += opLen;
@@ -1128,7 +1180,7 @@ void ADC8RhlM(unsigned short &$any, std::string Dtarget, std::string Starget) { 
 	void ADDA$xx(unsigned char _8int) {
 		//FLGH(2, 0, 2, 2);
 		//CALCFLG(Ra, _8int, 1);
-		Ra += _8int;
+		registers.Ra += _8int;
 		opclock = 2;
 		functType = "ADD $xx ";
 
@@ -1137,7 +1189,7 @@ void ADC8RhlM(unsigned short &$any, std::string Dtarget, std::string Starget) { 
 		////-- Instruction preset
 		opLen = 1;
 		FLGH(2, 0, 1, 0, Ra, _8r, 1);
-		Ra += _8r;
+		registers.Ra += _8r;
 		funcText << "AND " << Dtarget << ", " << Starget;
 		functType = funcText.str();
 		BoxDeb(loopDetected);
@@ -1147,7 +1199,7 @@ void ADC8RhlM(unsigned short &$any, std::string Dtarget, std::string Starget) { 
 	void ADDHL16R(unsigned short &_R16) {
 		//FLGH(3, 0, 2, 2);
 		//CALCFLG(Rhl, _R1, 1);
-		Rhl += _R16;
+		registers.Rhl += _R16;
 		opclock = 1;
 		functType = "ADD HL 16R ";
 	}
@@ -1168,7 +1220,7 @@ void ADC8RhlM(unsigned short &$any, std::string Dtarget, std::string Starget) { 
 	void ANDA$xx(unsigned char _8int) {
 		//FLGH(2, 0, 1, 0);
 		//CALCFLG(Ra, _8int, 3); //set optype3 as AND
-		Ra &= _8int;
+		registers.Ra &= _8int;
 		opclock = 2;
 		functType = "AND A $xx ";
 	}
@@ -1176,7 +1228,7 @@ void ADC8RhlM(unsigned short &$any, std::string Dtarget, std::string Starget) { 
 		////-- Instruction preset
 		opLen = 1;
 		FLGH(2, 0, 1, 0, Ra, _8r, 4);
-		Ra &= _8r;
+		registers.Ra &= _8r;
 		funcText << "AND " << Dtarget << ", " << Starget;
 		functType = funcText.str();
 		BoxDeb(loopDetected);
@@ -1185,7 +1237,7 @@ void ADC8RhlM(unsigned short &$any, std::string Dtarget, std::string Starget) { 
 	}
 	void BIThlM(unsigned char bitnum) {
 
-		switch (memoryA[Rhl] << bitnum) { // refinar 0x1
+		switch (memoryA[registers.Rhl] << bitnum) { // refinar 0x1
 		case 1:
 			break;
 
@@ -1276,7 +1328,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 	}
 	void DEChlM() {
 		//FLGH(2, 1, 2, 3);
-		memoryA[Rhl]--;
+		memoryA[registers.Rhl]--;
 		opclock = 1;
 		functType = "DEC (HL) ";
 
@@ -1319,7 +1371,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 	}
 	void INChlM() {
 		//FLGH(2, 0, 2, 3);
-		memoryA[Rhl]++;
+		memoryA[registers.Rhl]++;
 		opclock = 1;
 		//update timers
 		//update flags
@@ -1349,7 +1401,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		////-- Instruction preset
 	}
 	void JUMPhlM() {
-		pc = memoryA[Rhl];
+		pc = memoryA[registers.Rhl];
 
 		//update timers
 		opclock = 1;
@@ -1384,7 +1436,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		funcText << "JR + " << std::hex << std::setw(4) << std::setfill('0') << (int)_$xx << " IF FlagBit = TRUE  ->";
 		functType = funcText.str();
 		BoxDeb(loopDetected);
-		std::bitset<8> flagChecker(Rf);
+		std::bitset<8> flagChecker(registers.Rf);
 		unsigned char byteNum;
 		unsigned char testCase;
 		if (flagOp == "Z"){ byteNum = 7; testCase = 1; }
@@ -1416,7 +1468,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		//FLGH(3, 3, 3, 3);
 	}
 	void LOADCMRA() {
-		Ra = memoryA[Rc];
+		registers.Ra = memoryA[registers.Rc];
 		//update timers
 		opclock = 1;
 		//update flags
@@ -1424,7 +1476,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		//FLGH(3, 3, 3, 3);
 	}
 	void LOADhlM$xx(unsigned char _8int) {
-		memoryA[Rhl] = _8int;
+		memoryA[registers.Rhl] = _8int;
 		//update timers
 		opclock = 2;
 		//update flags
@@ -1432,7 +1484,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		//FLGH(3, 3, 3, 3);
 	}
 	void LOADhlM8R(unsigned char &_8r) {
-		memoryA[Rhl] = _8r;
+		memoryA[registers.Rhl] = _8r;
 		//update timers
 		opclock = 1;
 		//update flags
@@ -1440,7 +1492,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		///FLGH(3, 3, 3, 3);
 	}
 	void LOAD$aabbMRA(unsigned short _16ba) {
-		memoryA[_16ba] = Ra;
+		memoryA[_16ba] = registers.Ra;
 		//update timers
 		opclock = 3;
 		//update flags
@@ -1456,7 +1508,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		//FLGH(3, 3, 3, 3);
 	}
 	void LOAD16RMRA(unsigned short &_16r) {
-		memoryA[_16r] = Ra;
+		memoryA[_16r] =registers.Ra;
 		//update timers
 		opclock = 1;
 		//update flags
@@ -1464,7 +1516,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		//FLGH(3, 3, 3, 3);
 	}
 	void LOADRACM(unsigned char &_8r) {
-		Ra = memoryA[_8r];
+		registers.Ra = memoryA[_8r];
 		//update timers
 		opclock = 1;
 		//update flags
@@ -1473,7 +1525,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		///////////////////REVISAR PUEDE ESTAR MALO
 	}
 	void LOADRA$aabb(unsigned short _16ba) {
-		Ra = memoryA[_16ba];
+		registers.Ra = memoryA[_16ba];
 		//update timers
 		opclock = 3;
 		//update flags
@@ -1494,7 +1546,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 	}
 	void LOADRHLSPOFF(unsigned char _8boff) {
 		//FLGH(0, 0, 2, 2);
-		Rhl = (sp + _8boff);
+		registers.Rhl = (sp + _8boff);
 		//update timers
 		opclock = 2;
 		//update flags
@@ -1509,10 +1561,10 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		BoxDeb(loopDetected);
 		_16r = $_aabb;
 		MMUexp($_aabb, NULL, Dtarget, 3);
-		if (Dtarget == "HL") { Rh = $aa; Rl = $bb; }
-		else if (Dtarget == "AF") { Ra = $aa; Rf = $bb; }
-		else if (Dtarget == "BC") { Rb = $aa; Rc = $bb; }
-		else if (Dtarget == "DE") { Rd = $aa; Re = $bb; }
+		//if (Dtarget == "HL") { Rh = $aa; Rl = $bb; }
+		//else if (Dtarget == "AF") { Ra = $aa; Rf = $bb; }
+		//else if (Dtarget == "BC") { Rb = $aa; Rc = $bb; }
+		//else if (Dtarget == "DE") { Rd = $aa; Re = $bb; }
 		memCatch =$_aabb;
 		memCatchFlag = true;
 		pc += opLen;
@@ -1521,7 +1573,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		////-- Instruction preset
 	}
 	void LOADR8hlM(unsigned char &_8r) {
-		_8r = memoryA[Rhl];
+		_8r = memoryA[registers.Rhl];
 		functType = "LD (HL)";
 		//gb::DebugReg(functType);
 		//update timers
@@ -1535,11 +1587,11 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		////-- Instruction preset
 		opLen = 2;
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
-		funcText << "LOAD |" << Dtarget << "|, $XX|" << std::hex << std::setw(4) << std::setfill('0') << (int)_$xx << "|\n";
+		funcText << "LOAD |" << Dtarget << "|, $XX|" << std::hex << std::setw(4) << std::setfill('0') << _$xx << "|\n";
 		functType = funcText.str();
 		BoxDeb(loopDetected);
 		_8r = _$xx;
-		MMUexp(Ra, _$xx, "XX", 1);
+		MMUexp(registers.Ra, _$xx, "XX", 1);
 		pc += opLen;
 		////-- Instruction preset
 	}
@@ -1563,7 +1615,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		//FLGH(3, 3, 3, 3);
 	}
 	void LOADDR8hlM() {
-		Ra = memoryA[Rhl];
+		registers.Ra = memoryA[registers.Rhl];
 		Rhl--;
 		//update timers
 		opclock = 1;
@@ -1582,12 +1634,9 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		//std::cout << "MEMORY RHL DESP: " << std::dec << (int)vramGfx[(8191)] << "\n";
 	
 		BoxDeb(loopDetected);
-		if (Dtarget == "(HL)") {
-			if (Rl == 0) { Rh--; Rl = 0xFF; }
-			else if (Rl > -1) { Rl--; }
-		}
-		memoryA[Rhl] = _R8;
-		MMUexp(Rhl, _R8, Starget, 2);
+		memoryA[registers.Rhl] = _R8;
+		MMUexp(registers.Rhl, _R8, Starget, 2);
+		registers.Rhl--;
 		pc += opLen;
 		////-- Instruction preset
 
@@ -1612,14 +1661,14 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		funcText << "LOAD ( 0xff00 + " << Starget << ")|(" << std::hex << (int)_R8 << "| ) ,A";
 		functType = funcText.str();
 		BoxDeb(loopDetected);
-		memoryA[0xff00 | _R8] = Ra;
-		MMUexp(0xff00 | _R8, Ra, "Ra", 2);
+		memoryA[0xff00 | _R8] = registers.Ra;
+		MMUexp(0xff00 | _R8,registers.Ra, "Ra", 2);
 		pc += opLen;
 		////-- Instruction preset
 	}
 	void LDIhlMRA() {
-		memoryA[Rhl] = Ra;
-		Ra++;
+		memoryA[registers.Rhl] = registers.Ra;
+		registers.Ra++;
 		//update timers
 		opclock = 1;
 		//update flags
@@ -1627,8 +1676,8 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		//FLGH(3, 3, 3, 3);
 	}
 	void LDIRAhlM() {
-		Ra = memoryA[Rhl];
-		memoryA[Rhl]++;
+		registers.Ra = memoryA[registers.Rhl];
+		memoryA[registers.Rhl]++;
 		//update timers
 		opclock = 1;
 		//update flags
@@ -1643,13 +1692,13 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 	}
 	void ORhlMRA() {
 	//	FLGH(2, 0, 0, 0);
-		memoryA[Rhl] |= Ra;
+		memoryA[registers.Rhl] |= registers.Ra;
 		opclock = 1;
 		functType = "OR (HL) A ";
 	}
 	void ORRA$xx(unsigned char _8int) {
 	//	FLGH(2, 0, 0, 0);
-		Ra |= _8int;
+		registers.Ra |= _8int;
 		opclock = 2;
 		functType = "OR ADC R8 ";
 	}
@@ -1657,7 +1706,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		////-- Instruction preset
 		opLen = 1;
 		FLGH(2, 0, 0, 0, Ra, _r8, 5);
-		Ra |= _r8;
+		registers.Ra |= _r8;
 		funcText << "OR " << Dtarget << ", " << Starget;
 		functType = funcText.str();
 		BoxDeb(loopDetected);
@@ -1678,9 +1727,6 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		funcText << "PUSH " << Starget;
 		functType = funcText.str();
 		BoxDeb(loopDetected);
-		if (Starget == "BC") { stack[sp] = Rb; sp--; stack[sp] = Rc; sp--; }
-		else if (Starget == "DE") { stack[sp] = Rd; sp--; stack[sp] = Re; sp--; }
-		else if (Starget == "HL") { stack[sp] = Rh; sp--; stack[sp] = Rl; sp--; }
 		pc += opLen;
 		////-- Instruction preset
 	}
@@ -1857,7 +1903,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		////-- Instruction preset
 		opLen = 1;
 		FLGH(2, 1, 2, 2, Ra, _8r, 2);
-		Ra -= _8r;
+		registers.Ra -= _8r;
 		funcText << "SUB " << Dtarget << ", " << Starget;
 		functType = funcText.str();
 		BoxDeb(loopDetected);
@@ -1888,7 +1934,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		////-- Instruction preset
 		opLen = 1;
 		FLGH(2, 0, 0, 0, Ra, _r8, 6);
-		Ra ^= _r8;
+		registers.Ra ^= _r8;
 		funcText << "XOR R8";
 		functType = funcText.str();
 		BoxDeb(loopDetected);
@@ -1976,6 +2022,8 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		funcText.str(std::string());
 		_16bitIn = (memoryA[pc + 2] << 8) | memoryA[pc + 3];
 		fullOpcode = memoryA[pc] << 8 | memoryA[pc + 1];
+		long opcodeAndPar = memoryA[pc] << 8 | memoryA[pc + 1];
+
 		//opcode = memoryA[pc];
 		opcode = memoryA[pc];
 		unsigned short opcodeCB = memoryA[pc] | memoryA[pc + 1];
@@ -1992,59 +2040,59 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		// aa bb = 16bit integer
 		//Opcode is also refered ( BY ME :D ) as ENGAGER a 16bit Entity capable of capuring from 00 to FFFF
 		//By masking it like this I only capture the lower Byte tho
-		switch (opcode & 0x00FF) {
-		case 0X00:	NOP();				Dm = " - 0x00 - NOP";			break;
-		case 0X01:						Dm = " - 0x01 - LD BC $aabb";	break;
-		case 0X02:						Dm = " - 0x02 - LD (BC) $aabb";	break;
-		case 0X03:INC16R(Rbc, "BC");	Dm = " - 0x03 - INC BC";		break;
-		case 0X04:INC8R(Rb, "B");		Dm = " - 0x04 - INC B";			break;
-		case 0X05:DEC8R(Rb, "B");		Dm = " - 0x05 - DEC B";			break;
-		case 0X06:LDR8$xx(Rb, (int)$xx, "B"); Dm = " - 0x06 - LD B $xx";		break;
-		case 0X07:						Dm = " - 0x07 - RLCA";			break;
-		case 0X08:						Dm = " - 0x08 - LD ($aabb) SP";	break;
-		case 0X09:						Dm = " - 0x09 - ADD HL BC";		break;
-		case 0X0A:						Dm = " - 0x0A - LD A (BC)";		break;
-		case 0X0B:						Dm = " - 0x0B - DEC BC";		break;
-		case 0X0C:INC8R(Rc, "C");		Dm = " - 0x0C - INC C";			break;
-		case 0X0D:DEC8R(Rc, "C");		Dm = " - 0x0D - DEC C";			break;
-		case 0X0E:LDR8$xx(Rc, (int)$xx, "C"); Dm = " - 0x0E - LD C $xx";		break;
-		case 0X0F:						Dm = " - 0x0F - RRCA";			break;
-		case 0X10:						Dm = " - 0x10 - STOP";			break;
-		case 0X11:LOADR16$aabb(Rde, $aabb, "DE");  Dm = " - 0x11 - LD DE $aabb";	break;
-		case 0X12:						Dm = " - 0x12 - LD (DE) A";		break;
-		case 0X13:INC16R(Rde, "DE");	Dm = " - 0x13 - INC DE";		break;
-		case 0X14:INC8R(Rd, "D");		Dm = " - 0x14 - INC D";			break;
-		case 0X15:DEC8R(Rd, "D");		Dm = " - 0x15 - DEC D";			break;
-		case 0X16:LDR8$xx(Rd, (int)$xx, "D");	Dm = " - 0x15 - LD D $xx ";		break;
-		case 0X17:						Dm = " - 0x17 - RLA";			break;
-		case 0X18:						Dm = " - 0x18 - JR $xx";		break;
-		case 0X19:						Dm = " - 0x19 - ADD HL DE";		break;
-		case 0X1A:LOADRA16RM(Rde, "DE");Dm = " - 0x1A - LD A (DE)";		break;
-		case 0X1B:						Dm = " - 0x1B - DEC DE";		break;
-		case 0X1C:INC8R(Re, "E");		Dm = " - 0x1C - INC E";			break;
-		case 0X1D:DEC8R(Re, "E");		Dm = " - 0x1D - DEC E";			break;
-		case 0X1E:LDR8$xx(Re, (int)$xx, "E");	Dm = " - 0x1E - LD E $xx";		break;
-		case 0X1F:						Dm = " - 0x1F - RRA";			break;
-		case 0X20:JRCC$xx("NZ", (int)$xx);	Dm = " - 0x20 - JR NZ $xx";		break;
-		case 0X21:LOADR16$aabb(Rhl, $aabb , "HL");	Dm = " - 0x21 - LD HL $aabb";	break;
-		case 0X22:						Dm = " - 0x22 - LD (HLI) A";	break;
-		case 0X23:INC16R(Rhl, "HL");	Dm = " - 0x23 - INC HL";		break;
-		case 0X24:INC8R(Rh, "H");		Dm = " - 0x24 - INC H";			break;
-		case 0X25:DEC8R(Rh, "H");		Dm = " - 0x25 - DEC H";			break;
-		case 0X26:LDR8$xx(Rh, (int)$xx, "H");	Dm = " - 0x26 - LD H $xx";		break;
-		case 0X27:						Dm = " - 0x27 - DAA";			break;
-		case 0X28:						Dm = " - 0x28 - JR Z $xx";		break;
-		case 0X29:						Dm = " - 0x29 - ADD HL HL";		break;
-		case 0X2A:						Dm = " - 0x2A - LD A (HLI)";	break;
-		case 0X2B:						Dm = " - 0x2B - DEC HL";		break;
-		case 0X2C:INC8R(Rl, "L");		Dm = " - 0x2C - INC L";			break;
-		case 0X2D:DEC8R(Rl, "L");		Dm = " - 0x2D - DEC L";			break;
-		case 0X2E:LDR8$xx(Rl, (int)$xx, "L");	Dm = " - 0x2E - LD L $xx";		break;
-		case 0X2F:						Dm = " - 0x2F - CPL";			break;
-		case 0X30:						Dm = " - 0x30 - JR NC $xx";		break;
-		case 0X31:LOADR16$aabb(sp, $aabb,"SP");				Dm = " - 0x31 - LD SP $aabb";	break;
-		case 0X32:LOADDhlMR8(Ra, "(HL)", "A");	Dm = " - 0x32 - LDD (HLD) A";	break;
-		case 0X33:INC16R(sp, "SP");		Dm = " - 0x33 - INC SP";		break;
+		switch (opcode) {
+		case 0X00:	NOP();			Dm = " - 0x00 - NOP"; Dissam();			break;
+		case 0X01:					Dm = " - 0x01 - LD BC $aabb";Dissam();	break;
+		case 0X02:					Dm = " - 0x02 - LD (BC) $aabb";Dissam();	break;
+		case 0X03:INC16R(registers.Rbc, "BC");	Dm = " - 0x03 - INC BC";Dissam();		break;
+		case 0X04:INC8R(registers.Rb, "B");	Dm = " - 0x04 - INC B"; 	Dissam();		break;
+		case 0X05:DEC8R(registers.Rb, "B");	Dm = " - 0x05 - DEC B";	Dissam();		break;
+		case 0X06:LDR8$xx(registers.Rb, (int)$xx, "B");Dm = " - 0x06 - LD B $xx";	Dissam();	break;
+		case 0X07:			Dm = " - 0x07 - RLCA";		Dissam();	break;
+		case 0X08:					Dm = " - 0x08 - LD ($aabb) SP";Dissam();	break;
+		case 0X09:					Dm = " - 0x09 - ADD HL BC";	Dissam();	break;
+		case 0X0A:					Dm = " - 0x0A - LD A (BC)";	Dissam();	break;
+		case 0X0B:					Dm = " - 0x0B - DEC BC";	Dissam();	break;
+		case 0X0C:INC8R(registers.Rc, "C");		Dm = " - 0x0C - INC C";	Dissam();		break;
+		case 0X0D:DEC8R(registers.Rc, "C");		Dm = " - 0x0D - DEC C";	Dissam();		break;
+		case 0X0E:LDR8$xx(registers.Rc, (int)$xx, "C"); Dm = " - 0x0E - LD C $xx";	Dissam();	break;
+		case 0X0F:						Dm = " - 0x0F - RRCA";	Dissam();		break;
+		case 0X10:						Dm = " - 0x10 - STOP";	Dissam();		break;
+		case 0X11:LOADR16$aabb(registers.Rde, $aabb, "DE");  Dm = " - 0x11 - LD DE $aabb";Dissam();	break;
+		case 0X12:						Dm = " - 0x12 - LD (DE) A";	Dissam();	break;
+		case 0X13:INC16R(registers.Rde, "DE");	Dm = " - 0x13 - INC DE";Dissam();		break;
+		case 0X14:INC8R(registers.Rd, "D");		Dm = " - 0x14 - INC D";	Dissam();		break;
+		case 0X15:DEC8R(registers.Rd, "D");		Dm = " - 0x15 - DEC D";	Dissam();		break;
+		case 0X16:LDR8$xx(registers.Rd, (int)$xx, "D");	Dm = " - 0x15 - LD D $xx ";Dissam();		break;
+		case 0X17:						Dm = " - 0x17 - RLA";	Dissam();		break;
+		case 0X18:						Dm = " - 0x18 - JR $xx";	Dissam();	break;
+		case 0X19:						Dm = " - 0x19 - ADD HL DE";	Dissam();	break;
+		case 0X1A:LOADRA16RM(registers.Rde, "DE");Dm = " - 0x1A - LD A (DE)";	Dissam();	break;
+		case 0X1B:						Dm = " - 0x1B - DEC DE";	Dissam();	break;
+		case 0X1C:INC8R(registers.Re, "E");		Dm = " - 0x1C - INC E";	Dissam();		break;
+		case 0X1D:DEC8R(registers.Re, "E");		Dm = " - 0x1D - DEC E";	Dissam();		break;
+		case 0X1E:LDR8$xx(registers.Re, (int)$xx, "E");	Dm = " - 0x1E - LD E $xx";Dissam();		break;
+		case 0X1F:						Dm = " - 0x1F - RRA";	Dissam();		break;
+		case 0X20:JRCC$xx("NZ", (int)$xx);	Dm = " - 0x20 - JR NZ $xx";Dissam();		break;
+		case 0X21:LOADR16$aabb(registers.Rhl, $aabb , "HL");	Dm = " - 0x21 - LD HL $aabb";Dissam();	break;
+		case 0X22:						Dm = " - 0x22 - LD (HLI) A";Dissam();	break;
+		case 0X23:INC16R(registers.Rhl, "HL");	Dm = " - 0x23 - INC HL";Dissam();		break;
+		case 0X24:INC8R(registers.Rh, "H");		Dm = " - 0x24 - INC H";	Dissam();		break;
+		case 0X25:DEC8R(registers.Rh, "H");		Dm = " - 0x25 - DEC H";	Dissam();		break;
+		case 0X26:LDR8$xx(registers.Rh, (int)$xx, "H");	Dm = " - 0x26 - LD H $xx";	Dissam();	break;
+		case 0X27:						Dm = " - 0x27 - DAA";	Dissam();		break;
+		case 0X28:						Dm = " - 0x28 - JR Z $xx";	Dissam();	break;
+		case 0X29:						Dm = " - 0x29 - ADD HL HL";	Dissam();	break;
+		case 0X2A:						Dm = " - 0x2A - LD A (HLI)";Dissam();	break;
+		case 0X2B:						Dm = " - 0x2B - DEC HL";	Dissam();	break;
+		case 0X2C:INC8R(registers.Rl, "L");		Dm = " - 0x2C - INC L";	Dissam();		break;
+		case 0X2D:DEC8R(registers.Rl, "L");		Dm = " - 0x2D - DEC L";			break;
+		case 0X2E:LDR8$xx(registers.Rl, (int)$xx, "L");	Dm = " - 0x2E - LD L $xx";	Dissam();	break;
+		case 0X2F:						Dm = " - 0x2F - CPL";	Dissam();		break;
+		case 0X30:						Dm = " - 0x30 - JR NC $xx";	Dissam();	break;
+		case 0X31:LOADR16$aabb(sp, $aabb,"SP");				Dm = " - 0x31 - LD SP $aabb";Dissam();	break;
+		case 0X32:LOADDhlMR8(registers.Ra, "(HL)", "A");	Dm = " - 0x32 - LDD (HLD) A";Dissam();	break;
+		case 0X33:INC16R(sp, "SP");		Dm = " - 0x33 - INC SP";	Dissam();	break;
 		case 0X34:						Dm = " - 0x34 - INC (HL)";		break;
 		case 0X35:						Dm = " - 0x2B - DEC HL";		break;
 		case 0X36:						Dm = " - 0x36 - LD (HL) $xx";	break;
@@ -2053,82 +2101,82 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		case 0X39:						Dm = " - 0x39 - ADD HL SP";		break;
 		case 0X3A:						Dm = " - 0x3A - LD A (HLD)";	break;
 		case 0X3B:						Dm = " - 0x3B - DEC SP";		break;
-		case 0X3C:INC8R(Ra, "A");		Dm = " - 0x3C - INC A";			break;
-		case 0X3D:DEC8R(Ra, "A");		Dm = " - 0x3D - DEC A";			break;
-		case 0X3E:LDR8$xx(Ra, $xx, "A");	Dm = " - 0x3E - LD A $xx";		break;
-		case 0X3F:						Dm = " - 0x3F - CCF";			break;
-		case 0X40:LOADR8R8(Rb, Rb, "B", "B");	Dm = " - 0x40 - LD B B";		break;
-		case 0X41:LOADR8R8(Rb, Rc, "B", "C");	Dm = " - 0x41 - LD B C";		break;
-		case 0X42:LOADR8R8(Rb, Rd, "B", "D");	Dm = " - 0x42 - LD B D";		break;
-		case 0X43:LOADR8R8(Rb, Re, "B", "E");	Dm = " - 0x43 - LD B E";		break;
-		case 0X44:LOADR8R8(Rb, Rh, "B", "H");	Dm = " - 0x44 - LD B H";		break;
-		case 0X45:LOADR8R8(Rb, Rl, "B", "L");	Dm = " - 0x45 - LD B L";		break;
-		case 0X46:LOADR8R8(Rb, memoryA[Rhl], "B", "(HL)");	Dm = " - 0x46 - LD B (HL)";		break;
-		case 0X47:LOADR8R8(Rb, Ra, "B", "A");	Dm = " - 0x47 - LD B A";		break;
-		case 0X48:LOADR8R8(Rc, Rb, "C", "B");	Dm = " - 0x48 - LD C B";		break;
-		case 0X49:LOADR8R8(Rc, Rc, "C", "C");	Dm = " - 0x49 - LD C C";		break;
-		case 0X4A:LOADR8R8(Rc, Rd, "C", "D");	Dm = " - 0x4A - LD C D";		break;
-		case 0X4B:LOADR8R8(Rc, Re, "C", "E");	Dm = " - 0x4B - LD C E";		break;
-		case 0X4C:LOADR8R8(Rc, Rh, "C", "H");	Dm = " - 0x4C - LD C H";		break;
-		case 0X4D:LOADR8R8(Rc, Rl, "C", "L");	Dm = " - 0x4D - LD C L";		break;
-		case 0X4E:LOADR8R8(Rc, memoryA[Rhl], "C", "(HL)");	Dm = " - 0x4E - LD C (HL)";		break;
-		case 0X4F:LOADR8R8(Rc, Ra, "C", "A");	Dm = " - 0x4F - LD C A";		break;
-		case 0X50:LOADR8R8(Rd, Rb, "D", "B");	Dm = " - 0x50 - LD D B";		break;
-		case 0X51:LOADR8R8(Rd, Rc, "D", "C");	Dm = " - 0x51 - LD D C";		break;
-		case 0X52:LOADR8R8(Rd, Rd, "D", "D");	Dm = " - 0x52 - LD D D";		break;
-		case 0X53:LOADR8R8(Rd, Re, "D", "E");	Dm = " - 0x53 - LD D E";		break;
-		case 0X54:LOADR8R8(Rd, Rh, "D", "H");	Dm = " - 0x54 - LD D H";		break;
-		case 0X55:LOADR8R8(Rd, Rl, "D", "L");	Dm = " - 0x55 - LD D L";		break;
-		case 0X56:LOADR8R8(Rd, memoryA[Rhl], "D", "(HL)");	Dm = " - 0x56 - LD D (HL)";		break;
-		case 0X57:LOADR8R8(Rd, Ra, "D", "A");	Dm = " - 0x57 - LD D A";		break;
-		case 0X58:LOADR8R8(Re, Rb, "E", "B");	Dm = " - 0x58 - LD E B";		break;
-		case 0X59:LOADR8R8(Re, Rc, "E", "C");	Dm = " - 0x59 - LD E C";		break;
-		case 0X5A:LOADR8R8(Re, Rd, "E", "D");	Dm = " - 0x5A - LD E D";		break;
-		case 0X5B:LOADR8R8(Re, Re, "E", "E");	Dm = " - 0x5B - LD E E";		break;
-		case 0X5C:LOADR8R8(Re, Rh, "E", "H");	Dm = " - 0x5C - LD E H";		break;
-		case 0X5D:LOADR8R8(Re, Rl, "E", "L");	Dm = " - 0x5D - LD E L";		break;
-		case 0X5E:LOADR8R8(Re, memoryA[Rhl], "E", "(HL)");	Dm = " - 0x5E - LD E (HL)";		break;
-		case 0X5F:LOADR8R8(Re, Ra, "E", "A");	Dm = " - 0x5F - LD E A";		break;
-		case 0X60:LOADR8R8(Rh, Rb, "H", "B");	Dm = " - 0x60 - LD H B";		break;
-		case 0X61:LOADR8R8(Rh, Rc, "H", "C");	Dm = " - 0x61 - LD H C";		break;
-		case 0X62:LOADR8R8(Rh, Rd, "H", "D");	Dm = " - 0x62 - LD H D";		break;
-		case 0X63:LOADR8R8(Rh, Re, "H", "E");	Dm = " - 0x63 - LD H E";		break;
-		case 0X64:LOADR8R8(Rh, Rh, "H", "H");	Dm = " - 0x64 - LD H H";		break;
-		case 0X65:LOADR8R8(Rh, Rl, "H", "L");	Dm = " - 0x65 - LD H L";		break;
-		case 0X66:LOADR8R8(Rh, memoryA[Rhl], "H", "(HL)");	Dm = " - 0x66 - LD H (HL)";		break;
-		case 0X67:LOADR8R8(Re, memoryA[Rhl], "E", "(HL)");	Dm = " - 0x67 - LD E (HL)";		break;
-		case 0X68:LOADR8R8(Rl, Rb, "L", "B");	Dm = " - 0x68 - LD L B";		break;
-		case 0X69:LOADR8R8(Rl, Rc, "L", "C");	Dm = " - 0x69 - LD L C";		break;
-		case 0X6A:LOADR8R8(Rl, Rd, "L", "D");	Dm = " - 0x6A - LD L D";		break;
-		case 0X6B:LOADR8R8(Rl, Re, "L", "E");	Dm = " - 0x6B - LD L E";		break;
-		case 0X6C:LOADR8R8(Rl, Rh, "L", "H");	Dm = " - 0x6C - LD L H";		break;
-		case 0X6D:LOADR8R8(Rl , Rl, "L", "L");	Dm = " - 0x6D - LD L L";		break;
-		case 0X6E:LOADR8R8(Rl, memoryA[Rhl], "L", "(HL)");	Dm = " - 0x6E - LD L (HL)";		break;
-		case 0X6F:LOADR8R8(Rh, Ra, "H", "A");	Dm = " - 0x6F - LD H A";		break;
-		case 0X70:LOADR8R8(memoryA[Rhl], Rb, "(HL)", "B");	Dm = " - 0x70 - LD (HL) B";		break;
-		case 0X71:LOADR8R8(memoryA[Rhl], Rc, "(HL)", "C");	Dm = " - 0x71 - LD (HL) C";		break;
-		case 0X72:LOADR8R8(memoryA[Rhl], Rd, "(HL)", "D");	Dm = " - 0x72 - LD (HL) D";		break;
-		case 0X73:LOADR8R8(memoryA[Rhl], Re, "(HL)", "E");	Dm = " - 0x73 - LD (HL) E";		break;
-		case 0X74:LOADR8R8(memoryA[Rhl], Rh, "(HL)", "H");	Dm = " - 0x74 - LD (HL) H";		break;
-		case 0X75:LOADR8R8(memoryA[Rhl], Rl, "(HL)", "L");	Dm = " - 0x75 - LD (HL) L";		break;
-		case 0X76:						Dm = " - 0x76 - HALT";			break;
-		case 0X77:LOADR8R8(memoryA[Rhl], Ra, "(HL)", "A");	Dm = " - 0x77 - LD (HL) A";		break;
-		case 0X78:LOADR8R8(Ra, Rb, "A", "B");	Dm = " - 0x78 - LD A B";		break;
-		case 0X79:LOADR8R8(Ra, Rc, "A", "C");	Dm = " - 0x79 - LD A C";		break;
-		case 0X7A:LOADR8R8(Ra, Rd, "A", "D");	Dm = " - 0x7A - LD A D";		break;
-		case 0X7B:LOADR8R8(Ra, Re, "A", "E");	Dm = " - 0x7B - LD A E";		break;
-		case 0X7C:LOADR8R8(Ra, Rh, "A", "H");	Dm = " - 0x7C - LD A H";		break;
-		case 0X7D:LOADR8R8(Ra, Rl, "A", "L");	Dm = " - 0x7D - LD A L";		break;
-		case 0X7E:LOADR8R8(Ra, memoryA[Rhl], "A", "(HL)");Dm = " - 0x7E - LD A (HL)";		break;
-		case 0X7F:LOADR8R8(Ra, Ra, "A", "A");	Dm = " - 0x7F - LD A A";		break;
-		case 0X80:ADDA8R(Rb, "A", "B");	Dm = " - 0x80 - ADD A B";		break;
-		case 0X81:ADDA8R(Rc, "A", "C");	Dm = " - 0x81 - ADD A C";		break;
-		case 0X82:ADDA8R(Rd, "A", "D");	Dm = " - 0x82 - ADD A D";		break;
-		case 0X83:ADDA8R(Re, "A", "E");	Dm = " - 0x83 - ADD A E";		break;
-		case 0X84:ADDA8R(Rh, "A", "H");	Dm = " - 0x84 - ADD A H";		break;
-		case 0X85:ADDA8R(Rl, "A", "L");	Dm = " - 0x85 - ADD A L";		break;
-		case 0X86:ADDA8R(memoryA[Rhl], "A", "(HL)");	Dm = " - 0x86 - ADD A (HL)";	break;
-		case 0X87:ADDA8R(Ra, "A", "A");	Dm = " - 0x87 - ADD A A";		break;
+		case 0X3C:INC8R(registers.Ra, "A");		Dm = " - 0x3C - INC A";		Dissam();	break;
+		case 0X3D:DEC8R(registers.Ra, "A");		Dm = " - 0x3D - DEC A";	Dissam();		break;
+		case 0X3E:LDR8$xx(registers.Ra, $xx, "A");	Dm = " - 0x3E - LD A $xx";	Dissam();	break;
+		case 0X3F:				Dm = " - 0x3F - CCF";		Dissam();	break;
+		case 0X40:LOADR8R8(registers.Rb, registers.Rb, "B", "B");	Dm = " - 0x40 - LD B B";Dissam();		break;
+		case 0X41:LOADR8R8(registers.Rb, registers.Rc, "B", "C");	Dm = " - 0x41 - LD B C";	Dissam();	break;
+		case 0X42:LOADR8R8(registers.Rb, registers.Rd, "B", "D");	Dm = " - 0x42 - LD B D";	Dissam();	break;
+		case 0X43:LOADR8R8(registers.Rb, registers.Re, "B", "E");	Dm = " - 0x43 - LD B E";	Dissam();	break;
+		case 0X44:LOADR8R8(registers.Rb, registers.Rh, "B", "H");	Dm = " - 0x44 - LD B H";	Dissam();	break;
+		case 0X45:LOADR8R8(registers.Rb,registers.Rl, "B", "L");	Dm = " - 0x45 - LD B L";	Dissam();	break;
+		case 0X46:LOADR8R8(registers.Rb, memoryA[registers.Rhl], "B", "(HL)");	Dm = " - 0x46 - LD B (HL)";	Dissam();	break;
+		case 0X47:LOADR8R8(registers.Rb, registers.Ra, "B", "A");	Dm = " - 0x47 - LD B A";	Dissam();	break;
+		case 0X48:LOADR8R8(registers.Rc, registers.Rb, "C", "B");	Dm = " - 0x48 - LD C B";	Dissam();	break;
+		case 0X49:LOADR8R8(registers.Rc, registers.Rc, "C", "C");	Dm = " - 0x49 - LD C C";	Dissam();	break;
+		case 0X4A:LOADR8R8(registers.Rc, registers.Rd, "C", "D");	Dm = " - 0x4A - LD C D";	Dissam();	break;
+		case 0X4B:LOADR8R8(registers.Rc, registers.Re, "C", "E");	Dm = " - 0x4B - LD C E";	Dissam();	break;
+		case 0X4C:LOADR8R8(registers.Rc, registers.Rh, "C", "H");	Dm = " - 0x4C - LD C H";	Dissam();	break;
+		case 0X4D:LOADR8R8(registers.Rc, registers.Rl, "C", "L");	Dm = " - 0x4D - LD C L";	Dissam();	break;
+		case 0X4E:LOADR8R8(registers.Rc, memoryA[registers.Rhl], "C", "(HL)");	Dm = " - 0x4E - LD C (HL)";	Dissam();	break;
+		case 0X4F:LOADR8R8(registers.Rc, registers.Ra, "C", "A");	Dm = " - 0x4F - LD C A";	Dissam();	break;
+		case 0X50:LOADR8R8(registers.Rd, registers.Rb, "D", "B");	Dm = " - 0x50 - LD D B";	Dissam();	break;
+		case 0X51:LOADR8R8(registers.Rd, registers.Rc, "D", "C");	Dm = " - 0x51 - LD D C";	Dissam();	break;
+		case 0X52:LOADR8R8(registers.Rd, registers.Rd, "D", "D");	Dm = " - 0x52 - LD D D";	Dissam();	break;
+		case 0X53:LOADR8R8(registers.Rd, registers.Re, "D", "E");	Dm = " - 0x53 - LD D E";	Dissam();	break;
+		case 0X54:LOADR8R8(registers.Rd, registers.Rh, "D", "H");	Dm = " - 0x54 - LD D H";	Dissam();	break;
+		case 0X55:LOADR8R8(registers.Rd, registers.Rl, "D", "L");	Dm = " - 0x55 - LD D L";	Dissam();	break;
+		case 0X56:LOADR8R8(registers.Rd, memoryA[registers.Rhl], "D", "(HL)");	Dm = " - 0x56 - LD D (HL)";	Dissam();	break;
+		case 0X57:LOADR8R8(registers.Rd, registers.Ra, "D", "A");	Dm = " - 0x57 - LD D A";	Dissam();	break;
+		case 0X58:LOADR8R8(registers.Re, registers.Rb, "E", "B");	Dm = " - 0x58 - LD E B";	Dissam();	break;
+		case 0X59:LOADR8R8(registers.Re, registers.Rc, "E", "C");	Dm = " - 0x59 - LD E C";	Dissam();	break;
+		case 0X5A:LOADR8R8(registers.Re, registers.Rd, "E", "D");	Dm = " - 0x5A - LD E D";	Dissam();	break;
+		case 0X5B:LOADR8R8(registers.Re, registers.Re, "E", "E");	Dm = " - 0x5B - LD E E";	Dissam();	break;
+		case 0X5C:LOADR8R8(registers.Re, registers.Rh, "E", "H");	Dm = " - 0x5C - LD E H";Dissam();		break;
+		case 0X5D:LOADR8R8(registers.Re, registers.Rl, "E", "L");	Dm = " - 0x5D - LD E L";	Dissam();	break;
+		case 0X5E:LOADR8R8(registers.Re, memoryA[registers.Rhl], "E", "(HL)");	Dm = " - 0x5E - LD E (HL)";Dissam();		break;
+		case 0X5F:LOADR8R8(registers.Re, registers.Ra, "E", "A");	Dm = " - 0x5F - LD E A";	Dissam();	break;
+		case 0X60:LOADR8R8(registers.Rh, registers.Rb, "H", "B");	Dm = " - 0x60 - LD H B";	Dissam();	break;
+		case 0X61:LOADR8R8(registers.Rh, registers.Rc, "H", "C");	Dm = " - 0x61 - LD H C";	Dissam();	break;
+		case 0X62:LOADR8R8(registers.Rh, registers.Rd, "H", "D");	Dm = " - 0x62 - LD H D";Dissam();		break;
+		case 0X63:LOADR8R8(registers.Rh, registers.Re, "H", "E");	Dm = " - 0x63 - LD H E";	Dissam();	break;
+		case 0X64:LOADR8R8(registers.Rh, registers.Rh, "H", "H");	Dm = " - 0x64 - LD H H";	Dissam();	break;
+		case 0X65:LOADR8R8(registers.Rh, registers.Rl, "H", "L");	Dm = " - 0x65 - LD H L";	Dissam();	break;
+		case 0X66:LOADR8R8(registers.Rh, memoryA[registers.Rhl], "H", "(HL)");	Dm = " - 0x66 - LD H (HL)";	Dissam();	break;
+		case 0X67:LOADR8R8(registers.Re, memoryA[registers.Rhl], "E", "(HL)");	Dm = " - 0x67 - LD E (HL)";	Dissam();	break;
+		case 0X68:LOADR8R8(registers.Rl, registers.Rb, "L", "B");	Dm = " - 0x68 - LD L B";	Dissam();	break;
+		case 0X69:LOADR8R8(registers.Rl, registers.Rc, "L", "C");	Dm = " - 0x69 - LD L C";	Dissam();	break;
+		case 0X6A:LOADR8R8(registers.Rl, registers.Rd, "L", "D");	Dm = " - 0x6A - LD L D";	Dissam();	break;
+		case 0X6B:LOADR8R8(registers.Rl, registers.Re, "L", "E");	Dm = " - 0x6B - LD L E";	Dissam();	break;
+		case 0X6C:LOADR8R8(registers.Rl, registers.Rh, "L", "H");	Dm = " - 0x6C - LD L H";	Dissam();	break;
+		case 0X6D:LOADR8R8(registers.Rl , registers.Rl, "L", "L");	Dm = " - 0x6D - LD L L";Dissam();		break;
+		case 0X6E:LOADR8R8(registers.Rl, memoryA[registers.Rhl], "L", "(HL)");	Dm = " - 0x6E - LD L (HL)";Dissam();		break;
+		case 0X6F:LOADR8R8(registers.Rh, registers.Ra, "H", "A");	Dm = " - 0x6F - LD H A";	Dissam();	break;
+		case 0X70:LOADR8R8(memoryA[registers.Rhl], registers.Rb, "(HL)", "B");	Dm = " - 0x70 - LD (HL) B";Dissam();		break;
+		case 0X71:LOADR8R8(memoryA[registers.Rhl], registers.Rc, "(HL)", "C");	Dm = " - 0x71 - LD (HL) C";Dissam();		break;
+		case 0X72:LOADR8R8(memoryA[registers.Rhl], registers.Rd, "(HL)", "D");	Dm = " - 0x72 - LD (HL) D";Dissam();		break;
+		case 0X73:LOADR8R8(memoryA[registers.Rhl], registers.Re, "(HL)", "E");	Dm = " - 0x73 - LD (HL) E";	Dissam();	break;
+		case 0X74:LOADR8R8(memoryA[registers.Rhl], registers.Rh, "(HL)", "H");	Dm = " - 0x74 - LD (HL) H";Dissam();		break;
+		case 0X75:LOADR8R8(memoryA[registers.Rhl], registers.Rl, "(HL)", "L");	Dm = " - 0x75 - LD (HL) L";	Dissam();	break;
+		case 0X76:						Dm = " - 0x76 - HALT";	Dissam();		break;
+		case 0X77:LOADR8R8(memoryA[registers.Rhl], registers.Ra, "(HL)", "A");	Dm = " - 0x77 - LD (HL) A";Dissam();		break;
+		case 0X78:LOADR8R8(registers.Ra, registers.Rb, "A", "B");	Dm = " - 0x78 - LD A B";	Dissam();	break;
+		case 0X79:LOADR8R8(registers.Ra, registers.Rc, "A", "C");	Dm = " - 0x79 - LD A C";	Dissam();break;
+		case 0X7A:LOADR8R8(registers.Ra, registers.Rd, "A", "D");	Dm = " - 0x7A - LD A D";	Dissam();	break;
+		case 0X7B:LOADR8R8(registers.Ra, registers.Re, "A", "E");	Dm = " - 0x7B - LD A E";	Dissam();	break;
+		case 0X7C:LOADR8R8(registers.Ra, registers.Rh, "A", "H");	Dm = " - 0x7C - LD A H";	Dissam();	break;
+		case 0X7D:LOADR8R8(registers.Ra, registers.Rl, "A", "L");	Dm = " - 0x7D - LD A L";	Dissam();	break;
+		case 0X7E:LOADR8R8(registers.Ra, memoryA[registers.Rhl], "A", "(HL)");Dm = " - 0x7E - LD A (HL)";	Dissam();	break;
+		case 0X7F:LOADR8R8(registers.Ra, registers.Ra, "A", "A");	Dm = " - 0x7F - LD A A";	Dissam();	break;
+		case 0X80:ADDA8R(registers.Rb, "A", "B");	Dm = " - 0x80 - ADD A B";	Dissam();	break;
+		case 0X81:ADDA8R(registers.Rc, "A", "C");	Dm = " - 0x81 - ADD A C";	Dissam();	break;
+		case 0X82:ADDA8R(registers.Rd, "A", "D");	Dm = " - 0x82 - ADD A D";	Dissam();	break;
+		case 0X83:ADDA8R(registers.Re, "A", "E");	Dm = " - 0x83 - ADD A E";	Dissam();	break;
+		case 0X84:ADDA8R(registers.Rh, "A", "H");	Dm = " - 0x84 - ADD A H";	Dissam();	break;
+		case 0X85:ADDA8R(registers.Rl, "A", "L");	Dm = " - 0x85 - ADD A L";	Dissam();	break;
+		case 0X86:ADDA8R(memoryA[registers.Rhl], "A", "(HL)");	Dm = " - 0x86 - ADD A (HL)";Dissam();	break;
+		case 0X87:ADDA8R(registers.Ra, "A", "A");	Dm = " - 0x87 - ADD A A";Dissam();		break;
 		case 0X88:						Dm = " - 0x88 - ADC A B";		break;
 		case 0X89:						Dm = " - 0x89 - ADC A C";		break;
 		case 0X8A:						Dm = " - 0x8A - ADC A D";		break;
@@ -2137,13 +2185,13 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		case 0X8D:						Dm = " - 0x8D - ADC A L";		break;
 		case 0X8E:						Dm = " - 0x8E - ADC A (HL)";	break;
 		case 0X8F:						Dm = " - 0x8F - ADC A A";		break;
-		case 0X90:SUBAR8(Rb, "A", "B");	Dm = " - 0x90 - SUB B";			break;
-		case 0X91:SUBAR8(Rc, "A", "C");	Dm = " - 0x91 - SUB C";			break;
-		case 0X92:SUBAR8(Rd, "A", "D");	Dm = " - 0x92 - SUB D";			break;
-		case 0X93:SUBAR8(Re, "A", "E");	Dm = " - 0x93 - SUB E";			break;
-		case 0X94:SUBAR8(Rh, "A", "H");	Dm = " - 0x94 - SUB H";			break;
-		case 0X95:SUBAR8(Rl, "A", "L");	Dm = " - 0x95 - SUB L";			break;
-		case 0X97:SUBAR8(Ra, "A", "A");	Dm = " - 0x97 - SUB A";			break;
+		case 0X90:SUBAR8(registers.Rb, "A", "B");	Dm = " - 0x90 - SUB B";		Dissam();	break;
+		case 0X91:SUBAR8(registers.Rc, "A", "C");	Dm = " - 0x91 - SUB C";		Dissam();	break;
+		case 0X92:SUBAR8(registers.Rd, "A", "D");	Dm = " - 0x92 - SUB D";		Dissam();	break;
+		case 0X93:SUBAR8(registers.Re, "A", "E");	Dm = " - 0x93 - SUB E";		Dissam();	break;
+		case 0X94:SUBAR8(registers.Rh, "A", "H");	Dm = " - 0x94 - SUB H";		Dissam();	break;
+		case 0X95:SUBAR8(registers.Rl, "A", "L");	Dm = " - 0x95 - SUB L";		Dissam();	break;
+		case 0X97:SUBAR8(registers.Ra, "A", "A");	Dm = " - 0x97 - SUB A";	Dissam();		break;
 		case 0X98:						Dm = " - 0x98 - SBC A B";		break;
 		case 0X99:						Dm = " - 0x99 - SBC A C";		break;
 		case 0X9A:						Dm = " - 0x9A - SBC A D";		break;
@@ -2152,30 +2200,30 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		case 0X9D:						Dm = " - 0x9D - SBC A L";		break;
 		case 0X9E:						Dm = " - 0x9E - SBC A (HL)";	break;
 		case 0X9F:						Dm = " - 0x9F - SBC A A";		break;
-		case 0XA0:ANDA8R(Rb, "A", "B");	Dm = " - 0xA0 - AND B";			break;
-		case 0XA1:ANDA8R(Rc, "A", "C");	Dm = " - 0xA1 - AND C";			break;
-		case 0XA2:ANDA8R(Rd, "A", "D");	Dm = " - 0xA2 - AND D";			break;
-		case 0XA3:ANDA8R(Re, "A", "E");	Dm = " - 0xA3 - AND E";			break;
-		case 0XA4:ANDA8R(Rh, "A", "H");	Dm = " - 0xA4 - AND H";			break;
-		case 0XA5:ANDA8R(Rl, "A", "L");	Dm = " - 0xA5 - AND L";			break;
-		case 0XA6:ANDA8R(memoryA[Rhl], "A", "(HL)");	Dm = " - 0xA6 - AND (HL)";		break;
-		case 0XA7:ANDA8R(Ra, "A", "A");	Dm = " - 0xA7 - AND A";			break;
-		case 0XA8:XORAR8(Rb, "A", "B");	Dm = " - 0xA8 - XOR B";			break;
-		case 0XA9:XORAR8(Rc, "A", "C");	Dm = " - 0xA9 - XOR C";			break;
-		case 0XAA:XORAR8(Rd, "A", "D");	Dm = " - 0xAA - XOR D";			break;
-		case 0XAB:XORAR8(Re, "A", "E");	Dm = " - 0xAB - XOR E";			break;
-		case 0XAC:XORAR8(Rh, "A", "H");	Dm = " - 0xAC - XOR H";			break;
-		case 0XAD:XORAR8(Rl, "A", "L");	Dm = " - 0xAD - XOR L";			break;
-		case 0XAE:XORAR8(memoryA[Rhl], "A", "(HL)");	Dm = " - 0xAE - XOR (HL)";		break;
-		case 0XAF: XORAR8(Ra, "A", "A");	Dm = " - 0xAF - XOR A";			break;
-		case 0XB0:ORRA8R(Rb, "A", "B");	Dm = " - 0xB0 - OR B";			break;
-		case 0XB1:ORRA8R(Rc, "A", "C");	Dm = " - 0xB1 - OR C";			break;
-		case 0XB2:ORRA8R(Rd, "A", "D");	Dm = " - 0xB2 - OR D";			break;
-		case 0XB3:ORRA8R(Re, "A", "E");	Dm = " - 0xB3 - OR E";			break;
-		case 0XB4:ORRA8R(Rh, "A", "H");	Dm = " - 0xB4 - OR H";			break;
-		case 0XB5:ORRA8R(Rl, "A", "L");	Dm = " - 0xB5 - OR L";			break;
-		case 0XB6:ORRA8R(memoryA[Rhl], "A", "(HL)");	Dm = " - 0xB6 - OR (HL)";		break;
-		case 0XB7:ORRA8R(Rb, "A", "A");	Dm = " - 0xB7 - OR A";			break;
+		case 0XA0:ANDA8R(registers.Rb, "A", "B");	Dm = " - 0xA0 - AND B";		Dissam();	break;
+		case 0XA1:ANDA8R(registers.Rc, "A", "C");	Dm = " - 0xA1 - AND C";	Dissam();		break;
+		case 0XA2:ANDA8R(registers.Rd, "A", "D");	Dm = " - 0xA2 - AND D";	Dissam();	break;
+		case 0XA3:ANDA8R(registers.Re, "A", "E");	Dm = " - 0xA3 - AND E";		Dissam();	break;
+		case 0XA4:ANDA8R(registers.Rh, "A", "H");	Dm = " - 0xA4 - AND H";		Dissam();	break;
+		case 0XA5:ANDA8R(registers.Rl, "A", "L");	Dm = " - 0xA5 - AND L";		Dissam();	break;
+		case 0XA6:ANDA8R(memoryA[registers.Rhl], "A", "(HL)");	Dm = " - 0xA6 - AND (HL)";	Dissam();	break;
+		case 0XA7:ANDA8R(registers.Ra, "A", "A");	Dm = " - 0xA7 - AND A";		Dissam();	break;
+		case 0XA8:XORAR8(registers.Rb, "A", "B");	Dm = " - 0xA8 - XOR B";		Dissam();	break;
+		case 0XA9:XORAR8(registers.Rc, "A", "C");	Dm = " - 0xA9 - XOR C";	Dissam();	break;
+		case 0XAA:XORAR8(registers.Rd, "A", "D");	Dm = " - 0xAA - XOR D";	Dissam();		break;
+		case 0XAB:XORAR8(registers.Re, "A", "E");	Dm = " - 0xAB - XOR E";	Dissam();	break;
+		case 0XAC:XORAR8(registers.Rh, "A", "H");	Dm = " - 0xAC - XOR H";	Dissam();		break;
+		case 0XAD:XORAR8(registers.Rl, "A", "L");	Dm = " - 0xAD - XOR L";	Dissam();		break;
+		case 0XAE:XORAR8(memoryA[registers.Rhl], "A", "(HL)");	Dm = " - 0xAE - XOR (HL)";	Dissam();	break;
+		case 0XAF: XORAR8(registers.Ra, "A", "A");	Dm = " - 0xAF - XOR A";	Dissam();		break;
+		case 0XB0:ORRA8R(registers.Rb, "A", "B");	Dm = " - 0xB0 - OR B";		Dissam();	break;
+		case 0XB1:ORRA8R(registers.Rc, "A", "C");	Dm = " - 0xB1 - OR C";		Dissam();	break;
+		case 0XB2:ORRA8R(registers.Rd, "A", "D");	Dm = " - 0xB2 - OR D";	Dissam();		break;
+		case 0XB3:ORRA8R(registers.Re, "A", "E");	Dm = " - 0xB3 - OR E";		Dissam();	break;
+		case 0XB4:ORRA8R(registers.Rh, "A", "H");	Dm = " - 0xB4 - OR H";		Dissam();	break;
+		case 0XB5:ORRA8R(registers.Rl, "A", "L");	Dm = " - 0xB5 - OR L";		Dissam();	break;
+		case 0XB6:ORRA8R(memoryA[registers.Rhl], "A", "(HL)");	Dm = " - 0xB6 - OR (HL)";	Dissam();	break;
+		case 0XB7:ORRA8R(registers.Rb, "A", "A");	Dm = " - 0xB7 - OR A";		Dissam();	break;
 		case 0XB8:						Dm = " - 0xB8 - CP B";			break;
 		case 0XB9:						Dm = " - 0xB9 - CP C";			break;
 		case 0XBA:						Dm = " - 0xBA - CP D";			break;
@@ -2187,9 +2235,9 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		case 0XC0:						Dm = " - 0xC0 - RET NZ";		break;
 		case 0XC1:						Dm = " - 0xC1 - POP BC";		break;
 		case 0XC2:						Dm = " - 0xC2 - JP NZ $aabb";	break;
-		case 0XC3:	JP$aabb($aabb);		Dm = " - 0xC3 - JUMP $aabb";	break;
+		case 0XC3:	JP$aabb($aabb);		Dm = " - 0xC3 - JUMP $aabb";Dissam();	break;
 		case 0XC4:						Dm = " - 0xC4 - CALL NZ $aabb";	break;
-		case 0XC5:PUSH(Rbc, "BC");	Dm = " - 0xC5 - PUSH BC";		break;
+		case 0XC5:PUSH(registers.Rbc, "BC");	Dm = " - 0xC5 - PUSH BC";	Dissam();	break;
 		case 0XC6:						Dm = " - 0xC6 - ADD A $xx";		break;
 		case 0XC7:						Dm = " - 0xC7 - RST $ 0";		break;
 		case 0XC8:						Dm = " - 0xC8 - RET Z";			break;
@@ -2319,7 +2367,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 			case 0XCB79:					Dm = " - 0xCB79 - BIT 7 C";		break;
 			case 0XCB7A:					Dm = " - 0xCB7A - BIT 7 D";		break;
 			case 0XCB7B:					Dm = " - 0xCB7B - BIT 7 E";		break;
-			case 0XCB7C: BIT8R(Rh, 7, "RH");	Dm = " - 0xCB7C - BIT 7 H";		break;
+			case 0XCB7C: BIT8R(registers.Rh, 7, "RH");	Dm = " - 0xCB7C - BIT 7 H";	break;
 			case 0XCB7D:					Dm = " - 0xCB7D - BIT 7 (HL)";	break;
 			case 0XCB7F:					Dm = " - 0xCB7F - BIT 7 A";		break;
 			case 0XCB80:					Dm = " - 0xCB80 - RES 0 B";		break;
@@ -2455,7 +2503,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		}
 
 		case 0XCC:	Dm = " - 0xCC - CALL Z $aabb";	break;
-		case 0XCD:CALL16BA($aabb );	Dm = " - 0xCD - CALL $aabb";	break;
+		case 0XCD:CALL16BA($aabb );	Dm = " - 0xCD - CALL $aabb";Dissam();	break;
 		case 0XCE:	Dm = " - 0xCE - ADC A $xx";		break;
 		case 0XCF:	Dm = " - 0xCF - RST $8";		break;
 		case 0XD0:	Dm = " - 0xD0 - RET NC";		break;
@@ -2471,9 +2519,9 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		case 0XDC:	Dm = " - 0xDC - CALL C $aabb";	break;
 		case 0XDE:	Dm = " - 0xDE - SBC A $xx";		break;
 		case 0XDF:	Dm = " - 0xDF - RST $18";		break;
-		case 0XE0: LOADHAOFF($xx, Ra, "Ra");	 Dm = " - 0xE0 - LDH ($xx) A"; break;
-		case 0XE1:						Dm = " - 0xE1 - POP HL"; BoxDeb(loopDetected);		break;
-		case 0XE2: LOADOFFR8A(Rc, "C");	Dm = " - 0xE2 - LD (C) A"; 	break;
+		case 0XE0: LOADHAOFF($xx, registers.Ra, "Ra");	 Dm = " - 0xE0 - LDH ($xx) A";Dissam(); break;
+		case 0XE1:						Dm = " - 0xE1 - POP HL"; BoxDeb(loopDetected);	Dissam();	break;
+		case 0XE2: LOADOFFR8A(registers.Rc, "C");	Dm = " - 0xE2 - LD (C) A"; Dissam();	break;
 		case 0XE5:						Dm = " - 0xE5 - PUSH HL"; BoxDeb(loopDetected);		break;
 		case 0XE6:						Dm = " - 0xE6 - AND $xx"; BoxDeb(loopDetected);		break;
 		case 0XE7:						Dm = " - 0xE7 - RST $20"; BoxDeb(loopDetected);		break;
@@ -2524,9 +2572,33 @@ void compareDm()
 	//- This Module is DONE
 	///////////////////////////////////////////////////////////////////////////////////////
 
+void Dissam() {
+	std::stringstream dissam;
+	std::string dissamLine;
+	//dTarget y sTarget deben resetearse arriba
+	switch (opLen) {
+		case 1:
+		dissam << "OP: " << std::hex << std::setw(4) << std::setfill('0') << opcode << " - " << Dm;
+		break;
+		
+		case 2:
+		dissam << "OP: " << std::hex << std::setw(4) << std::setfill('0') << opcode << " - " << std::hex << (int)$bb << " - " << Dm;;
+		break;
+		
+		case 3:
+		dissam << "OP: " << std::hex << std::setw(4) << std::setfill('0') << opcode << " - " << std::hex << (int)$bb << ", " << std::hex << (int)$aa << " - " << Dm;
+		break;
+}
+dissamLine = dissam.str();
+SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+TextBlit(dissamLine, 0, 700);
+dissam.str(std::string());
+
+}
+
 
 void BoxDeb( bool& loopDetected) {  
-if (opCounter > 24515){
+if (opCounter > 24540){  //24515
 //if every missing opcode use this i can capture the debug m3ssage with ease. BOXdeb debugger is the not mapped case error
 	std::stringstream Debug;
 	std::stringstream debugLine_1SS;
@@ -2547,7 +2619,7 @@ if (opCounter > 24515){
 	std::stringstream debugLine_6SS;
 	std::string debugLine_6;
 	
-	std::bitset<8> debugFlag(Rf);
+	std::bitset<8> debugFlag(registers.Rf);
 	std::stringstream MemAccess;
 	
 
@@ -2556,11 +2628,11 @@ if (opCounter > 24515){
 		clearRect.x = 0;
 		clearRect.y = 300;
 		clearRect.w = 1200 ;
-		clearRect.h = 500;
+		clearRect.h = 800;
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderFillRect(renderer, &clearRect);
 		
-		Debug << "Executing...:  " << functType << "\n " << "AF:  " << std::hex << std::setw(4) << std::setfill('0') << int(Raf) << "    " << "BC: " << std::hex << std::setw(4) << std::setfill('0') << int(Rbc) << "\n" << "DE: " << std::hex << std::setw(4) << std::setfill('0') << int(Rde) << "    " << "HL: " << std::hex << std::setw(4) << std::setfill('0') << int(Rhl) << "\n"
+		Debug << "Executing...:  " << functType << "\n " << "AF:  " << std::hex << std::setw(4) << std::setfill('0') << int(registers.Raf) << "    " << "BC: " << std::hex << std::setw(4) << std::setfill('0') << int(registers.Rbc) << "\n" << "DE: " << std::hex << std::setw(4) << std::setfill('0') << int(registers.Rde) << "    " << "HL: " << std::hex << std::setw(4) << std::setfill('0') << int(registers.Rhl) << "\n"
 			<< "PC: " << std::hex << std::setw(4) << std::setfill('0') << int(pc) << "    " << "EI" << EInt << " " << "\n"
 			<< "IF: " << std::hex << std::setw(4) << std::setfill('0') << (int)IF << "  " << "DI: " << DInt << "\n"
 			<< "SP: " << std::hex << std::setw(4) << std::setfill('0') << (int)sp << "\n"
@@ -2578,8 +2650,8 @@ if (opCounter > 24515){
 				     
 				     
 				     debugLine_1SS <<  "Executing...:  " << functType;
-					 debugLine_3SS << "DE: " << std::hex << std::setw(4) << std::setfill('0') << int(Rde) << "    " << "HL: " << std::hex << std::setw(4) << std::setfill('0') << int(Rhl);
-					 debugLine_2SS << "AF:  " << std::hex << std::setw(4) << std::setfill('0') << int(Raf) << "    " << "BC: " << std::hex << std::setw(4) << std::setfill('0') << int(Rbc);
+					 debugLine_3SS << "DE: " << std::hex << std::setw(4) << std::setfill('0') << int(registers.Rde) << "    " << "HL: " << std::hex << std::setw(4) << std::setfill('0') << int(registers.Rhl);
+					 debugLine_2SS << "AF:  " << std::hex << std::setw(4) << std::setfill('0') << int(registers.Raf) << "    " << "BC: " << std::hex << std::setw(4) << std::setfill('0') << int(registers.Rbc);
 					 debugLine_4SS << "PC: " << std::hex << std::setw(4) << std::setfill('0') << int(pc) << "    " << "EI" << EInt;
 					 debugLine_5SS << "IF: " << std::hex << std::setw(4) << std::setfill('0') << (int)IF << "  " << "DI: " << DInt;
 					 debugLine_6SS << "Z[" << debugFlag.test(7) << "] N[" << debugFlag.test(6) << "] H[" << debugFlag.test(5) << "] C[" << debugFlag.test(4);
@@ -2727,6 +2799,7 @@ int main(int argc, char *argv[])
 		{ 
 		TTF_Font * font;
 		font = TTF_OpenFont("arial.ttf", 25);
+		font1 = TTF_OpenFont("arial.ttf", 40);
 		fontLoaded = true;
 		if (font == NULL) { std::cout << "FONT NOT LOADED\n"; std::cin.get(); }
 		else { std::cout << "SDL_TTF READY TO ROLL\n"; std::cin.get(); }
@@ -2737,7 +2810,7 @@ int main(int argc, char *argv[])
 
 		window = SDL_CreateWindow
 			("GBdroid", SDL_WINDOWPOS_UNDEFINED,
-			SDL_WINDOWPOS_UNDEFINED,1080, 720, SDL_WINDOW_SHOWN);
+			SDL_WINDOWPOS_UNDEFINED, 800, 600, SDL_WINDOW_SHOWN);
 
 		renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
 
@@ -2765,19 +2838,72 @@ int main(int argc, char *argv[])
 	//- Currently Catching Loops Instances
 	///////////////////////////////////////////////////////////////////////////////////////
 while (1) {
-	opCounter++;
-	gameboy.RegComb();
+	//gameboy.RegComb();
 	gameboy.opDecoder(loopDetected, opCounter);
+    
+    
+    
+    //
+	opCounter++;
 	if ( loopDetected == true) {
 	gameboy.Vram2();
 	SDL_RenderPresent(renderer);
-	} //if loop detected
+
+			switch (event.type)
+			{
+			case SDL_QUIT:
+				{
+
+				//	TTF_CloseFont(font);
+					//SDL_DestroyWindow(window);
+					// SDL_DestroyWindow(debugger);
+					SDL_Quit();
+				//	TTF_CloseFont(font);
+				}
 		
+				// done = true;
+				break;
+
+			case SDL_FINGERDOWN: {
+				stepModule.iddleButton();
+				animate.iddleButton();
+				
+				if (animate.isActive) {
+					//animateF = true;
+				}
+				
+				else if (stepModule.isActive) {
+					running = true;
+				}
+			}
+					break;
+				
+					case SDL_FINGERUP:{
+						stepModule.activeButton();
+						//animate.activeButton();
+						//stepModule.isIddle = true;
+						//animate.isIddle = true;
+						break;
+					}
+			} //SDL event
+		
+	
+	
+    
+    } //end LoopDetected = true
+    
+	} // fi  while
 	
   
 	
-} // fin While 2
+	 
+	/*
+	if (!animateF) { running = true; }
+		
 
+	
+	} // fin While 2
+*/
 		
 		
 
