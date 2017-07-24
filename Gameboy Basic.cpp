@@ -1705,7 +1705,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 	void ORRA8R(unsigned char &_r8, std::string Dtarget, std::string Starget) {
 		////-- Instruction preset
 		opLen = 1;
-		FLGH(2, 0, 0, 0, Ra, _r8, 5);
+		FLGH(2, 0, 0, 0, registers.Ra, _r8, 5);
 		registers.Ra |= _r8;
 		funcText << "OR " << Dtarget << ", " << Starget;
 		functType = funcText.str();
@@ -1713,16 +1713,21 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		pc += opLen;
 		////-- Instruction preset
 	}
-	void POP16R(unsigned &_16r) {
-		memoryA[sp] = _16r;
-		sp--;
+	void POPr16(unsigned short &_16r) {
+		opLen = 1;
+		_16r = stack[sp];
+		sp++;
 		opclock = 1;
 		functType = "POP 16R ";
+		BoxDeb(loopDetected);
+		pc += opLen;
 	//	FLGH(3, 3, 3, 3);
 	}
 	void PUSH( unsigned short _R16, std::string Starget) {
 		////-- Instruction preset
 		opLen = 1;
+		sp--;
+		stack[sp] = _R16;
 		FLGH(3, 3, 3, 3, NULL, NULL, NULL);
 		funcText << "PUSH " << Starget;
 		functType = funcText.str();
@@ -1763,15 +1768,71 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		opclock = 2;
 		functType = "RL (H)";
 	}
-	void RLR8(unsigned char _8R) {
+	void RLR8(unsigned char &_8R) {
 	//	FLGH(2, 0, 0, 2);
-		opclock = 2;
+			////-- Instruction preset
+		opLen = 2;
+		//FLGH(2, 0, 0, 0, registers.Ra, _r8, 6);
+		std::bitset<8> tempRegContainer(_8R);
+		std::bitset<8> tempRegRf(registers.Rf);
+		unsigned short tempR8;
+		std::bitset<8> tempAssemble();
+		
+		int Cvalue;
+		int MLvalue;
+		
+		//preparing to store carried over bit
+		
+		
+		Cvalue = tempRegRf.test(4);
+		MLvalue = tempRegContainer.test(7);
+		
+		tempR8 = (_8R << 1);
+		std::bitset<8> tempR8b(tempR8);
+		
+		tempR8b[0] = Cvalue;
+		tempRegRf[4] = MLvalue;
+
+		_8R = tempR8b.to_ulong();		
+		registers.Rf = tempRegRf.to_ulong();
+		
+		//registers.Ra ^= _r8;
 		functType = "RL 8R ";
+		functType = funcText.str();
+		BoxDeb(loopDetected);
+		pc += opLen;
+		////-- Instruction preset
 	}
-	void RLA() {
+	void RL(unsigned char _R8) {
 	//	FLGH(0, 0, 0, 2);
 		opclock = 1;
-		functType = "RL A ";
+		opLen = 1;
+		functType = "RL R8 ";
+		
+		std::bitset<8> tempRegContainer(_R8);
+		std::bitset<8> tempRegRf(registers.Rf);
+		unsigned short tempR8;
+		std::bitset<8> tempAssemble();
+		
+		int MRvalue;
+		int MLvalue;
+		
+		//preparing to store carried over bit
+		
+		MRvalue = tempRegContainer[0];
+		MLvalue = tempRegContainer[7];
+		
+		tempR8 = (_R8<< 1);
+		std::bitset<8> tempR8b(tempR8);
+		
+		tempR8b[0] = MLvalue;
+		tempRegRf[4] = MLvalue;
+		
+		_R8 = tempR8b.to_ulong();		
+		registers.Rf = tempRegRf.to_ulong();
+		BoxDeb(loopDetected);
+		pc += opLen;
+		
 	}
 	void RLCHM() {
 	//	FLGH(2, 0, 0, 2);
@@ -1783,7 +1844,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		opclock = 2;
 		functType = "RLC R8 R8 ";
 	}
-	void RLCA() {
+	void RLC() {
 	//	FLGH(0, 0, 0, 2);
 		opclock = 1;
 		functType = "RLC A ";
@@ -1902,7 +1963,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 	void SUBAR8(unsigned char &_8r, std::string Dtarget, std::string Starget) {
 		////-- Instruction preset
 		opLen = 1;
-		FLGH(2, 1, 2, 2, Ra, _8r, 2);
+		FLGH(2, 1, 2, 2, registers.Ra, _8r, 2);
 		registers.Ra -= _8r;
 		funcText << "SUB " << Dtarget << ", " << Starget;
 		functType = funcText.str();
@@ -1933,7 +1994,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 	void XORAR8(unsigned char &_r8, std::string Dtarget, std::string Starget) {		
 		////-- Instruction preset
 		opLen = 1;
-		FLGH(2, 0, 0, 0, Ra, _r8, 6);
+		FLGH(2, 0, 0, 0, registers.Ra, _r8, 6);
 		registers.Ra ^= _r8;
 		funcText << "XOR R8";
 		functType = funcText.str();
@@ -2233,7 +2294,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		case 0XBE:						Dm = " - 0xBE - CP (HL)";		break;
 		case 0XBF:						Dm = " - 0xBF - CP A";			break;
 		case 0XC0:						Dm = " - 0xC0 - RET NZ";		break;
-		case 0XC1:						Dm = " - 0xC1 - POP BC";		break;
+		case 0XC1:	POPr16(registers.Rbc); Dissam();					Dm = " - 0xC1 - POP BC";		break;
 		case 0XC2:						Dm = " - 0xC2 - JP NZ $aabb";	break;
 		case 0XC3:	JP$aabb($aabb);		Dm = " - 0xC3 - JUMP $aabb";Dissam();	break;
 		case 0XC4:						Dm = " - 0xC4 - CALL NZ $aabb";	break;
@@ -2264,15 +2325,15 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 			case 0XCB0D:					Dm = " - 0xCB0D - RRC L";		break;
 			case 0XCB0E:					Dm = " - 0xCB0E - RRC (HL)";	break;
 			case 0XCB0F:					Dm = " - 0xCB0F - RRC A";		break;
-			case 0XCB10:					Dm = " - 0xCB10 - RL B";		break;
-			case 0XCB11:	//PROX OPCODE			
+			case 0XCB10:		RLR8(registers.Rb);			Dm = " - 0xCB10 - RL B";		break;
+			case 0XCB11: RLR8(registers.Rc);	//PROX OPCODE			
 				Dm = " - 0xCB11 - RL C";		break;
-			case 0XCB12:					Dm = " - 0xCB12 - RL D";		break;
-			case 0XCB13:					Dm = " - 0xCB13 - RL E";		break;
-			case 0XCB14:					Dm = " - 0xCB14 - RL H";		break;
-			case 0XCB15:					Dm = " - 0xCB15 - RL L";		break;
-			case 0XCB16:					Dm = " - 0xCB16 - RL (HL)";		break;
-			case 0XCB17:					Dm = " - 0xCB17 - RL A";		break;
+			case 0XCB12:	RLR8(registers.Rd);				Dm = " - 0xCB12 - RL D";		break;
+			case 0XCB13:	RLR8(registers.Re);				Dm = " - 0xCB13 - RL E";		break;
+			case 0XCB14:		RLR8(registers.Rh);			Dm = " - 0xCB14 - RL H";		break;
+			case 0XCB15:		RLR8(registers.Rl);			Dm = " - 0xCB15 - RL L";		break;
+			case 0XCB16:		RLR8(memoryA[registers.Rhl]);			Dm = " - 0xCB16 - RL (HL)";		break;
+			case 0XCB17:	RLR8(registers.Ra);				Dm = " - 0xCB17 - RL A";Dissam();		break;
 			case 0XCB18:					Dm = " - 0xCB18 - RR B";		break;
 			case 0XCB19:					Dm = " - 0xCB19 - RR C";		break;
 			case 0XCB1A:					Dm = " - 0xCB1A - RR D";		break;
@@ -2507,7 +2568,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		case 0XCE:	Dm = " - 0xCE - ADC A $xx";		break;
 		case 0XCF:	Dm = " - 0xCF - RST $8";		break;
 		case 0XD0:	Dm = " - 0xD0 - RET NC";		break;
-		case 0XD1:	Dm = " - 0xD1 - POP DE";		break;
+		case 0XD1: POPr16(registers.Rde); Dissam();	Dm = " - 0xD1 - POP DE";		break;
 		case 0XD2:	Dm = " - 0xD2 - JP NC $aabb";	break;
 		case 0XD4:	Dm = " - 0xD4 - CALL NC $aabb";	break;
 		case 0XD5:	Dm = " - 0xD5 - PUSH DE";		break;
