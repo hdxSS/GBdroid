@@ -232,6 +232,10 @@ public:
 	unsigned char FF4A_WY; //Windows Y position
 	unsigned char FF4B_WX; //Windows X position
 	unsigned char FFFF_IE; //Interrupt Enable
+	
+	unsigned char colorNum[4];
+	unsigned char palleteColor[4];
+	unsigned char color[4];
 
 	unsigned char opclock = 0;
 	unsigned long cpuClock = 0;
@@ -748,7 +752,134 @@ if ( debugMode == true )
 		case 0xFF47: { std::cout << "- trying to write Window / BG Pallete Data \n";
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Debug M","Writing Pallete Data (BG)", NULL);
 	   FF47_BGP = memoryA[0xFF00 + Rc];
-	   std::bitset<8> FF47bits( FF47_BGP);//Window palette DATA converted to bits
+	   std::bitset<8> FF47bits( FF47_BGP);//Window
+	  // palette DATA converted to bits
+	  std::bitset<8> pair0();
+	  std::bitset<8> pair1();
+	  std::bitset<8> pair2();
+	  std::bitset<8> pair3();
+	  
+	  int pair00;
+	  int pair01;
+	  int pair10;
+	  int pair11;
+	  int pair20;
+	  int pair21;
+	  int pair30;
+	  int pair31;
+	  
+	  
+	  // The register can hold 4 colors per call
+	  // numered from 0 to 3
+	  
+	  pair00= FF47bits[0];
+	  pair01= FF47bits[1];
+	  
+	  palleteColor[0] = ( pair00 << 1) | pair01;
+	  
+	  pair10 = FF47bits[2];
+	  pair11 = FF47bits[3];
+	  
+	  palleteColor[1] = ( pair10 << 1) | pair11;
+	  
+	  pair20 = FF47bits[4];
+	  pair21 = FF47bits[5];
+	  
+	  palleteColor[2] = ( pair20 << 1) | pair21;
+	  
+	  pair30 = FF47bits[6];
+	  pair31 = FF47bits[7];
+	  
+	  palleteColor[3] = ( pair30 << 1) | pair31;
+	  
+	 //palleteColor[0] = pair0.to_ulong();
+	  //palleteColor[1] = pair1.to_ulong();
+	  //palleteColor[2] = pair2.to_ulong();
+	  //palleteColor[3] = pair3.to_ulong();
+
+	  
+	  //color0 of pallete
+	  switch (palleteColor[0]) {
+	  	case 0:
+	  	color[0] = SDL_SetRenderDrawColor(renderer, 255,255,255, 255);
+	  	break;
+	  	
+	  	case 1:
+	  	color[0] = SDL_SetRenderDrawColor(renderer, 192, 192, 192, 255);
+	  	break;
+	  	
+	  	case 2:
+	  	color[0] = SDL_SetRenderDrawColor(renderer, 96, 96, 96, 255);
+	  	break;
+	  	
+	  	case 3:
+	  	color[0] = SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	  	break;
+	  }
+	  
+	  //color 1 of pallete
+	  
+	  switch (palleteColor[1]) {
+	  	case 0:
+	  	color[1] = SDL_SetRenderDrawColor(renderer, 255,255,255, 255);
+	  	break;
+	  	
+	  	case 1:
+	  	color[1] = SDL_SetRenderDrawColor(renderer, 192, 192, 192, 255);
+	  	break;
+	  	
+	  	case 2:
+	  	color[1] = SDL_SetRenderDrawColor(renderer, 96, 96, 96, 255);
+	  	break;
+	  	
+	  	case 3:
+	  	color[1] = SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	  	break;
+	  }
+	  
+	  //color 2 of pallete
+	  
+	  switch (palleteColor[2]) {
+	  	case 0:
+	  	color[2] = SDL_SetRenderDrawColor(renderer, 255,255,255, 255);
+	  	break;
+	  	
+	  	case 1:
+	  	color[2] = SDL_SetRenderDrawColor(renderer, 192, 192, 192, 255);
+	  	break;
+	  	
+	  	case 2:
+	  	color[2] = SDL_SetRenderDrawColor(renderer, 96, 96, 96, 255);
+	  	break;
+	  	
+	  	case 3:
+	  	color[2] = SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	  	break;
+	  }
+	  //color 3 of pallete
+	  
+	  switch (palleteColor[3]) {
+	  	case 0:
+	  	color[3] = SDL_SetRenderDrawColor(renderer, 255,255,255, 255);
+	  	break;
+	  	
+	  	case 1:
+	  	color[3] = SDL_SetRenderDrawColor(renderer, 192, 192, 192, 255);
+	  	break;
+	  	
+	  	case 2:
+	  	color[3] = SDL_SetRenderDrawColor(renderer, 96, 96, 96, 255);
+	  	break;
+	  	
+	  	case 3:
+	  	color[3] = SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	  	break;
+	  }
+	  
+	  
+	  
+	  
+	  /*
 	   if (FF47bits.test(0) == 0 && FF47bits.test(1) == 0 ) {
 	   	whiteC = true;
 	   	// neutral white 255 255 255 bits 0 0
@@ -768,6 +899,8 @@ if ( debugMode == true )
 	   	//neutral black 0 0 0 bits 1 1
 	   	blackC = true;
 	   }
+		}
+		*/
 		}
 		 break;
 		 
@@ -1768,7 +1901,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		opclock = 2;
 		functType = "RL (H)";
 	}
-	void RLR8(unsigned char &_8R) {
+	void RLR8(unsigned char &_8R, std::string dTarget) {
 	//	FLGH(2, 0, 0, 2);
 			////-- Instruction preset
 		opLen = 2;
@@ -1797,7 +1930,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		registers.Rf = tempRegRf.to_ulong();
 		
 		//registers.Ra ^= _r8;
-		functType = "RL 8R ";
+		functType = "RL" + dTarget;
 		functType = funcText.str();
 		BoxDeb(loopDetected);
 		pc += opLen;
@@ -2125,7 +2258,7 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 		case 0X14:INC8R(registers.Rd, "D");		Dm = " - 0x14 - INC D";	Dissam();		break;
 		case 0X15:DEC8R(registers.Rd, "D");		Dm = " - 0x15 - DEC D";	Dissam();		break;
 		case 0X16:LDR8$xx(registers.Rd, (int)$xx, "D");	Dm = " - 0x15 - LD D $xx ";Dissam();		break;
-		case 0X17:						Dm = " - 0x17 - RLA";	Dissam();		break;
+		case 0X17:	RLR8(registers.Ra, "A");					Dm = " - 0x17 - RLA";	Dissam();		break;
 		case 0X18:						Dm = " - 0x18 - JR $xx";	Dissam();	break;
 		case 0X19:						Dm = " - 0x19 - ADD HL DE";	Dissam();	break;
 		case 0X1A:LOADRA16RM(registers.Rde, "DE");Dm = " - 0x1A - LD A (DE)";	Dissam();	break;
@@ -2325,15 +2458,15 @@ else { FLGH(0, 0, 1, 3, NULL, NULL, NULL); }
 			case 0XCB0D:					Dm = " - 0xCB0D - RRC L";		break;
 			case 0XCB0E:					Dm = " - 0xCB0E - RRC (HL)";	break;
 			case 0XCB0F:					Dm = " - 0xCB0F - RRC A";		break;
-			case 0XCB10:		RLR8(registers.Rb);			Dm = " - 0xCB10 - RL B";		break;
-			case 0XCB11: RLR8(registers.Rc);	//PROX OPCODE			
+			case 0XCB10:		RLR8(registers.Rb, "B");			Dm = " - 0xCB10 - RL B";		break;
+			case 0XCB11: RLR8(registers.Rc, "C");	//PROX OPCODE			
 				Dm = " - 0xCB11 - RL C";		break;
-			case 0XCB12:	RLR8(registers.Rd);				Dm = " - 0xCB12 - RL D";		break;
-			case 0XCB13:	RLR8(registers.Re);				Dm = " - 0xCB13 - RL E";		break;
-			case 0XCB14:		RLR8(registers.Rh);			Dm = " - 0xCB14 - RL H";		break;
-			case 0XCB15:		RLR8(registers.Rl);			Dm = " - 0xCB15 - RL L";		break;
-			case 0XCB16:		RLR8(memoryA[registers.Rhl]);			Dm = " - 0xCB16 - RL (HL)";		break;
-			case 0XCB17:	RLR8(registers.Ra);				Dm = " - 0xCB17 - RL A";Dissam();		break;
+			case 0XCB12:	RLR8(registers.Rd, "C");				Dm = " - 0xCB12 - RL D";		break;
+			case 0XCB13:	RLR8(registers.Re, "E");				Dm = " - 0xCB13 - RL E";		break;
+			case 0XCB14:		RLR8(registers.Rh, "H");			Dm = " - 0xCB14 - RL H";		break;
+			case 0XCB15:		RLR8(registers.Rl, "L");			Dm = " - 0xCB15 - RL L";		break;
+			case 0XCB16:		RLR8(memoryA[registers.Rhl],"HL" );			Dm = " - 0xCB16 - RL (HL)";		break;
+			case 0XCB17:	RLR8(registers.Ra, "A");				Dm = " - 0xCB17 - RL A";Dissam();		break;
 			case 0XCB18:					Dm = " - 0xCB18 - RR B";		break;
 			case 0XCB19:					Dm = " - 0xCB19 - RR C";		break;
 			case 0XCB1A:					Dm = " - 0xCB1A - RR D";		break;
